@@ -1,0 +1,170 @@
+# Keys and commands
+
+Local command names are case-insensitive. Local commands are handled by the
+TUI; other slash commands are offered to the Host command registry before
+falling back to a normal prompt.
+
+## Global keys
+
+| Key | Action |
+|---|---|
+| `Ctrl+C` | Quit the client. Running Host work is not stopped. |
+| `Ctrl+T` | Expand or collapse reasoning blocks. |
+| `Ctrl+O` | Expand or collapse tool arguments and output. |
+| `Ctrl+L` | Return to the newest message and resume auto-follow. |
+| `PgUp` | Scroll the transcript up one page. |
+| `Shift+PgUp`, `Alt+V`, `Ctrl+Alt+B` | Alternative scroll-up bindings. |
+| `PgDn` | Scroll the transcript down one page. |
+| `Shift+PgDn`, `Ctrl+V`, `Ctrl+Alt+F` | Alternative scroll-down bindings. |
+| `Ctrl+Home` | Jump to the top of the loaded history. |
+| `Ctrl+End` | Jump to the bottom of the loaded history. |
+| Mouse wheel | Scroll the transcript. |
+
+The transcript page and jump keys are consumed only when no modal panel or
+picker is open. In a panel, the same keys belong to that panel.
+
+## Composer and text editing
+
+| Key | Action |
+|---|---|
+| `Enter` | Send the prompt. While a turn is running, the prompt is queued. |
+| `Shift+Enter`, `Ctrl+J` | Insert a newline instead of sending. |
+| `Up`, `Ctrl+P` | Move up; on the first line at column 0, or while browsing history, go to the previous prompt. |
+| `Down`, `Ctrl+N` | Move down; on the last line while browsing, go to the next prompt. |
+| `Left`, `Ctrl+B` | Move one character left. |
+| `Right`, `Ctrl+F` | Move one character right. |
+| `Alt+B`, `Ctrl+Left`, `Alt+Left` | Move one word left. |
+| `Alt+F`, `Ctrl+Right`, `Alt+Right` | Move one word right. |
+| `Home`, `Ctrl+A` | Move to the start of the line. |
+| `End`, `Ctrl+E` | Move to the end of the line. |
+| `Ctrl+K` | Delete to the end of the line. |
+| `Ctrl+U` | Delete to the start of the line. |
+| `Ctrl+W`, `Alt+Backspace` | Delete the previous word. |
+| `Alt+D`, `Alt+Delete` | Delete the next word. |
+| `Ctrl+D`, `Delete` | Delete the character under the cursor. |
+| `Backspace` | Delete the character before the cursor. |
+| `Ctrl+Y` | Yank the last killed text. |
+| `Alt+Y` | Cycle the kill ring. |
+| `Ctrl+-` | Undo. |
+| `Ctrl+]` | Jump forward to a character. |
+| `Ctrl+Alt+]` | Jump backward to a character. |
+
+The prompt history is per client run and capped at 100 entries. Reaching the
+top or bottom of the composer with the arrow keys enters or leaves history
+browsing; returning past the newest entry restores the draft.
+
+## Command completion
+
+| Key | Action |
+|---|---|
+| `/` at the start of a line | Open the command list. |
+| Printable text after `/` | Filter the command list. |
+| `Tab` | Complete the selection into the composer without executing it. |
+| `Enter` | Complete the selection. Slash commands are then executed; path completions are inserted without submitting. |
+| `Ctrl+N`, `Ctrl+P`, `Up`, `Down` | Move through completion items. |
+
+For commands with arguments, complete the command first with `Tab`, then type
+the argument. `/resume` completes session titles and IDs; `/model` completes
+`provider/model` pairs; relative paths such as `./src/` and `../` complete from
+the current session's working directory. `@` file indexing is not implemented.
+
+The completion panel is an overlay above the composer. Showing or hiding it does
+not change the editor height or move the input line.
+
+## Session and model pickers
+
+| Key | Action |
+|---|---|
+| `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move the selection. |
+| `/` or any printable character | Enter incremental search. |
+| Printable characters in search | Refine the filter; matching workspace groups expand. |
+| `Enter` | Select the highlighted session, model, or group. |
+| `Left` | Collapse a workspace group, or collapse the current group and jump to its header. |
+| `Right` | Expand a workspace group. |
+| `Ctrl+U` | Clear the search query. |
+| `Ctrl+W` | Delete the previous search word. |
+| `Backspace` | Edit the search query. |
+| `Esc` | Close the picker from navigation or search mode. |
+
+`Esc` closes the whole picker; it does not just leave search mode. Use `Ctrl+U`
+or `Backspace` to clear the filter while keeping the picker open.
+
+Search tokens match titles, working directories, descriptions, and the
+underlying picker values (for the model picker, provider/model labels). A single
+ASCII letter is matched at word starts to keep one-character queries useful.
+
+The session tree also shows a **New session** row; `Enter` on it creates a
+session. `Enter` on a workspace header toggles it; `Enter` on a session opens
+it.
+
+## Approvals
+
+| Key | Action |
+|---|---|
+| `y`, `Y`, `Enter` | Allow once. |
+| `n`, `N`, `Esc` | Reject. |
+
+## Questions
+
+| Key | Action |
+|---|---|
+| `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move between options. |
+| `Space` | Toggle or select the highlighted option. |
+| `Enter` | Select and advance; with no options, enter custom text. |
+| `1`–`9` | Select an option by number. |
+| `c` | Enter custom text for the current question. |
+| `s` | Skip the entire batch and return `skipped` immediately. |
+| `Esc` | Dismiss the TUI panel; the Host may hand the question to another client or its timeout. |
+
+In custom-text mode, `Enter` submits the text and returns to the option list;
+`Esc` returns without submitting.
+
+## Information panels
+
+| Key | Action |
+|---|---|
+| `Esc`, `Enter`, `q` | Close the help or status panel. |
+
+## Preview panes
+
+| Key | Action |
+|---|---|
+| `PgUp` | Scroll back one page. |
+| `PgDn` | Scroll forward one page. |
+| `End` | Jump to the newest output. |
+| `Ctrl+C`, `q`, `Q` | Close the preview pane. |
+
+## Slash commands
+
+### Local commands
+
+| Command | Description |
+|---|---|
+| `/help` | Show the built-in help. |
+| `/sessions` | Open the session picker. |
+| `/agents` | List subagents under the current session. |
+| `/agents-preview [count]` | Open running subagents in Herdr preview panes (1–2). |
+| `/peek` | Toggle the bounded subagent peek. |
+| `/parent` | Open the direct parent of a subagent history. |
+| `/new [cwd]` | Create a session, optionally in `cwd`. |
+| `/resume [id]` | Open the picker, or open the given session directly. |
+| `/rename <title>` | Rename the current session. |
+| `/cancel` | Cancel the running turn. |
+| `/steer <text>` | Interrupt the turn and insert a steering message. |
+| `/queue <text>` | Queue a message while a turn is running. |
+| `/model [provider model]` | Open the model picker, or switch directly. |
+| `/status` | Show session, model, preset, sandbox, context, token, todo, goal, host, theme, and socket details. |
+| `/quit`, `/exit` | Exit the client without stopping Host work. |
+
+### Host commands
+
+Commands registered by the Host through `ctx.commands` are merged into the
+command list after the local commands. Examples include `/compact` and `/goal`.
+They execute inside the Host and do not become model prompts. If the Host does
+not recognize a command, or predates the command routes, the line is sent to
+the model as a normal prompt.
+
+Host command execution and subagent history require Host plugin 0.10.0 or
+later; pending approvals and questions are replayed when a terminal attaches
+late on Host plugin 0.8.0 or later. After installing or upgrading the plugin,
+restart DeepSeek Harness so the new bridge is mounted.
