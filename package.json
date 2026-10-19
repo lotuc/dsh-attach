@@ -31,6 +31,7 @@
     "bin",
     "docs",
     "cordis.patch.yml",
+    "herdr-plugin.toml",
     "README.md"
   ],
   "dsh": {

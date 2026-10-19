@@ -112,6 +112,10 @@ The client is tuned for long-running sessions:
   and do not refresh on every tool result during a parent turn. The summary
   refresh itself does not trigger a redraw or Herdr report when the total and
   running counts are unchanged.
+- **Cached, non-blocking session discovery.** The picker shares in-flight
+  `session.list` requests and caches the result for five seconds, so reopening
+  it is immediate. Workspace lookup is optional, cached, and bounded to 300 ms;
+  if the registry is slow, the picker groups by `cwd` instead of waiting.
 - **Button-motion mouse tracking by default.** All-motion tracking (`1003`) is
   disabled to avoid a flood of motion events in Herdr and iTerm2. Set
   `DSH_ATTACH_FULL_MOUSE=1` if you need it.
@@ -141,7 +145,9 @@ With `DSH_ATTACH_PERF=1`:
 - `loop-lag` is logged when the event loop is blocked for more than 100 ms.
 
 The log also records `transcript-trim` events with the number of dropped and
-kept rows, and `subagents` / `subagents-error` events for refresh failures.
+kept rows, and `subagents` / `subagents-error` events for refresh failures. Each
+session picker open logs a `session-picker` event with elapsed milliseconds, the
+session count, and whether workspace lookup fell back to `cwd` grouping.
 
 ### Host capabilities
 

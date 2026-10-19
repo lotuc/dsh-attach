@@ -50,6 +50,8 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | `--theme must be "light" or "dark"` | Use one of the two supported theme names. |
 | Herdr resume cannot connect after restoring a pane | The resume command only restarts the TUI. Start the DSH Host first; the resume does not start it. |
 | `/agents-preview` says it needs a Herdr pane | Run the parent `dsh-attach` inside Herdr, or use `/agents` for an in-TUI list. |
+| `/agents-preview` reports the Herdr plugin is not linked | Run `herdr plugin link --enabled <path-to-dsh-tui-attach>`. Use the repository path or the installed profile package path. |
+| `/agents-preview` opens a pane that exits immediately | Make sure `node` is on `PATH` and relink the plugin after upgrading this package. Check `herdr plugin log list --plugin dsh-tui-attach`. |
 | Prompt history disappears after restart | Prompt history is per client run and is not persisted. |
 | Old endpoint files remain after a Host restart | A shutdown normally removes its descriptor. A crashed Host may leave a stale descriptor; the client skips unreachable endpoints. Remove stale files only while no matching Host is running. |
 

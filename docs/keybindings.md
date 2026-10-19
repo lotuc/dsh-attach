@@ -103,6 +103,18 @@ it.
 |---|---|
 | `y`, `Y`, `Enter` | Allow once. |
 | `n`, `N`, `Esc` | Reject. |
+| `d`, `D`, `e`, `E` | Open the full request text, command, and raw arguments in a read-only details view. |
+
+### Approval details
+
+The details view is read-only and scrolls independently of the approval panel.
+
+| Key | Action |
+|---|---|
+| `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Scroll one line. |
+| `PgUp`, `PgDn`, `Ctrl+U`, `Ctrl+D` | Scroll one page. |
+| `Home`, `End`, `g`, `G` | Jump to the top or bottom. |
+| `Esc`, `q`, `Q` | Close details and return to the approval panel. |
 
 ## Questions
 
@@ -134,6 +146,10 @@ In custom-text mode, `Enter` submits the text and returns to the option list;
 | `End` | Jump to the newest output. |
 | `Ctrl+C`, `q`, `Q` | Close the preview pane. |
 
+Managed Herdr preview panes also close automatically after the child has been
+idle for `DSH_ATTACH_PREVIEW_EXIT_AFTER` seconds (default 15; set `0` to keep
+them open).
+
 ## Slash commands
 
 ### Local commands
@@ -143,7 +159,7 @@ In custom-text mode, `Enter` submits the text and returns to the option list;
 | `/help` | Show the built-in help. |
 | `/sessions` | Open the session picker. |
 | `/agents` | List subagents under the current session. |
-| `/agents-preview [count]` | Open running subagents in Herdr preview panes (1–2). |
+| `/agents-preview [count]` | Open running subagents in managed Herdr plugin panes (1–2). |
 | `/peek` | Toggle the bounded subagent peek. |
 | `/parent` | Open the direct parent of a subagent history. |
 | `/new [cwd]` | Create a session, optionally in `cwd`. |
@@ -153,7 +169,7 @@ In custom-text mode, `Enter` submits the text and returns to the option list;
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
 | `/queue <text>` | Queue a message while a turn is running. |
 | `/model [provider model]` | Open the model picker, or switch directly. |
-| `/status` | Show session, model, preset, sandbox, context, token, todo, goal, host, theme, and socket details. |
+| `/status` | Show session, model, preset, sandbox, context, token, queued-message count, todo, goal, host, theme, and socket details. |
 | `/quit`, `/exit` | Exit the client without stopping Host work. |
 
 ### Host commands

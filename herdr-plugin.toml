@@ -1,0 +1,12 @@
+id = "dsh-tui-attach"
+name = "DSH TUI Attach"
+version = "0.14.0"
+min_herdr_version = "0.9.0"
+description = "Read-only DeepSeek Harness subagent previews in managed Herdr panes."
+platforms = ["linux", "macos"]
+
+[[panes]]
+id = "preview"
+title = "DSH subagent preview"
+placement = "split"
+command = ["node", "bin/herdr-preview.js"]

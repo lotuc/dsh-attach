@@ -45,14 +45,18 @@ only by the current user.
   pickers, and question options; `Ctrl+A/E/B/F` move by line or character;
   `Ctrl+K/U/W/Y` kill and yank.
 - **Approvals and questions**: approval requests appear as panels; `y` allows
-  once and `n` rejects. `ask_user_question` supports single select, multi
-  select, custom text, and plan approval.
+  once, `n` rejects, and `d` opens the full request and command in a scrollable
+  read-only view. `ask_user_question` supports single select, multi select,
+  custom text, and plan approval.
 - **Host command passthrough**: unknown slash commands such as `/compact` and
   `/goal` are executed by the Host command registry instead of being sent as
   model prompts.
+- **Visible pending queue**: local prompts keep a `queued` / `steering` marker
+  until the Host claims them, pending inbox messages from other clients render
+  above the composer, and `/status` reports the queue count.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
-  resume command when running inside a Herdr pane, with optional multi-pane
-  subagent previews.
+  resume command when running inside a Herdr pane, with managed subagent
+  preview panes that close after the preview becomes idle.
 - **Local-only security**: owner-only Unix socket, a per-process random token,
   constant-time token comparison, and terminal control-sequence sanitization.
 
@@ -106,7 +110,7 @@ CLI reference.
 | [Usage](docs/usage.md) | Sessions, prompts, approvals, questions, subagents, attach behavior |
 | [Keys and commands](docs/keybindings.md) | Complete keyboard and slash-command reference |
 | [Configuration](docs/configuration.md) | Host plugin configuration, environment variables, themes |
-| [Herdr integration](docs/herdr.md) | Agent status reporting, subagent peeks, preview panes |
+| [Herdr integration](docs/herdr.md) | Agent status reporting, managed preview pane setup, auto-close |
 | [Diagnostics](docs/diagnostics.md) | Lifecycle log, exit reasons, focus debugging, performance |
 | [Security](docs/security.md) | Trust boundary, socket authentication, terminal injection |
 | [Troubleshooting](docs/troubleshooting.md) | Common failures and fixes |

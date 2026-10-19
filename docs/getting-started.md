@@ -110,6 +110,7 @@ The TUI requires a TTY. Use `--list` for scripts and non-interactive output.
 | `--reattach <id>` | Attach to a session again; alias for `--session`. |
 | `--preview <id>` | Run a read-only live preview of one session, with no editor. |
 | `--parent <id>` | Durable parent session for a subagent preview. |
+| `--preview-exit-after <seconds>` | Exit a preview after this much idle time; `0` keeps it open. |
 | `-n`, `--new` | Create a new session and open it. |
 | `-p`, `--prompt <text>` | Submit this prompt after opening. |
 | `-C`, `--cwd <path>` | Working directory for a new session. |

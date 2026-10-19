@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ApprovalPanel, FilterList, PickerPanel } from '../lib/client/panels.js';
+import { stripTerminalSequences } from '@earendil-works/pi-tui';
+
+import { ApprovalPanel, FilterList, LoadingPanel, PickerPanel } from '../lib/client/panels.js';
 import { selectTheme } from '../lib/client/theme.js';
 
 function makePanel() {
@@ -22,6 +24,44 @@ function makePanel() {
   });
   return { list, panel, events };
 }
+
+test('renders a loading panel while a list request is in flight', () => {
+  const plain = stripTerminalSequences(new LoadingPanel('Sessions', 'Loading sessions…').render(40).join('\n'));
+  assert.match(plain, /Sessions/);
+  assert.match(plain, /Loading sessions/);
+});
+
+test('renders list metadata right-aligned and omits duplicated cwd', () => {
+  const list = new FilterList(
+    [
+      {
+        kind: 'group',
+        groupKey: 'g',
+        value: '__group__:g',
+        label: 'Workspace',
+        description: '/work · 2 sessions · 1 running',
+        meta: '2 sessions · 1 running',
+      },
+      {
+        kind: 'session',
+        groupKey: 'g',
+        value: 's1',
+        depth: 1,
+        label: 'Fix tests',
+        description: '2m ago · /work · 1/2 agents',
+        meta: '2m ago · 1/2 agents',
+      },
+    ],
+    5,
+    selectTheme,
+  );
+  const lines = list.render(60).map((line) => stripTerminalSequences(line).trimEnd());
+  assert.ok(lines[0].includes('▾ Workspace'));
+  assert.ok(lines[0].endsWith('2 sessions · 1 running'));
+  assert.ok(lines[1].includes('Fix tests'));
+  assert.ok(lines[1].endsWith('2m ago · 1/2 agents'));
+  assert.ok(!lines[1].includes('/work'));
+});
 
 test('ctrl+p/n, CSI-u ctrl keys and arrows move the cursor', () => {
   const { list, panel } = makePanel();

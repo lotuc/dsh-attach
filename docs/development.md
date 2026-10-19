@@ -140,6 +140,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | Path | Role |
 |---|---|
 | `bin/dsh-attach.js` | Executable entry point; delegates to the client CLI. |
+| `bin/herdr-preview.js` | Herdr plugin pane entrypoint; reconstructs the preview client invocation from pane env. |
 | `lib/host.js` | Cordis plugin entry, injection, and Config schema. |
 | `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, descriptors. |
 | `lib/host.d.ts` | Type declarations for the plugin entry. |
@@ -152,6 +153,8 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/command-catalog.js` | Local slash commands and `/resume` / `/model` completion. |
 | `lib/client/keys.js` | Key constants and Ctrl/arrow matching across terminal encodings. |
 | `lib/client/herdr.js` | Herdr agent state reporting and pane release. |
+| `lib/client/herdr-preview.js` | Builds `plugin pane open` arguments and parses the opened pane ID. |
+| `lib/client/inbox.js` | Normalizes the durable inbox projection and applies queue splices. |
 | `lib/client/peek.js` | Bounded subagent peek over an extra socket. |
 | `lib/client/preview.js` | Read-only preview renderer for `--preview` panes. |
 | `lib/client/log.js` | 0600 lifecycle log with rotation and token redaction. |
@@ -160,6 +163,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/subagent-labels.js` | Merges short catalog labels into active subagent rows. |
 | `lib/shared/protocol.js` | Protocol version, limits, endpoint names, JSONL helpers. |
 | `cordis.patch.yml` | Bundle patch that inserts the `tui-attach` entry. |
+| `herdr-plugin.toml` | Herdr plugin manifest with the `preview` pane entrypoint. |
 | `test/*.test.mjs` | Node test runner suites. |
 
 ## Tests
@@ -184,10 +188,13 @@ Coverage includes:
   attach;
 - subagent parent addresses, question cancellation, and Host command execution;
 - subagent catalog labels and peek name fallback;
-- completion catalogs and picker filtering;
+- approval details: full request/command content and scroll navigation;
+- completion catalogs, picker filtering, and metadata layout;
 - editor completion splitting, dismissal callbacks, and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
 - Herdr report arguments and lifecycle log redaction/rotation;
+- Herdr managed preview pane arguments and pane ID parsing;
+- Pending-inbox normalization, splice application and user-visible filtering;
 - light/dark themes.
 
 ## Local development loop
@@ -222,6 +229,7 @@ The version appears in several places and must be kept in sync:
 - `lib/host/server.js` (`PLUGIN_VERSION`);
 - `lib/client/cli.js` (`--version` output);
 - `lib/client/connection.js` (client `hello` payload);
+- `herdr-plugin.toml` (Herdr plugin manifest `version`);
 - the tarball and descriptor examples in `README.md` and `docs/`.
 
 Release steps:
@@ -233,6 +241,8 @@ Release steps:
 4. Run `pnpm pack`.
 5. Install the tarball into a profile, restart the Host, and smoke-test attach,
    prompt, approval, question, and a subagent preview.
+6. Relink the Herdr plugin when its manifest or wrapper changed:
+   `herdr plugin link --enabled <path-to-dsh-tui-attach>`.
 
 ## Host compatibility notes
 

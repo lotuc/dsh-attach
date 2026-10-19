@@ -8,7 +8,8 @@ The alternate-screen UI has six regions:
 header      connection dot · DSH · session title · agent badge · cwd
 transcript  user messages, Markdown answers, reasoning, tool calls and results
 peek        up to two compact running-subagent summaries
-activity    turn/step state, queue state, interactive prompts
+queue       pending inbox messages from other clients or before attach
+activity    turn/step state, queue count, interactive prompts
 editor      prompt composer and floating command/file completions
 footer      shortcuts, context/token usage, permission state
 ```
@@ -22,14 +23,24 @@ calls, model selection changes, todos, and goals.
 
 Running `dsh-attach` without `--session` opens the session picker. The list is
 grouped by durable Workspace, with a `cwd` fallback for sessions that the
-Workspace registry does not account for. Each group header shows the workspace
-path, session count, agent count, and running count.
+Workspace registry does not account for. Each group header shows its title and
+right-aligned session, running, and agent counts.
 
 The picker starts compact: the current group, groups with running sessions, and
 the most recently used group are expanded. Typing or pressing `/` enters
 incremental search over titles, working directories, and descriptions, and
 expands matching groups. Group headers are marked with `▸`/`▾`, the current
 session with `★`, and running sessions with `●`.
+
+Session rows keep the title on the left and right-align the age and agent count.
+The working directory is not repeated on every row because the group header
+already identifies it; it remains part of the search text.
+
+Session discovery can take a moment on a large history. If it takes longer than
+about 120 ms, the picker shows a small loading panel. Results are cached briefly
+and in-flight requests are shared; workspace lookup is best-effort and bounded
+so a slow Workspace registry falls back to `cwd` grouping instead of holding up
+the list.
 
 The first row is **New session**, which creates a session in the client
 process's working directory. Start `dsh-attach -C <path>` to override that for
@@ -63,7 +74,9 @@ working directory.
 
 Press `Enter` to submit the composer contents. While a turn is running, the
 prompt is queued by default; the Host delivers it when the current turn is
-ready. The transcript shows a local echo marked `queued`.
+ready. The transcript shows a local echo marked `queued` until the Host claims
+the message. Pending messages from any attached client appear in the queue
+panel above the composer, and `/status` reports the current count.
 
 Use a slash command to change delivery:
 
@@ -137,6 +150,13 @@ reason, and command preview.
 |---|---|
 | `y`, `Y`, `Enter` | Allow once. |
 | `n`, `N`, `Esc` | Reject. |
+| `d`, `D`, `e`, `E` | Open full request and command details. |
+
+The panel previews at most the first few lines of the command. Press `d` (or
+`e`) to open the complete request text, command, and raw arguments in a
+read-only, scrollable view. Use `PgUp`/`PgDn`, `Ctrl+U`/`Ctrl+D`, or the arrow
+keys to scroll; `Home`/`End` and `g`/`G` jump to the ends; `Esc` or `q` returns
+to the approval panel.
 
 The default routing mode is `tui`: while a terminal is watching the session,
 the request is offered to the terminal. The client sends an `activity`
@@ -246,6 +266,8 @@ the activity line:
   `subagent.list` and caches them; counts fall back to `session.list` when the
   summary route is unavailable.
 - Use `/agents` or `/agents-preview` when you need the full execution view.
+  `/agents-preview` opens managed Herdr plugin panes and needs a one-time
+  `herdr plugin link`; see [Herdr integration](herdr.md).
 
 ## Reattach hint
 
