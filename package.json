@@ -1,0 +1,53 @@
+{
+  "name": "dsh-tui-attach",
+  "version": "0.14.0",
+  "description": "Attach a terminal UI to an already running DeepSeek Harness host: same sessions, same live agents, approvals and questions included.",
+  "keywords": [
+    "dsh-plugin",
+    "dsh",
+    "deepseek-harness",
+    "tui",
+    "terminal",
+    "attach"
+  ],
+  "type": "module",
+  "main": "./lib/host.js",
+  "types": "./lib/host.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/host.d.ts",
+      "default": "./lib/host.js"
+    },
+    "./client": {
+      "default": "./lib/client/cli.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "dsh-attach": "./bin/dsh-attach.js"
+  },
+  "files": [
+    "lib",
+    "bin",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dependencies": {
+    "@earendil-works/pi-tui": "^0.84.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/schemastery": ">=3.18.0 <4"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

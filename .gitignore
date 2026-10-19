@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+*.tgz
+
+# local diagnostics and editor/OS noise
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+.cache/
+coverage/
+tmp/
+
+# local secrets
+.env
+.env.*
+!.env.example
