@@ -57,8 +57,9 @@ only by the current user.
 - **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
   running turn without quitting the client.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
-  resume command when running inside a Herdr pane, with managed subagent
-  preview panes that close after the preview becomes idle.
+  resume command when running inside a Herdr pane, shows the session title in
+  pane lists, and opens managed subagent preview panes that close after the
+  preview becomes idle.
 - **Local-only security**: owner-only Unix socket, a per-process random token,
   constant-time token comparison, and terminal control-sequence sanitization.
 

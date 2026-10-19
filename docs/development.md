@@ -152,7 +152,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/panels.js` | Approval, question, picker, and information panels. |
 | `lib/client/command-catalog.js` | Local slash commands and `/resume` / `/model` completion. |
 | `lib/client/keys.js` | Key constants and Ctrl/arrow matching across terminal encodings. |
-| `lib/client/herdr.js` | Herdr agent state reporting and pane release. |
+| `lib/client/herdr.js` | Herdr agent state, title/display-name metadata, and pane release. |
 | `lib/client/herdr-preview.js` | Builds `plugin pane open` arguments and parses the opened pane ID. |
 | `lib/client/inbox.js` | Normalizes the durable inbox projection and applies queue splices. |
 | `lib/client/escape-cancel.js` | Double-Escape timing used to interrupt the running turn. |
@@ -193,7 +193,7 @@ Coverage includes:
 - completion catalogs, picker filtering, and metadata layout;
 - editor completion splitting, dismissal callbacks, and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
-- Herdr report arguments and lifecycle log redaction/rotation;
+- Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;
 - Herdr managed preview pane arguments and pane ID parsing;
 - Pending-inbox normalization, splice application and user-visible filtering;
 - Double-Escape interrupt timing;

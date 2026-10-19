@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { HerdrReporter, herdrContext, herdrReportArgs } from '../lib/client/herdr.js';
+import { HerdrReporter, herdrContext, herdrReportArgs, herdrReportMetadataArgs } from '../lib/client/herdr.js';
 
 const ENV = {
   HERDR_ENV: '1',
@@ -49,6 +49,29 @@ test('builds report-agent arguments with a resume command', () => {
   ]);
 });
 
+test('builds pane metadata arguments for the session title', () => {
+  const args = herdrReportMetadataArgs(herdrContext(ENV), {
+    seq: 8,
+    title: 'Fix the tests',
+    displayAgent: 'Fix the tests',
+  });
+  assert.deepEqual(args, [
+    'pane',
+    'report-metadata',
+    'w1:p1',
+    '--source',
+    'dsh-tui-attach',
+    '--agent',
+    'dsh',
+    '--seq',
+    '8',
+    '--title',
+    'Fix the tests',
+    '--display-agent',
+    'Fix the tests',
+  ]);
+});
+
 test('reports state changes, refreshes resume per session and releases once', () => {
   const reports = [];
   const releases = [];
@@ -76,9 +99,18 @@ test('reports state changes, refreshes resume per session and releases once', ()
   assert.ok(reports[1].args.includes('blocked'));
   assert.deepEqual(reports[2].args.slice(-6), ['--agent-session-id', 's2', '--', 'dsh-attach', '-s', 's2']);
 
+  assert.equal(reporter.reportTitle('  Fix\n the tests  '), true);
+  assert.equal(reporter.reportTitle('Fix the tests'), false);
+  assert.equal(reports.length, 4);
+  assert.ok(reports[3].args.includes('--title'));
+  assert.ok(reports[3].args.includes('Fix the tests'));
+  assert.ok(reports[3].args.includes('--display-agent'));
+
   assert.equal(reporter.release(), true);
   assert.equal(reporter.release(), false);
-  assert.equal(releases.length, 1);
-  assert.ok(releases[0].args.includes('release-agent'));
+  assert.equal(releases.length, 2);
+  assert.ok(releases[0].args.includes('--clear-title'));
+  assert.ok(releases[0].args.includes('--clear-display-agent'));
+  assert.ok(releases[1].args.includes('release-agent'));
   assert.equal(reporter.report('idle', { sessionId: 's3' }), false);
 });

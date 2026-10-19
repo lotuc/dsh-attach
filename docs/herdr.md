@@ -30,6 +30,8 @@ The client also:
 
 - Herdr 0.9.2 or later uses the reported resume command. Earlier versions only
   use the state reports.
+- Pane title/display-name metadata needs Herdr 0.6.4 or later; this package's
+  plugin manifest already requires 0.9.0.
 - `dsh-attach` must be on `PATH`; the resume command begins with a plain command
   name.
 - Resume restarts only the TUI client. The DSH Host must still be running. When
@@ -37,6 +39,20 @@ The client also:
   not started yet.
 - The client reads `HERDR_ENV=1`, `HERDR_PANE_ID`, and `HERDR_BIN_PATH` from the
   pane environment. Outside a Herdr pane all reporting is a no-op.
+
+## Pane titles
+
+When a Session has a title, the client reports it as both the pane `title` and
+the visible `display_agent` through `herdr pane report-metadata`. Herdr's pane
+navigator and the default Agent sidebar rows then show the session name instead
+of the launch command (`dsh-attach ...`) or the generic `dsh` label. Title
+changes are reported as they arrive; quitting clears the metadata before
+releasing the pane.
+
+The default sidebar `agent` row uses `display_agent`; the pane navigator prefers
+`title`. Custom sidebar rows that explicitly use `terminal_title` or
+`terminal_title_stripped` read the terminal's OSC title instead and are not
+changed by metadata.
 
 ## Subagent peek
 
