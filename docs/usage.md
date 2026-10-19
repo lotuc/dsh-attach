@@ -229,6 +229,9 @@ the activity line:
   … editing src/foo.ts
 ```
 
+- The header shows the Host's short subagent catalog label (for example
+  `Verify worktree cwd`), falling back to the session title or ID when no label
+  is available.
 - Each peek keeps only the latest **2 lines**; it does not render the full
   transcript or Markdown.
 - Each peek uses an **additional Unix socket connection**, not a new process.
@@ -238,8 +241,10 @@ the activity line:
 - Peeks close automatically when the child stops running, when you switch
   sessions, when `/peek` is disabled, or when the TUI exits.
 - `/peek` toggles the feature; it is enabled by default.
-- Newer Hosts return active subagent IDs in `subagent.summary`; older Hosts fall
-  back to `session.list`.
+- Newer Hosts return active subagent IDs and short catalog labels in
+  `subagent.summary`. When labels are missing, the client resolves them from
+  `subagent.list` and caches them; counts fall back to `session.list` when the
+  summary route is unavailable.
 - Use `/agents` or `/agents-preview` when you need the full execution view.
 
 ## Reattach hint

@@ -23,6 +23,14 @@ dsh plugin --profile desktop add ./dsh-tui-attach
 its dependencies, and mounts the `tui-attach` entry declared in
 `cordis.patch.yml`.
 
+If `dsh` is not on `PATH` (for example when using the desktop app), call the
+launcher bundled with the app directly on macOS:
+
+```sh
+"/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
+  plugin --profile desktop add ./dsh-tui-attach
+```
+
 To install from a packed tarball:
 
 ```sh

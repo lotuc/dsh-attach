@@ -102,13 +102,31 @@ function createFixture(home) {
       return { commandId: 'cmd-1', result: { kind: 'success', text: `ran ${line}` } };
     },
   };
-  const state = { webLive: false };
+  const state = { webLive: false, subagentListCalls: 0 };
   const ctx = {
     sessionController: controller,
     logger: { debug() {}, warn() {} },
     get(name) {
       if (name === 'agents') return { get: (id) => (id === 's1' ? agent : undefined) };
       if (name === 'commands') return commands;
+      if (name === 'subagents') {
+        return {
+          async listDescendants() {
+            state.subagentListCalls += 1;
+            return [
+              {
+                kind: 'child',
+                id: 'child-1',
+                parentId: 's1',
+                depth: 1,
+                mode: 'continuable',
+                activity: 'running',
+                label: 'Reviewer',
+              },
+            ];
+          },
+        };
+      }
       if (name === 'workspaceController') {
         return {
           async *follow() {
@@ -205,6 +223,31 @@ test('lists, opens, streams and prompts a session', async () => {
     const executed = await client.request('commands.execute', { line: '/compact' });
     assert.equal(executed.executed, true);
     assert.equal(executed.result.text, 'ran /compact');
+  });
+});
+
+test('adds short catalog labels to active subagents', async () => {
+  await withHost(async ({ client, ctx, state }) => {
+    ctx.sessionController.list = async () => ({
+      items: [
+        { sessionId: 's1', running: true, projections: { values: { title: 'Root' } } },
+        {
+          sessionId: 'child-1',
+          parentSessionId: 's1',
+          origin: 'subagent',
+          running: true,
+          projections: { values: { title: 'Long task prompt that should not label the peek' } },
+        },
+      ],
+    });
+    const summary = await client.request('subagent.summary', { sessionId: 's1' });
+    assert.equal(summary.active.length, 1);
+    assert.equal(summary.active[0].label, 'Reviewer');
+    assert.equal(summary.active[0].title, 'Long task prompt that should not label the peek');
+
+    const cached = await client.request('subagent.summary', { sessionId: 's1' });
+    assert.equal(cached.active[0].label, 'Reviewer');
+    assert.equal(state.subagentListCalls, 1);
   });
 });
 

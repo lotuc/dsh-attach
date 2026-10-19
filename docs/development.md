@@ -117,8 +117,8 @@ Server methods:
 | `model.catalog` | Provider and model groups. |
 | `commands.list` / `commands.execute` | Discover and execute Host slash commands. |
 | `workspace.list` | Workspace tree snapshot, with a `cwd` fallback on the client. |
-| `subagent.summary` | Counts and optionally active subagent IDs. |
-| `subagent.list` | Catalog descendants when the runtime supports it. |
+| `subagent.summary` | Counts plus the active window (IDs, titles, and short catalog labels). Newer Hosts include labels; the client fills missing labels from `subagent.list`. |
+| `subagent.list` | Catalog descendants when the runtime supports it, including short labels. |
 | `approval.respond` / `approval.cancel` | Answer or cancel an approval. |
 | `question.respond` / `question.cancel` | Answer or cancel a question batch. |
 | `interactive.detach` | Detach one terminal from a shared pending request. |
@@ -157,6 +157,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/log.js` | 0600 lifecycle log with rotation and token redaction. |
 | `lib/client/theme.js` | Light and dark palettes and theme helpers. |
 | `lib/client/subagent-order.js` | Stable tree ordering for subagent rows. |
+| `lib/client/subagent-labels.js` | Merges short catalog labels into active subagent rows. |
 | `lib/shared/protocol.js` | Protocol version, limits, endpoint names, JSONL helpers. |
 | `cordis.patch.yml` | Bundle patch that inserts the `tui-attach` entry. |
 | `test/*.test.mjs` | Node test runner suites. |
@@ -182,6 +183,7 @@ Coverage includes:
 - broadcasting to multiple terminals and replaying pending approvals to a late
   attach;
 - subagent parent addresses, question cancellation, and Host command execution;
+- subagent catalog labels and peek name fallback;
 - completion catalogs and picker filtering;
 - editor completion splitting and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
