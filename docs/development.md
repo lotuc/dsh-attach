@@ -185,7 +185,7 @@ Coverage includes:
 - subagent parent addresses, question cancellation, and Host command execution;
 - subagent catalog labels and peek name fallback;
 - completion catalogs and picker filtering;
-- editor completion splitting and focus cursor stripping;
+- editor completion splitting, dismissal callbacks, and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
 - Herdr report arguments and lifecycle log redaction/rotation;
 - light/dark themes.
