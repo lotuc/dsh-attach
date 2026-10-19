@@ -54,6 +54,8 @@ only by the current user.
 - **Visible pending queue**: local prompts keep a `queued` / `steering` marker
   until the Host claims them, pending inbox messages from other clients render
   above the composer, and `/status` reports the queue count.
+- **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
+  running turn without quitting the client.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
   resume command when running inside a Herdr pane, with managed subagent
   preview panes that close after the preview becomes idle.

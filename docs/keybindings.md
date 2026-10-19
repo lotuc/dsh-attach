@@ -9,6 +9,7 @@ falling back to a normal prompt.
 | Key | Action |
 |---|---|
 | `Ctrl+C` | Quit the client. Running Host work is not stopped. |
+| `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. |
 | `Ctrl+T` | Expand or collapse reasoning blocks. |
 | `Ctrl+O` | Expand or collapse tool arguments and output. |
 | `Ctrl+L` | Return to the newest message and resume auto-follow. |
@@ -21,7 +22,9 @@ falling back to a normal prompt.
 | Mouse wheel | Scroll the transcript. |
 
 The transcript page and jump keys are consumed only when no modal panel or
-picker is open. In a panel, the same keys belong to that panel.
+picker is open. In a panel, the same keys belong to that panel. `Esc` closes a
+panel, picker, or completion list first; `Esc` `Esc` interrupts only after those
+are closed.
 
 ## Composer and text editing
 
@@ -165,7 +168,7 @@ them open).
 | `/new [cwd]` | Create a session, optionally in `cwd`. |
 | `/resume [id]` | Open the picker, or open the given session directly. |
 | `/rename <title>` | Rename the current session. |
-| `/cancel` | Cancel the running turn. |
+| `/cancel` | Cancel the running turn (same as pressing `Esc` twice). |
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
 | `/queue <text>` | Queue a message while a turn is running. |
 | `/model [provider model]` | Open the model picker, or switch directly. |

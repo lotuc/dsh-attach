@@ -86,7 +86,9 @@ Use a slash command to change delivery:
 ```
 
 `/steer` is the only operation that interrupts the current turn and inserts a
-message. `/cancel` stops the running turn without adding a message.
+message. `/cancel` stops the running turn without adding a message; pressing
+`Esc` twice within 750 ms does the same. The first `Esc` shows
+`esc again to interrupt` in the activity line.
 
 Prompt text is sent to the Host as text content only. Images, attachments, file
 uploads, and `@` file indexing are not wired into the client.

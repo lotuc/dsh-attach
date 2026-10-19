@@ -155,6 +155,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/herdr.js` | Herdr agent state reporting and pane release. |
 | `lib/client/herdr-preview.js` | Builds `plugin pane open` arguments and parses the opened pane ID. |
 | `lib/client/inbox.js` | Normalizes the durable inbox projection and applies queue splices. |
+| `lib/client/escape-cancel.js` | Double-Escape timing used to interrupt the running turn. |
 | `lib/client/peek.js` | Bounded subagent peek over an extra socket. |
 | `lib/client/preview.js` | Read-only preview renderer for `--preview` panes. |
 | `lib/client/log.js` | 0600 lifecycle log with rotation and token redaction. |
@@ -195,6 +196,7 @@ Coverage includes:
 - Herdr report arguments and lifecycle log redaction/rotation;
 - Herdr managed preview pane arguments and pane ID parsing;
 - Pending-inbox normalization, splice application and user-visible filtering;
+- Double-Escape interrupt timing;
 - light/dark themes.
 
 ## Local development loop
