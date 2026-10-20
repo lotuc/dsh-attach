@@ -61,8 +61,8 @@ only by the current user.
   confirmation; the activity line shows the live-job count.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
   resume command when running inside a Herdr pane, shows the session title in
-  pane lists, and opens managed subagent preview panes that close after the
-  preview becomes idle.
+  pane lists, and opens managed subagent preview panes that can auto-close
+  after an opt-in idle timeout.
 - **Local-only security**: owner-only Unix socket, a per-process random token,
   constant-time token comparison, and terminal control-sequence sanitization.
 
@@ -116,7 +116,7 @@ CLI reference.
 | [Usage](docs/usage.md) | Sessions, prompts, approvals, questions, subagents, attach behavior |
 | [Keys and commands](docs/keybindings.md) | Complete keyboard and slash-command reference |
 | [Configuration](docs/configuration.md) | Host plugin configuration, environment variables, themes |
-| [Herdr integration](docs/herdr.md) | Agent status reporting, managed preview pane setup, auto-close |
+| [Herdr integration](docs/herdr.md) | Agent status reporting, managed preview pane setup, optional auto-close |
 | [Diagnostics](docs/diagnostics.md) | Lifecycle log, exit reasons, focus debugging, performance |
 | [Security](docs/security.md) | Trust boundary, socket authentication, terminal injection |
 | [Troubleshooting](docs/troubleshooting.md) | Common failures and fixes |

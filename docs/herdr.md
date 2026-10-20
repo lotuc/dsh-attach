@@ -121,19 +121,18 @@ A preview pane is a separate lightweight renderer:
 Plugin panes run their manifest command directly, without a shell. When the
 preview process exits, Herdr closes the pane automatically.
 
-The preview process exits after the child has been idle for
-`DSH_ATTACH_PREVIEW_EXIT_AFTER` seconds. The default is **15 seconds**. A new
-turn, approval request, assistant stream, or user message cancels the pending
-close. Set the variable to `0` to keep preview panes open until you press
-`Ctrl+C`/`q`:
+By default the preview process stays open until you press `Ctrl+C`/`q` (or
+close the pane). Auto-close is opt-in: set `DSH_ATTACH_PREVIEW_EXIT_AFTER` to
+the number of idle seconds before the preview exits. For example:
 
 ```sh
-DSH_ATTACH_PREVIEW_EXIT_AFTER=0 dsh-attach
+DSH_ATTACH_PREVIEW_EXIT_AFTER=15 dsh-attach
 ```
 
-The preview footer shows the remaining auto-close time. If the Host connection
-is lost, the preview closes after a short grace period so the managed pane does
-not linger.
+A new turn, approval request, assistant stream, or user message cancels the
+pending close. The default is **`0`**, which keeps the pane open. When enabled,
+the preview footer shows the remaining auto-close time; a lost Host connection
+also closes after a short grace period.
 
 ## Standalone preview mode
 

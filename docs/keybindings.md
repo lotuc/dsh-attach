@@ -149,9 +149,9 @@ In custom-text mode, `Enter` submits the text and returns to the option list;
 | `End` | Jump to the newest output. |
 | `Ctrl+C`, `q`, `Q` | Close the preview pane. |
 
-Managed Herdr preview panes also close automatically after the child has been
-idle for `DSH_ATTACH_PREVIEW_EXIT_AFTER` seconds (default 15; set `0` to keep
-them open).
+Managed Herdr preview panes stay open by default. Set
+`DSH_ATTACH_PREVIEW_EXIT_AFTER` to a positive number of idle seconds to make
+them auto-close.
 
 ## Background jobs
 
