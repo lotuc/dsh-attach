@@ -83,7 +83,13 @@ Use a slash command to change delivery:
 ```text
 /steer <text>     interrupt the current turn and insert a steering message
 /queue <text>     queue a message while the current turn runs
+/queue            manage the pending queue
 ```
+
+The queue manager lists this session's pending messages. `Enter` opens the full
+message, `s` sends a next-turn message into the current turn as steering, and
+`d` twice removes it. `r` refreshes, and `Esc` closes the manager. Messages
+already in the next-step lane are steering already; they cannot be sent again.
 
 `/steer` is the only operation that interrupts the current turn and inserts a
 message. `/cancel` stops the running turn without adding a message; pressing

@@ -153,6 +153,25 @@ Managed Herdr preview panes stay open by default. Set
 `DSH_ATTACH_PREVIEW_EXIT_AFTER` to a positive number of idle seconds to make
 them auto-close.
 
+## Queue manager
+
+`/queue` with no text opens the pending-message manager. It lists messages from
+any attached client, including this client's optimistic queued prompts once the
+Host has accepted them.
+
+| Key | Action |
+|---|---|
+| `↑`/`↓`, `Ctrl+P`/`Ctrl+N` | Move in the queue. |
+| `Enter` | Open the full message, delivery target, and item id. |
+| `s` | Send a next-turn message into the running turn as steering. |
+| `d` twice | Remove the selected pending message. |
+| `r` | Refresh from the current snapshot. |
+| `Esc` | Close the queue manager. |
+
+The detail view scrolls with the usual page keys; `Esc`/`q` returns to the
+queue manager. A message already in the next-step lane is steering already and
+cannot be sent again.
+
 ## Background jobs
 
 `/jobs` opens the session's background-job picker. Running jobs sort first;
@@ -195,7 +214,7 @@ cursor, so it never steals output from the model's `job_output`.
 | `/rename <title>` | Rename the current session. |
 | `/cancel` | Cancel the running turn (same as pressing `Esc` twice). |
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
-| `/queue <text>` | Queue a message while a turn is running. |
+| `/queue [text]` | Queue a message, or open the pending-message manager when no text is given. |
 | `/model [provider model]` | Open the model picker, or switch directly. |
 | `/status` | Show session, model, preset, sandbox, context, token, queued-message count, todo, goal, host, theme, and socket details. |
 | `/quit`, `/exit` | Exit the client without stopping Host work. |

@@ -71,6 +71,10 @@ function createFixture(home) {
       calls.push(['cancel', request]);
       return { accepted: true };
     },
+    async updateQueue(request) {
+      calls.push(['updateQueue', request]);
+      return { accepted: true };
+    },
     async create(request) {
       calls.push(['create', request]);
       return { sessionId: 's2' };
@@ -206,6 +210,17 @@ test('lists, opens, streams and prompts a session', async () => {
     const recorded = calls.find((call) => call[0] === 'prompt')[1];
     assert.equal(recorded.sessionId, 's1');
     assert.deepEqual(recorded.content, [{ type: 'text', text: 'hello' }]);
+
+    const queueUpdate = await client.request('queue.update', {
+      itemId: 'message-1',
+      action: { kind: 'remove' },
+    });
+    assert.deepEqual(queueUpdate, { accepted: true });
+    assert.deepEqual(calls.find((call) => call[0] === 'updateQueue')[1], {
+      sessionId: 's1',
+      itemId: 'message-1',
+      action: { kind: 'remove' },
+    });
 
     const summary = await client.request('subagent.summary', { sessionId: 's1' });
     assert.equal(summary.supported, true);

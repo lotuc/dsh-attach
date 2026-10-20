@@ -53,7 +53,8 @@ only by the current user.
   model prompts.
 - **Visible pending queue**: local prompts keep a `queued` / `steering` marker
   until the Host claims them, pending inbox messages from other clients render
-  above the composer, and `/status` reports the queue count.
+  above the composer, and `/queue` opens a manager for full view, steer-now,
+  and removal.
 - **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
   running turn without quitting the client.
 - **Automatic reconnect**: after a Host or desktop-app restart, the client
