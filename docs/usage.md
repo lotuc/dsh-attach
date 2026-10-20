@@ -305,10 +305,12 @@ background and long-running jobs, running first. The activity line shows a
 selected job.
 
 The direct commands are `/job-output <job-id>` and `/job-kill <job-id>`. The
-output panel is read-only, follows new output at the bottom, and scrolls with
-the usual page keys. It reads the Host's observer cursor, which is separate from
-the model's `job_output` cursor, so viewing a job does not consume output the
-agent still needs.
+output panel shows the job's command/label above its read-only output, follows
+new output at the bottom, and scrolls with the usual page keys. Closing it with
+`Esc`/`q` returns to the job list when it was opened from `/jobs` (or to the
+composer for a direct `/job-output`). It reads the Host's observer cursor,
+which is separate from the model's `job_output` cursor, so viewing a job does
+not consume output the agent still needs.
 
 If the Host predates the job bridge or was composed without a job registry,
 `/jobs` reports that background jobs are unavailable. Restart the Host after

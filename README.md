@@ -59,8 +59,9 @@ only by the current user.
 - **Automatic reconnect**: after a Host or desktop-app restart, the client
   retries with backoff and reopens the current session.
 - **Background jobs**: `/jobs` lists the session roster, opens live read-only
-  output, refreshes on demand, and stops a running job after a two-press
-  confirmation; the activity line shows the live-job count.
+  output with the original command/label, returns there on `Esc`, refreshes on
+  demand, and stops a running job after a two-press confirmation; the activity
+  line shows the live-job count.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
   resume command when running inside a Herdr pane, shows the session title in
   pane lists, and opens managed subagent preview panes that can auto-close

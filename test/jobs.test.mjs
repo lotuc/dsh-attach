@@ -36,8 +36,10 @@ test('job output panel renders text and routes kill/scroll keys', () => {
     onClose: () => { closed += 1; },
   });
   panel.setText('line one\nline two');
+  panel.setCommand('sleep 10', 'bash');
   panel.setFooter('bash · running · 12 B');
   const lines = panel.render(80);
+  assert.ok(lines.some((line) => line.includes('sleep 10')));
   assert.ok(lines.some((line) => line.includes('line one')));
   assert.ok(lines.some((line) => line.includes('bash · running')));
   panel.handleInput('k');

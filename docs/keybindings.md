@@ -168,9 +168,11 @@ forms are `/job-output <job-id>` and `/job-kill <job-id>`.
 | `r` | Refresh the job roster. |
 | `Esc` | Close the job picker. |
 
-The output panel is read-only and keeps following new output at the bottom.
-`PgUp`/`PgDn`, arrows, `Home`/`End`, and `g`/`G` scroll; `k` twice stops the
-job; `Esc` or `q` closes the panel. The panel reads the non-consuming observer
+The output panel shows the job's command/label above its read-only output and
+keeps following new output at the bottom. `PgUp`/`PgDn`, arrows, `Home`/`End`,
+and `g`/`G` scroll; `k` twice stops the job. `Esc` or `q` returns to the job
+list when the panel was opened from `/jobs`, or to the composer when it was
+opened directly with `/job-output`. The panel reads the non-consuming observer
 cursor, so it never steals output from the model's `job_output`.
 
 ## Slash commands
