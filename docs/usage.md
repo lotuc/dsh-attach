@@ -296,6 +296,24 @@ panels close in the other clients. On a Host that does not broadcast (older
 plugin builds), a request may go to only one connection; keep a single
 `dsh-attach` window open or upgrade the Host.
 
+## Background jobs
+
+When the Host exposes its job registry, `/jobs` lists the current session's
+background and long-running jobs, running first. The activity line shows a
+`jobs N` count for live jobs. Select a job with `Enter` to open its live output;
+`r` refreshes the roster, and pressing `k` twice within three seconds stops the
+selected job.
+
+The direct commands are `/job-output <job-id>` and `/job-kill <job-id>`. The
+output panel is read-only, follows new output at the bottom, and scrolls with
+the usual page keys. It reads the Host's observer cursor, which is separate from
+the model's `job_output` cursor, so viewing a job does not consume output the
+agent still needs.
+
+If the Host predates the job bridge or was composed without a job registry,
+`/jobs` reports that background jobs are unavailable. Restart the Host after
+upgrading the plugin to load the new routes.
+
 ## Attaching to a live agent
 
 Opening a session subscribes to its live stream. You can attach in the middle

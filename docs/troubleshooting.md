@@ -50,6 +50,7 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | `--theme must be "light" or "dark"` | Use one of the two supported theme names. |
 | Herdr resume cannot connect after restoring a pane | The resume command only restarts the TUI. Start the DSH Host first; the resume does not start it. |
 | Herdr still shows `dsh-attach ...` instead of the session title | Update Herdr to 0.6.4 or later and restart the TUI. If your sidebar rows explicitly use `terminal_title`, switch them to `agent` or `pane`; metadata titles do not overwrite the terminal's OSC title. |
+| `/jobs` reports background jobs are unavailable | Restart DeepSeek Harness after upgrading the plugin so the Host loads the job routes. The Host composition must also include its job registry (`dsh-jobs-local` / `dsh-tool-jobs`). |
 | `/agents-preview` says it needs a Herdr pane | Run the parent `dsh-attach` inside Herdr, or use `/agents` for an in-TUI list. |
 | `/agents-preview` reports the Herdr plugin is not linked | Run `herdr plugin link --enabled <path-to-dsh-tui-attach>`. Use the repository path or the installed profile package path. |
 | `/agents-preview` opens a pane that exits immediately | Make sure `node` is on `PATH` and relink the plugin after upgrading this package. Check `herdr plugin log list --plugin dsh-tui-attach`. |

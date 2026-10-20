@@ -142,19 +142,20 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `bin/dsh-attach.js` | Executable entry point; delegates to the client CLI. |
 | `bin/herdr-preview.js` | Herdr plugin pane entrypoint; reconstructs the preview client invocation from pane env. |
 | `lib/host.js` | Cordis plugin entry, injection, and Config schema. |
-| `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, descriptors. |
+| `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
 | `lib/host.d.ts` | Type declarations for the plugin entry. |
 | `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow. |
 | `lib/client/connection.js` | Descriptor discovery, socket connection, request/response, notifications. |
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, render cache, sanitization, long-stream behavior. |
-| `lib/client/panels.js` | Approval, question, picker, and information panels. |
+| `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
 | `lib/client/command-catalog.js` | Local slash commands and `/resume` / `/model` completion. |
 | `lib/client/keys.js` | Key constants and Ctrl/arrow matching across terminal encodings. |
 | `lib/client/herdr.js` | Herdr agent state, title/display-name metadata, and pane release. |
 | `lib/client/herdr-preview.js` | Builds `plugin pane open` arguments and parses the opened pane ID. |
 | `lib/client/inbox.js` | Normalizes the durable inbox projection and applies queue splices. |
+| `lib/client/jobs.js` | Background-job roster ordering, durations, and durable event folding. |
 | `lib/client/escape-cancel.js` | Double-Escape timing used to interrupt the running turn. |
 | `lib/client/peek.js` | Bounded subagent peek over an extra socket. |
 | `lib/client/preview.js` | Read-only preview renderer for `--preview` panes. |
@@ -197,6 +198,7 @@ Coverage includes:
 - Herdr managed preview pane arguments and pane ID parsing;
 - Pending-inbox normalization, splice application and user-visible filtering;
 - Double-Escape interrupt timing;
+- Background-job roster formatting, event folding, output polling, and bridge routes;
 - light/dark themes.
 
 ## Local development loop

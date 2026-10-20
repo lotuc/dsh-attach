@@ -153,6 +153,26 @@ Managed Herdr preview panes also close automatically after the child has been
 idle for `DSH_ATTACH_PREVIEW_EXIT_AFTER` seconds (default 15; set `0` to keep
 them open).
 
+## Background jobs
+
+`/jobs` opens the session's background-job picker. Running jobs sort first;
+`Enter` opens the job's live, read-only output and `r` refreshes the roster.
+Press `k` twice within three seconds to stop the selected job. The direct
+forms are `/job-output <job-id>` and `/job-kill <job-id>`.
+
+| Key | Action |
+|---|---|
+| `↑`/`↓`, `Ctrl+P`/`Ctrl+N` | Move in the job picker. |
+| `Enter` | Open the selected job's output. |
+| `k` twice | Stop the selected running job. |
+| `r` | Refresh the job roster. |
+| `Esc` | Close the job picker. |
+
+The output panel is read-only and keeps following new output at the bottom.
+`PgUp`/`PgDn`, arrows, `Home`/`End`, and `g`/`G` scroll; `k` twice stops the
+job; `Esc` or `q` closes the panel. The panel reads the non-consuming observer
+cursor, so it never steals output from the model's `job_output`.
+
 ## Slash commands
 
 ### Local commands
@@ -164,6 +184,9 @@ them open).
 | `/agents` | List subagents under the current session. |
 | `/agents-preview [count]` | Open running subagents in managed Herdr plugin panes (1–2). |
 | `/peek` | Toggle the bounded subagent peek. |
+| `/jobs` | List background jobs; `Enter` opens output, `k` twice stops, `r` refreshes. |
+| `/job-output <id>` | Open a background job's live read-only output. |
+| `/job-kill <id>` | Request cancellation of a background job. |
 | `/parent` | Open the direct parent of a subagent history. |
 | `/new [cwd]` | Create a session, optionally in `cwd`. |
 | `/resume [id]` | Open the picker, or open the given session directly. |

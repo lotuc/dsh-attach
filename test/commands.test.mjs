@@ -40,6 +40,9 @@ test('local commands expose subagent navigation', () => {
   const items = localCommandItems(fakeClient());
   assert.ok(items.some((item) => item.name === 'agents'));
   assert.ok(items.some((item) => item.name === 'parent'));
+  assert.ok(items.some((item) => item.name === 'jobs'));
+  assert.ok(items.some((item) => item.name === 'job-output'));
+  assert.ok(items.some((item) => item.name === 'job-kill'));
 });
 
 test('local command items expose resume and model argument completion', async () => {

@@ -56,6 +56,9 @@ only by the current user.
   above the composer, and `/status` reports the queue count.
 - **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
   running turn without quitting the client.
+- **Background jobs**: `/jobs` lists the session roster, opens live read-only
+  output, refreshes on demand, and stops a running job after a two-press
+  confirmation; the activity line shows the live-job count.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
   resume command when running inside a Herdr pane, shows the session title in
   pane lists, and opens managed subagent preview panes that close after the
