@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { formatJobDuration, jobItems, mergeJobEvent, runningJobCount } from '../lib/client/jobs.js';
+import { formatJobDuration, jobItems, jobTitle, mergeJobEvent, runningJobCount } from '../lib/client/jobs.js';
 import { JobOutputPanel } from '../lib/client/panels.js';
 
 test('formats job durations compactly', () => {
@@ -9,6 +9,11 @@ test('formats job durations compactly', () => {
   assert.equal(formatJobDuration(12_000), '12s');
   assert.equal(formatJobDuration(64_000), '1m 04s');
   assert.equal(formatJobDuration(3_900_000), '1h 05m');
+});
+
+test('builds stable output-panel titles', () => {
+  assert.equal(jobTitle({ id: 'bash-a', kind: 'bash' }), 'Job bash-a · bash');
+  assert.equal(jobTitle({}), 'Job job · job');
 });
 
 test('orders live jobs first and keeps ids searchable', () => {
