@@ -145,7 +145,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
 | `lib/host.d.ts` | Type declarations for the plugin entry. |
 | `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow. |
-| `lib/client/connection.js` | Descriptor discovery, socket connection, request/response, notifications. |
+| `lib/client/connection.js` | Descriptor discovery, socket connection/reconnect, request/response, notifications. |
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, render cache, sanitization, long-stream behavior. |
@@ -199,6 +199,7 @@ Coverage includes:
 - Pending-inbox normalization, splice application and user-visible filtering;
 - Double-Escape interrupt timing;
 - Background-job roster formatting, event folding, output polling, and bridge routes;
+- Same-client reconnect against a restarted Host;
 - light/dark themes.
 
 ## Local development loop

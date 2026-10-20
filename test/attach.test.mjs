@@ -226,6 +226,34 @@ test('lists, opens, streams and prompts a session', async () => {
   });
 });
 
+test('reconnects the same client to a restarted Host', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  let host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    const firstPid = client.host?.pid;
+    assert.equal(typeof firstPid, 'number');
+    let closes = 0;
+    client.on('close', () => { closes += 1; });
+
+    await host.server.stop();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    assert.equal(closes, 1);
+
+    host = await makeServer(home);
+    await client.reconnect({ timeoutMs: 2000 });
+    assert.equal(typeof client.host?.pid, 'number');
+    assert.equal(closes, 1, 'replacing the socket must not emit another close');
+    const list = await client.request('session.list');
+    assert.equal(list.items[0].sessionId, 's1');
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test('adds short catalog labels to active subagents', async () => {
   await withHost(async ({ client, ctx, state }) => {
     ctx.sessionController.list = async () => ({

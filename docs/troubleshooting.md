@@ -35,7 +35,7 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | `no attach endpoint under ...` | The plugin is not installed or not mounted, or the Host has not been restarted. Install the plugin, restart the Host, and confirm that `endpoint.json` appears. |
 | `cannot reach the attach bridge (...)` | The descriptor points at an old or dead process. The client automatically tries other descriptors in the same directory. If all fail, restart the Host. |
 | `unknown attach method: ...` | The running Host still has an older bridge build. Restart DeepSeek Harness to load the current plugin. |
-| `Host connection closed. Press ctrl+c to exit.` | The Host restarted or the socket closed. The client does not reconnect and stays open with the error; press `Ctrl+C` and start `dsh-attach` again. |
+| Host connection lost | The client retries with backoff and reopens the session when the endpoint returns, including after a desktop-app restart. If you used `--socket` with a fixed token, restart `dsh-attach` after the Host because the token changes. |
 | Approvals or questions appear in the Web GUI instead of the TUI | Check whether `approvals` / `questions` is `auto` or `web`, or whether the grace period expired before you answered. Set them to `tui` and restart the Host. |
 | A question stays pending after `Esc` | `Esc` closes the TUI panel and releases the request from this client. Another client or the question timeout may still resolve it. Use `s` to skip the batch immediately. |
 | Composer does not respond | Press `Esc` to close a leftover panel, or `Ctrl+C` and restart the client. If it only happens after focus changes, try `DSH_ATTACH_NO_MOUSE=1`. |

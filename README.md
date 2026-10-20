@@ -56,6 +56,8 @@ only by the current user.
   above the composer, and `/status` reports the queue count.
 - **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
   running turn without quitting the client.
+- **Automatic reconnect**: after a Host or desktop-app restart, the client
+  retries with backoff and reopens the current session.
 - **Background jobs**: `/jobs` lists the session roster, opens live read-only
   output, refreshes on demand, and stops a running job after a two-press
   confirmation; the activity line shows the live-job count.
@@ -139,7 +141,7 @@ Read [Security](docs/security.md) for the full model.
 
 - Text prompts only; image/attachment input and file upload are not wired up.
 - One session per terminal at a time. Other sessions keep running in the Host.
-- No automatic reconnect after the Host restarts; start `dsh-attach` again.
+- The client reconnects automatically after a Host or desktop-app restart; pending approvals/questions from the old Host process may be lost.
 - No trajectory timeline, session fork, or diff preview. Subagent browsing is
   read-only, and subagents cannot be dispatched, continued, or interrupted from
   the TUI.

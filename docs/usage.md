@@ -324,9 +324,11 @@ A terminal follows one session at a time. Other sessions continue running in
 the Host; switching sessions in the TUI does not stop them. `Ctrl+C` or `/quit`
 only detaches the TUI and never cancels a running turn.
 
-There is no automatic reconnect. If the Host restarts, the client marks the
-connection as lost and shows `Host connection closed. Press ctrl+c to exit.`;
-press `Ctrl+C` and start `dsh-attach` again.
+If the Host restarts, the client marks the connection as lost, retries with
+backoff, and reopens the current session after the new endpoint appears. This
+also covers restarting the DeepSeek Harness desktop app. The reconnect runs in
+the background; `Ctrl+C` still exits the client. Approvals or questions that
+were pending only in the old Host process may not survive the restart.
 
 ## Terminal focus and mouse
 
