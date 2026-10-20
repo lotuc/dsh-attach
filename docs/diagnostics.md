@@ -93,7 +93,7 @@ cursor while the terminal is unfocused.
 - Reproduce in tmux, directly in iTerm2, and in a Herdr pane to distinguish
   terminal, multiplexer, and Herdr behavior.
 - Closing the initial session picker with Escape no longer exits the client.
-  Use `Ctrl+C` for an explicit exit.
+  Press `Ctrl+C` twice (or run `/quit`) for an explicit exit.
 
 ## Performance
 

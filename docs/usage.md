@@ -323,14 +323,15 @@ of a turn and see the in-progress assistant text, reasoning, and tool state.
 Queued prompts enter the same Host queue as prompts from the Web GUI.
 
 A terminal follows one session at a time. Other sessions continue running in
-the Host; switching sessions in the TUI does not stop them. `Ctrl+C` or `/quit`
-only detaches the TUI and never cancels a running turn.
+the Host; switching sessions in the TUI does not stop them. Press `Ctrl+C`
+twice within two seconds (or run `/quit`) to detach the TUI; this never cancels
+a running turn.
 
 If the Host restarts, the client marks the connection as lost, retries with
 backoff, and reopens the current session after the new endpoint appears. This
 also covers restarting the DeepSeek Harness desktop app. The reconnect runs in
-the background; `Ctrl+C` still exits the client. Approvals or questions that
-were pending only in the old Host process may not survive the restart.
+the background; `Ctrl+C` twice still exits the client. Approvals or questions
+that were pending only in the old Host process may not survive the restart.
 
 ## Terminal focus and mouse
 

@@ -38,7 +38,7 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | Host connection lost | The client retries with backoff and reopens the session when the endpoint returns, including after a desktop-app restart. If you used `--socket` with a fixed token, restart `dsh-attach` after the Host because the token changes. |
 | Approvals or questions appear in the Web GUI instead of the TUI | Check whether `approvals` / `questions` is `auto` or `web`, or whether the grace period expired before you answered. Set them to `tui` and restart the Host. |
 | A question stays pending after `Esc` | `Esc` closes the TUI panel and releases the request from this client. Another client or the question timeout may still resolve it. Use `s` to skip the batch immediately. |
-| Composer does not respond | Press `Esc` to close a leftover panel, or `Ctrl+C` and restart the client. If it only happens after focus changes, try `DSH_ATTACH_NO_MOUSE=1`. |
+| Composer does not respond | Press `Esc` to close a leftover panel, or press `Ctrl+C` twice (or run `/quit`) and restart the client. If it only happens after focus changes, try `DSH_ATTACH_NO_MOUSE=1`. |
 | `Host plugin ... is older than 0.10.0` | Restart the Host to load the newer bridge. Host command execution and subagent history require 0.10.0; pending approvals and questions are replayed from 0.8.0. |
 | Host commands are missing from completion | The Host bridge needs one restart to expose `commands.list`. Local commands already work. |
 | Subagent history cannot open | Opening subagent history requires Host plugin 0.10.0 or later. The subagent list and counts work on older Hosts. |
@@ -79,8 +79,8 @@ first answer wins, and the other panels close.
   for temporary diagnosis.
 - Compare the same session in tmux, in iTerm2 directly, and in a Herdr pane to
   identify which layer sends the problematic sequence.
-- Pressing `Esc` on the initial picker no longer exits the client. Use `Ctrl+C`
-  for an explicit exit.
+- Pressing `Esc` on the initial picker no longer exits the client. Press `Ctrl+C`
+  twice (or run `/quit`) to exit.
 
 See [Diagnostics](diagnostics.md) for log fields and performance instrumentation.
 

@@ -8,7 +8,7 @@ falling back to a normal prompt.
 
 | Key | Action |
 |---|---|
-| `Ctrl+C` | Quit the client. Running Host work is not stopped. |
+| `Ctrl+C` twice | Quit the client within two seconds. Running Host work is not stopped. `/quit` exits immediately. |
 | `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. |
 | `Ctrl+T` | Expand or collapse reasoning blocks. |
 | `Ctrl+O` | Expand or collapse tool arguments and output. |
