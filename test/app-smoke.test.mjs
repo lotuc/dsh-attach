@@ -101,6 +101,44 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     assert.ok(app.queueManagerPanel, 'queue manager opens');
     assert.ok(app.pendingQueuePanel, 'queue manager must not clobber the pending queue panel');
 
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: { type: 'tool/call', data: { callId: 'c1', name: 'bash', arguments: '{"command":"npm test"}' } },
+      },
+    });
+    assert.ok(app.commandGroup, 'shell calls start a command group');
+    assert.equal(app.toolRows.get('c1').status, 'running');
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: {
+          type: 'tool/result',
+          data: { message: { toolCallId: 'c1', content: [{ type: 'text', text: '2 tests passed' }] } },
+        },
+      },
+    });
+    assert.equal(app.toolRows.get('c1').status, 'done');
+    assert.match(app.commandGroup.render(100).join('\n'), /Ran commands/);
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: { type: 'tool/call', data: { callId: 'c2', name: 'bash', arguments: '{"command":"npm run build"}' } },
+      },
+    });
+    assert.equal(app.commandGroup.rows.length, 2, 'consecutive shell calls share one group');
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: { type: 'tool/call', data: { callId: 'c3', name: 'read', arguments: '{"path":"README.md"}' } },
+      },
+    });
+    assert.equal(app.commandGroup, null, 'a non-shell tool closes the command group');
+
     app.rejectionHandler(new Error('smoke rejection'));
     assert.equal(app.quitting, false, 'a rejected UI callback must not quit the app');
     assert.ok(
