@@ -108,10 +108,10 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
         event: { type: 'tool/call', data: { callId: 'c1', name: 'bash', arguments: '{"command":"npm test"}' } },
       },
     });
-    assert.ok(app.commandGroup, 'shell calls start a command group');
+    assert.ok(app.stepGroup, 'tool calls start a step group');
     assert.equal(app.toolRows.get('c1').status, 'running');
-    assert.match(app.commandGroup.render(100).join('\n'), /Running commands/);
-    assert.doesNotMatch(app.commandGroup.render(100).join('\n'), /\{"command"/, 'child details stay collapsed under Ctrl+O');
+    assert.match(app.stepGroup.render(100).join('\n'), /Running commands/);
+    assert.doesNotMatch(app.stepGroup.render(100).join('\n'), /\{"command"/, 'child details stay collapsed under Ctrl+O');
     client.emit('frame', {
       sessionId: 's1',
       frame: {
@@ -123,11 +123,6 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
       },
     });
     assert.equal(app.toolRows.get('c1').status, 'done');
-    assert.match(app.commandGroup.render(100).join('\n'), /Ran commands/);
-    assert.doesNotMatch(app.commandGroup.render(100).join('\n'), /npm test/, 'finished groups collapse automatically');
-    app.showCommandGroups = true;
-    assert.match(app.commandGroup.render(100).join('\n'), /npm test/, 'Ctrl+G expands completed groups');
-    app.showCommandGroups = false;
     client.emit('frame', {
       sessionId: 's1',
       frame: {
@@ -135,7 +130,7 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
         event: { type: 'tool/call', data: { callId: 'c2', name: 'bash', arguments: '{"command":"npm run build"}' } },
       },
     });
-    assert.equal(app.commandGroup.rows.length, 2, 'consecutive shell calls share one group');
+    assert.equal(app.stepGroup.rows.length, 2, 'consecutive tools share one step group');
     client.emit('frame', {
       sessionId: 's1',
       frame: {
@@ -143,7 +138,29 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
         event: { type: 'tool/call', data: { callId: 'c3', name: 'read', arguments: '{"path":"README.md"}' } },
       },
     });
-    assert.equal(app.commandGroup, null, 'a non-shell tool closes the command group');
+    assert.equal(app.stepGroup.rows.length, 3, 'read tools stay in the step group');
+    assert.match(app.stepGroup.render(100).join('\n'), /Running commands and read files/);
+    for (const [callId, text] of [['c2', 'built'], ['c3', 'README.md']]) {
+      client.emit('frame', {
+        sessionId: 's1',
+        frame: {
+          type: 'event',
+          event: {
+            type: 'tool/result',
+            data: { message: { toolCallId: callId, content: [{ type: 'text', text }] } },
+          },
+        },
+      });
+    }
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: { type: 'event', event: { type: 'step/end', data: {} } },
+    });
+    assert.match(app.stepGroup.render(100).join('\n'), /Ran commands and read files/);
+    assert.doesNotMatch(app.stepGroup.render(100).join('\n'), /npm test/, 'finished groups collapse automatically');
+    app.showCommandGroups = true;
+    assert.match(app.stepGroup.render(100).join('\n'), /npm test/, 'Ctrl+G expands completed groups');
+    app.showCommandGroups = false;
 
     app.rejectionHandler(new Error('smoke rejection'));
     assert.equal(app.quitting, false, 'a rejected UI callback must not quit the app');

@@ -17,25 +17,30 @@ footer      shortcuts, context/token usage, permission state
 The header and activity line update as the Host streams turns, steps, tool
 calls, model selection changes, todos, and goals.
 
-### Command groups
+### Step groups
 
-Consecutive shell calls inside one turn/step are collected into one collapsible
-block instead of being printed as separate transcript rows. The hierarchy has
-two levels:
+Thinking and tool calls inside one turn/step are collected into one collapsible
+step group instead of being printed as separate transcript rows. The hierarchy
+has two levels:
 
 ```text
-▾ ◐ Running commands · npm test · 1/2
+▾ ◐ Running commands and read files · npm test
   ✓ bash npm run build
   ◐ bash npm test
+  ✻ Think · check the failing assertion
+  ✓ read README.md
 ```
 
-The running group expands automatically and shows the child commands in their
-compact form. `Ctrl+O` expands the child command arguments and output; it does
-not open or close the group. A finished group collapses to a summary such as
-`▸ ✓ Ran commands · 2 commands`, and `Ctrl+G` expands all groups for manual
+The running group expands automatically and shows child tools and thinking in
+compact form. `Ctrl+O` expands tool arguments/output, and `Ctrl+T` expands
+thinking; neither key opens or closes the group itself. A finished group
+collapses to a summary such as
+`▸ ✓ Ran commands and edited files`, and `Ctrl+G` expands all groups for manual
 inspection. Failures add a `failed` count.
 
-Non-shell tools such as file reads and edits remain individual tool rows.
+The group label reflects the tools in the step: `commands`, `edited files`,
+`read files`, or a combination. Thinking-only activity remains a standalone
+reasoning row.
 
 ## Sessions
 

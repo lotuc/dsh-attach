@@ -12,7 +12,7 @@ falling back to a normal prompt.
 | `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. |
 | `Ctrl+T` | Expand or collapse reasoning blocks. |
 | `Ctrl+O` | Expand or collapse individual tool arguments and output. |
-| `Ctrl+G` | Expand all command groups; by default running groups expand automatically. |
+| `Ctrl+G` | Expand all step groups; by default running groups expand automatically. |
 | `Ctrl+L` | Return to the newest message and resume auto-follow. |
 | `PgUp` | Scroll the transcript up one page. |
 | `Shift+PgUp`, `Alt+V`, `Ctrl+Alt+B` | Alternative scroll-up bindings. |

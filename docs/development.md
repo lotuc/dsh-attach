@@ -151,7 +151,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
-| `lib/client/transcript.js` | Transcript row components, render cache, sanitization, long-stream behavior. |
+| `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
 | `lib/client/command-catalog.js` | Local slash commands and `/resume` / `/model` completion. |
 | `lib/client/keys.js` | Key constants and Ctrl/arrow matching across terminal encodings. |
@@ -206,7 +206,7 @@ Coverage includes:
 - Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;
 - Herdr managed preview pane arguments and pane ID parsing;
 - Pending-inbox normalization, splice application and user-visible filtering;
-- Command groups, queue manager formatting and detail sections;
+- Step groups, queue manager formatting and detail sections;
 - App lifecycle (including slash autocomplete, queue manager, rejection handling, and listener cleanup), autocomplete screen placement, request timeouts, and release version consistency;
 - Double-Escape interrupt timing;
 - Background-job roster formatting, event folding, output polling, and bridge routes;
