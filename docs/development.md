@@ -154,6 +154,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/session-tree.js` | Workspace/cwd session tree, labels, and descriptions. |
 | `lib/client/session-events.js` | Pure projection for state-only Session events. |
 | `lib/client/format.js` | Shared age and cwd formatting. |
+| `lib/client/subagent-picker.js` | Ordered `/agents` rows from session summaries. |
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
@@ -170,7 +171,6 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/preview.js` | Read-only preview renderer for `--preview` panes. |
 | `lib/client/log.js` | 0600 lifecycle log with rotation and token redaction. |
 | `lib/client/theme.js` | Light and dark palettes and theme helpers. |
-| `lib/client/subagent-order.js` | Stable tree ordering for subagent rows. |
 | `lib/client/subagent-labels.js` | Merges short catalog labels into active subagent rows. |
 | `lib/shared/protocol.js` | Protocol version, limits, endpoint names, JSONL helpers. |
 | `cordis.patch.yml` | Bundle patch that inserts the `tui-attach` entry. |
@@ -211,7 +211,7 @@ Coverage includes:
 - Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;
 - Herdr managed preview pane arguments and pane ID parsing;
 - Pending-inbox normalization, splice application and user-visible filtering;
-- Step groups and lifecycle, session tree grouping and formatting, metadata event projection, queue manager formatting and detail sections;
+- Step groups and lifecycle, session tree grouping and formatting, subagent picker ordering, metadata event projection, queue manager formatting and detail sections;
 - App lifecycle (including slash autocomplete, queue manager, rejection handling, and listener cleanup), autocomplete screen placement, request timeouts, and release version consistency;
 - Double-Escape interrupt timing;
 - Background-job roster formatting, event folding, output polling, and bridge routes;
