@@ -15,7 +15,8 @@ footer      shortcuts, context/token usage, permission state
 ```
 
 The header and activity line update as the Host streams turns, steps, tool
-calls, model selection changes, todos, and goals.
+calls, model selection changes, todos, and goals. A blocked goal is shown in the
+activity line with its reason, for example `goal blocked · needs input`.
 
 ### Step groups
 

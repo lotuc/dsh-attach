@@ -34,7 +34,7 @@ test('projects metadata events into state', () => {
   projectSessionState(value, 'todo/write', { todos: [{ content: 'x' }] });
   assert.equal(value.todos.length, 1);
 
-  projectSessionState(value, 'goal/change', { goal: { objective: 'done' } });
+  projectSessionState(value, 'goal/change', { goal: { phase: 'active', objective: 'done' } });
   assert.equal(value.goal.objective, 'done');
   projectSessionState(value, 'goal/change', { operation: 'clear' });
   assert.equal(value.goal, null);

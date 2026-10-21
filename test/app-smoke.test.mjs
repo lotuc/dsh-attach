@@ -86,6 +86,24 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
       frame: { type: 'event', event: { type: 'session/title', data: { title: 'Smoke session' } } },
     });
     assert.equal(app.state.title, 'Smoke session');
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: {
+          type: 'goal/change',
+          data: {
+            goal: {
+              id: 'g1', revision: 1, phase: 'blocked', objective: 'Finish', maxGoalRounds: 10,
+              blockedReason: { code: 'needs-input', message: 'Waiting for input' },
+            },
+            roundsStarted: 1,
+          },
+        },
+      },
+    });
+    assert.equal(app.state.goal.phase, 'blocked');
+    assert.match(app.activity.render(120).join('\n'), /goal blocked · Waiting for input/);
 
     app.editor.handleInput('/');
     await wait(50);
