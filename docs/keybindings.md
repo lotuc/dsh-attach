@@ -11,7 +11,8 @@ falling back to a normal prompt.
 | `Ctrl+C` twice | Quit the client within two seconds. Running Host work is not stopped. `/quit` exits immediately. |
 | `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. |
 | `Ctrl+T` | Expand or collapse reasoning blocks. |
-| `Ctrl+O` | Expand or collapse command groups, tool arguments, and output. |
+| `Ctrl+O` | Expand or collapse individual tool arguments and output. |
+| `Ctrl+G` | Expand all command groups; by default running groups expand automatically. |
 | `Ctrl+L` | Return to the newest message and resume auto-follow. |
 | `PgUp` | Scroll the transcript up one page. |
 | `Shift+PgUp`, `Alt+V`, `Ctrl+Alt+B` | Alternative scroll-up bindings. |

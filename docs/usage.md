@@ -20,22 +20,22 @@ calls, model selection changes, todos, and goals.
 ### Command groups
 
 Consecutive shell calls inside one turn/step are collected into one collapsible
-block instead of being printed as separate transcript rows:
+block instead of being printed as separate transcript rows. The hierarchy has
+two levels:
 
 ```text
-▸ ✓ Ran commands · 2 commands
 ▾ ◐ Running commands · npm test · 1/2
   ✓ bash npm run build
-      {"command":"npm run build"}
-    ⎿ built
   ◐ bash npm test
 ```
 
-The block is folded by default. `Ctrl+O` expands or collapses command groups
-together with individual tool arguments and output. A running group shows the
-current command preview; a finished group shows the command count, and failures
-show a `failed` count. Non-shell tools such as file reads and edits remain
-individual tool rows.
+The running group expands automatically and shows the child commands in their
+compact form. `Ctrl+O` expands the child command arguments and output; it does
+not open or close the group. A finished group collapses to a summary such as
+`▸ ✓ Ran commands · 2 commands`, and `Ctrl+G` expands all groups for manual
+inspection. Failures add a `failed` count.
+
+Non-shell tools such as file reads and edits remain individual tool rows.
 
 ## Sessions
 

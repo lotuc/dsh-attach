@@ -110,6 +110,8 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     });
     assert.ok(app.commandGroup, 'shell calls start a command group');
     assert.equal(app.toolRows.get('c1').status, 'running');
+    assert.match(app.commandGroup.render(100).join('\n'), /Running commands/);
+    assert.doesNotMatch(app.commandGroup.render(100).join('\n'), /\{"command"/, 'child details stay collapsed under Ctrl+O');
     client.emit('frame', {
       sessionId: 's1',
       frame: {
@@ -122,6 +124,10 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     });
     assert.equal(app.toolRows.get('c1').status, 'done');
     assert.match(app.commandGroup.render(100).join('\n'), /Ran commands/);
+    assert.doesNotMatch(app.commandGroup.render(100).join('\n'), /npm test/, 'finished groups collapse automatically');
+    app.showCommandGroups = true;
+    assert.match(app.commandGroup.render(100).join('\n'), /npm test/, 'Ctrl+G expands completed groups');
+    app.showCommandGroups = false;
     client.emit('frame', {
       sessionId: 's1',
       frame: {
