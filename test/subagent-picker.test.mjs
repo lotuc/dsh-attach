@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildSubagentPicker } from '../lib/client/subagent-picker.js';
+import { buildSubagentPicker, buildSubagentPickerFromRows } from '../lib/client/subagent-picker.js';
 
 const session = (id, overrides = {}) => ({
   sessionId: id,
@@ -53,4 +53,23 @@ test('does not loop on malformed parent cycles', () => {
   });
   assert.equal(picker.rootId, 'first');
   assert.deepEqual(picker.items.map((item) => item.value), ['second']);
+});
+
+
+test('builds picker rows from the lightweight catalog route', () => {
+  const picker = buildSubagentPickerFromRows({
+    rows: [
+      { id: 'child-a', parentId: 'root', depth: 1, mode: 'continuable', activity: 'running', label: 'Reviewer' },
+      { id: 'child-b', parentId: 'root', depth: 1, mode: 'one-shot', activity: 'inactive' },
+      { id: 'grandchild', parentId: 'child-a', depth: 2, mode: 'continuable', activity: 'inactive', label: 'Nested' },
+    ],
+    currentSessionId: 'child-b',
+  });
+  assert.equal(picker.running, 1);
+  assert.deepEqual(picker.items.map((item) => item.value), ['child-a', 'child-b', 'grandchild']);
+  assert.match(picker.items[0].label, /Reviewer/);
+  assert.match(picker.items[1].label, /current/);
+  assert.match(picker.items[2].label, /^  /);
+  assert.match(picker.items[2].description, /nested/);
+  assert.equal(picker.items[1].parentSessionId, 'root');
 });

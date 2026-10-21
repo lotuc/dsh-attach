@@ -106,7 +106,7 @@ function createFixture(home) {
       return { commandId: 'cmd-1', result: { kind: 'success', text: `ran ${line}` } };
     },
   };
-  const state = { webLive: false, subagentListCalls: 0 };
+  const state = { webLive: false, subagentListCalls: 0, directChildren: null };
   const ctx = {
     sessionController: controller,
     logger: { debug() {}, warn() {} },
@@ -115,6 +115,9 @@ function createFixture(home) {
       if (name === 'commands') return commands;
       if (name === 'subagents') {
         return {
+          async listChildren() {
+            return state.directChildren ?? [{ id: 'child-1', mode: 'continuable', label: 'Reviewer', createdAt: 1 }];
+          },
           async listDescendants() {
             state.subagentListCalls += 1;
             return [
@@ -510,6 +513,54 @@ test('hands a pending approval to Web when the terminal disconnects', async () =
     client.close();
     assert.equal(await outcome, 'allowed-once');
     assert.equal(delegated, 1);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('serves the direct-child catalog to the subagent picker', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    const value = await client.request('subagent.children', { sessionId: 's1' });
+    assert.equal(value.supported, true);
+    assert.equal(value.directOnly, false);
+    assert.deepEqual(value.items, [{
+      id: 'child-1',
+      parentId: 's1',
+      depth: 1,
+      mode: 'continuable',
+      activity: 'running',
+      label: 'Reviewer',
+    }]);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('uses direct children without walking a large catalog', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    host.state.directChildren = Array.from({ length: 33 }, (_, index) => ({
+      id: `child-${index}`,
+      mode: 'continuable',
+      label: `Child ${index}`,
+      createdAt: index,
+    }));
+    await client.connect({ timeoutMs: 2000 });
+    const value = await client.request('subagent.children', { sessionId: 's1' });
+    assert.equal(value.supported, true);
+    assert.equal(value.directOnly, true);
+    assert.equal(value.items.length, 33);
+    assert.equal(host.state.subagentListCalls, 0);
   } finally {
     client.close();
     await host.server.stop();

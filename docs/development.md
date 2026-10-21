@@ -119,6 +119,7 @@ Server methods:
 | `commands.list` / `commands.execute` | Discover and execute Host slash commands. |
 | `workspace.list` | Workspace tree snapshot, with a `cwd` fallback on the client. |
 | `subagent.summary` | Counts plus the active window (IDs, titles, and short catalog labels). Newer Hosts include labels; the client fills missing labels from `subagent.list`. |
+| `subagent.children` | Fast direct-child catalog for `/agents`; falls back to recursive listing for small trees. |
 | `subagent.list` | Catalog descendants when the runtime supports it, including short labels. |
 | `approval.respond` / `approval.cancel` | Answer or cancel an approval. |
 | `question.respond` / `question.cancel` | Answer or cancel a question batch. |
@@ -155,7 +156,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/session-events.js` | Pure projection for state-only Session events. |
 | `lib/client/format.js` | Shared age and cwd formatting. |
 | `lib/client/goal.js` | Goal projection normalization and blocked/status labels. |
-| `lib/client/subagent-picker.js` | Ordered `/agents` rows from session summaries. |
+| `lib/client/subagent-picker.js` | Ordered `/agents` rows from the lightweight catalog or session summaries. |
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
