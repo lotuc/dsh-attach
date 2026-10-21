@@ -180,13 +180,14 @@ Install dependencies and run the suite:
 pnpm install
 pnpm test
 pnpm test:coverage
+pnpm lint
 pnpm check:syntax
 pnpm check:docs
 ```
 
 The suite uses Node's built-in test runner (`node --test test/*.test.mjs`) and
 does not need a running Desktop or Web host. CI runs the suite and syntax check
-on Node 22 and 24, with coverage on Node 24. Integration tests start an
+on Node 22 and 24, with ESLint, syntax, docs, and coverage on Node 24. Integration tests start an
 `AttachServer` with a fixture `sessionController` in a temporary `DSH_HOME` and
 connect a real `AttachClient`.
 
