@@ -160,6 +160,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
 | `lib/client/command-catalog.js` | Local slash commands and `/resume` / `/model` completion. |
+| `lib/client/local-commands.js` | Local slash-command parsing and dispatch. |
 | `lib/client/keys.js` | Key constants and Ctrl/arrow matching across terminal encodings. |
 | `lib/client/herdr.js` | Herdr agent state, title/display-name metadata, and pane release. |
 | `lib/client/herdr-preview.js` | Builds `plugin pane open` arguments and parses the opened pane ID. |
@@ -211,7 +212,7 @@ Coverage includes:
 - Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;
 - Herdr managed preview pane arguments and pane ID parsing;
 - Pending-inbox normalization, splice application and user-visible filtering;
-- Step groups and lifecycle, session tree grouping and formatting, subagent picker ordering, metadata event projection, queue manager formatting and detail sections;
+- Step groups and lifecycle, session tree grouping and formatting, subagent picker ordering, metadata event projection, local command dispatch, queue manager formatting and detail sections;
 - App lifecycle (including slash autocomplete, queue manager, rejection handling, and listener cleanup), autocomplete screen placement, request timeouts, and release version consistency;
 - Double-Escape interrupt timing;
 - Background-job roster formatting, event folding, output polling, and bridge routes;
