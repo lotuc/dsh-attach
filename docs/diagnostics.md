@@ -45,6 +45,10 @@ whether a problem is terminal-specific.
 | `uncaughtException`, `unhandledRejection` | A JavaScript error; the log includes a stack. |
 | `process-exit code=...` | Final process exit code. |
 
+An `unhandledRejection` is logged and shown in the transcript as an internal
+error, but the TUI keeps the session open. An `uncaughtException` still exits
+because the process state can no longer be trusted.
+
 Exit codes from signals:
 
 | Code | Signal |
