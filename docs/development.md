@@ -130,7 +130,9 @@ Limits:
 - inbound line cap 4 MiB, outbound line cap 64 MiB;
 - unauthenticated `hello` deadline 10 seconds;
 - session history snapshot capped at 300 messages;
-- outbound writes wait for drain above a 4 MiB buffer.
+- outbound writes wait for drain above a 4 MiB buffer;
+- client requests default to a 180 second timeout (`attach/timeout`), which
+  bounds a request left unanswered by a live but unresponsive Host.
 
 When changing the wire format, update `PROTOCOL_VERSION` and both sides
 together. A protocol mismatch is rejected during descriptor discovery.
@@ -147,6 +149,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow. |
 | `lib/client/connection.js` | Descriptor discovery, socket connection/reconnect, request/response, notifications. |
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
+| `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, render cache, sanitization, long-stream behavior. |
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
@@ -176,10 +179,14 @@ Install dependencies and run the suite:
 ```sh
 pnpm install
 pnpm test
+pnpm test:coverage
+pnpm check:syntax
+pnpm check:docs
 ```
 
 The suite uses Node's built-in test runner (`node --test test/*.test.mjs`) and
-does not need a running Desktop or Web host. Integration tests start an
+does not need a running Desktop or Web host. CI runs the suite and syntax check
+on Node 22 and 24, with coverage on Node 24. Integration tests start an
 `AttachServer` with a fixture `sessionController` in a temporary `DSH_HOME` and
 connect a real `AttachClient`.
 
@@ -199,6 +206,7 @@ Coverage includes:
 - Herdr managed preview pane arguments and pane ID parsing;
 - Pending-inbox normalization, splice application and user-visible filtering;
 - Queue manager formatting and detail sections;
+- Autocomplete screen placement, request timeouts, and release version consistency;
 - Double-Escape interrupt timing;
 - Background-job roster formatting, event folding, output polling, and bridge routes;
 - Same-client reconnect against a restarted Host;

@@ -50,6 +50,9 @@
   },
   "license": "MIT",
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "test:coverage": "node --test --experimental-test-coverage test/*.test.mjs",
+    "check:syntax": "node scripts/check-syntax.mjs",
+    "check:docs": "node scripts/check-docs.mjs"
   }
 }
