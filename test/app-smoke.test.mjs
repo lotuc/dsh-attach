@@ -81,6 +81,12 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     assert.ok(app.pendingQueuePanel, 'pending queue panel was built');
     assert.equal(app.queueManagerPanel, null);
 
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: { type: 'event', event: { type: 'session/title', data: { title: 'Smoke session' } } },
+    });
+    assert.equal(app.state.title, 'Smoke session');
+
     app.editor.handleInput('/');
     await wait(50);
 
