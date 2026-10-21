@@ -60,9 +60,10 @@ interactions are held in memory, broadcast to every connection watching the
 session, and replayed when another terminal opens the session later.
 
 `approvals` and `questions` independently choose `tui`, `auto`, `web`, or `off`.
-Grace timers delegate unanswered requests to the Web flow when it is live, or
-release them back to the remaining Host listeners. The first answer from any
-client settles the shared request and closes the other panels.
+Grace timers keep a request with a watching terminal, and delegate it to the Web
+flow only when no terminal connection owns it or after that terminal
+disconnects. The first TUI answer settles the shared request and closes the
+other TUI panels.
 
 ### Endpoint discovery
 

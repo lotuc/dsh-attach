@@ -44,7 +44,7 @@ Approvals and questions use the same mode names independently.
 
 | Mode | Behavior |
 |---|---|
-| `tui` | While a terminal is watching the session, the request is offered to the terminal. The client sends an activity heartbeat every 20 seconds, so a long turn is not mistaken for inactivity. After the grace period, the request is handed to the next Host listener, typically the Web GUI when connected. |
+| `tui` | While a terminal is watching the session, the request is offered to the terminal. The client sends an activity heartbeat every 20 seconds, so a long turn is not mistaken for inactivity. While the terminal still has the request open, the bridge does not also start the Web answerer; if the terminal disconnects, the request is handed to the Web flow. |
 | `auto` | The terminal gets the request if it acted within `activeWindowMinutes`, or if no Web client is live. Otherwise the request goes to the Web GUI. |
 | `web` | The bridge does not intercept the request; the Web GUI handles it. |
 | `off` | Terminal handling is disabled for that request type. |
@@ -54,13 +54,14 @@ Approvals and questions use the same mode names independently.
 `approvalGraceSeconds` and `questionGraceSeconds` start when the request is
 created. On expiry:
 
-1. If a Web client is live, the request is handed to the Web flow.
-2. If no Web client is live, the terminal path is released and the request falls
+1. If a terminal is currently showing the request, it stays terminal-owned.
+2. Otherwise, if a Web client is live, the request is handed to the Web flow.
+3. If no Web client is live, the terminal path is released and the request falls
    through to the remaining Host listeners.
 
-Set either value to `0` to disable the timer and keep waiting for an answer. A
-request answered by any client closes the panels on the others; the first answer
-wins.
+If the terminal holding the request disconnects, the bridge immediately hands
+the pending request to the Web flow when one is live, or releases it otherwise.
+Set either value to `0` to disable the timer and keep waiting for an answer.
 
 If a terminal attaches while an interaction is still pending, the Host replays
 it for that session. This requires the in-memory pending-interaction support
