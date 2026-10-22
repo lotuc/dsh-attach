@@ -356,8 +356,8 @@ Queued prompts enter the same Host queue as prompts from the Web GUI.
 
 A terminal follows one session at a time. Other sessions continue running in
 the Host; switching sessions in the TUI does not stop them. Press `Ctrl+C`
-twice within two seconds (or run `/quit`) to detach the TUI; this never cancels
-a running turn.
+once while idle, or twice within two seconds while a turn or panel is active
+(or run `/quit`) to detach the TUI; this never cancels a running turn.
 
 If the Host restarts, the client marks the connection as lost, retries with
 backoff, and reopens the current session after the new endpoint appears. This

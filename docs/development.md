@@ -170,6 +170,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/queue.js` | Formats pending messages and the read-only queue detail sections. |
 | `lib/client/jobs.js` | Background-job roster ordering, durations, and durable event folding. |
 | `lib/client/escape-cancel.js` | Double-Escape timing used to interrupt the running turn. |
+| `lib/client/ctrl-c.js` | Idle-single vs active-double Ctrl+C exit policy. |
 | `lib/client/peek.js` | Bounded subagent peek over an extra socket. |
 | `lib/client/preview.js` | Read-only preview renderer for `--preview` panes. |
 | `lib/client/log.js` | 0600 lifecycle log with rotation and token redaction. |
@@ -216,7 +217,7 @@ Coverage includes:
 - Pending-inbox normalization, splice application and user-visible filtering;
 - Step groups and lifecycle, session tree grouping and formatting, subagent picker ordering, metadata event projection, goal normalization, local command dispatch, queue manager formatting and detail sections;
 - App lifecycle (including slash autocomplete, queue manager, rejection handling, and listener cleanup), autocomplete screen placement, request timeouts, and release version consistency;
-- Double-Escape interrupt timing;
+- Double-Escape interrupt timing and Ctrl+C exit policy;
 - Background-job roster formatting, event folding, output polling, and bridge routes;
 - Same-client reconnect against a restarted Host;
 - light/dark themes.
