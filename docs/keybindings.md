@@ -203,8 +203,8 @@ cursor, so it never steals output from the model's `job_output`.
 |---|---|
 | `/help` | Show the built-in help. |
 | `/sessions` | Open the session picker. |
-| `/agents` | List subagents under the current session. |
-| `/agents-preview [count]` | Open running subagents in managed Herdr plugin panes (1–2). |
+| `/subagents` | List subagents under the current session, active first. `/agents` is an alias. |
+| `/subagents-preview [count]` | Open running subagents in managed Herdr plugin panes (1–2). `/agents-preview` is an alias. |
 | `/peek` | Toggle the bounded subagent peek. |
 | `/jobs` | List background jobs; `Enter` opens output, `k` twice stops, `r` refreshes. |
 | `/job-output <id>` | Open a background job's live read-only output. |

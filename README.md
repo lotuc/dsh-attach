@@ -34,7 +34,7 @@ only by the current user.
   command list.
 - **Workspace-grouped sessions**: collapsible workspace headers, with a `cwd`
   fallback when the Host has no Workspace API.
-- **Subagent visibility**: parent sessions show agent counts, `/agents` lists
+- **Subagent visibility**: parent sessions show agent counts, `/subagents` lists
   the lineage, and subagent history opens read-only. `/parent` goes back.
 - **Command completion**: local commands and Host-registered commands appear
   from `/`; `/resume` and `/model` complete their arguments, and relative file

@@ -42,10 +42,12 @@ test('dispatches local command handlers', async () => {
   const cases = [
     ['/help', ['help']],
     ['/sessions', ['sessions']],
+    ['/subagents', ['agents']],
     ['/agents', ['agents']],
     ['/jobs', ['jobs']],
     ['/job-output abc', ['jobOutput', 'abc']],
     ['/job-kill abc', ['killJob', 'abc']],
+    ['/subagents-preview review', ['previewAgents', 'review']],
     ['/agents-preview review', ['previewAgents', 'review']],
     ['/peek', ['togglePeek']],
     ['/parent', ['parent']],

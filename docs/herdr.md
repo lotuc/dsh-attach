@@ -62,7 +62,7 @@ one extra Unix socket per peek, not a new process, and keeps at most two peeks.
 
 ## Managed preview pane setup
 
-`/agents-preview` opens **Herdr plugin panes**, not shell panes. Link this
+`/subagents-preview` opens **Herdr plugin panes**, not shell panes. Link this
 repository, or its installed copy in the DSH profile, once:
 
 ```sh
@@ -80,7 +80,7 @@ The plugin manifest is [herdr-plugin.toml](../herdr-plugin.toml). It defines the
   are not updated by `herdr plugin update`; run `herdr plugin link` again (or
   unlink and relink) after changing the checkout.
 
-If the plugin is not linked, `/agents-preview` reports the link command instead
+If the plugin is not linked, `/subagents-preview` reports the link command instead
 of silently falling back to a shell pane.
 
 ## Multi-pane subagent previews
@@ -88,8 +88,8 @@ of silently falling back to a shell pane.
 From a parent `dsh-attach` running inside a Herdr pane:
 
 ```text
-/agents-preview        # open up to two running subagents
-/agents-preview 1      # open one
+/subagents-preview        # open up to two running subagents
+/subagents-preview 1      # open one
 ```
 
 The count is clamped to 1–2. Only **running** subagents in the current session's
@@ -113,7 +113,7 @@ A preview pane is a separate lightweight renderer:
 - `PgUp`/`PgDn` scroll, `End` jumps to the newest output, and `Ctrl+C` or `q`
   closes the pane;
 - closing one does not stop or affect the subagent;
-- outside Herdr, `/agents-preview` reports that `/agents` should be used
+- outside Herdr, `/subagents-preview` reports that `/subagents` should be used
   instead.
 
 ### Automatic close
@@ -136,7 +136,7 @@ also closes after a short grace period.
 
 ## Standalone preview mode
 
-`--preview` can be used without `/agents-preview`:
+`--preview` can be used without `/subagents-preview`:
 
 ```sh
 dsh-attach --preview <child-session-id> --parent <parent-session-id>
@@ -152,7 +152,7 @@ exit after that much idle time. The plugin wrapper passes
 
 | Command | Purpose |
 |---|---|
-| `/agents-preview [count]` | Open managed plugin panes for 1–2 running subagents. |
-| `/agents` | List the subagent lineage inside the TUI. |
+| `/subagents-preview [count]` | Open managed plugin panes for 1–2 running subagents. |
+| `/subagents` | List the subagent lineage inside the TUI. |
 | `/peek` | Toggle the bottom subagent peek. |
 | `/parent` | Return from a subagent history to its parent. |

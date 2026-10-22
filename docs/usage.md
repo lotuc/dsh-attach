@@ -249,8 +249,9 @@ While any are running, the badge shows running/total, for example
 ● ready · agents 27 idle                  everything is idle
 ```
 
-`/agents` lists the lineage under the current session. At every level, running
-children sort before idle ones and newer children come first. Indentation shows
+`/subagents` lists the lineage under the current session. Active subagents are
+listed first; within the same status, newer children come first. `/agents` and
+`/agents-preview` remain accepted as compatibility aliases. Indentation shows
 nesting depth; `Enter` opens a subagent, and `/parent` returns to the direct
 parent. Subagent history is read-only and the footer is marked
 `subagent · read-only`.
@@ -299,8 +300,8 @@ the activity line:
   `subagent.summary`. When labels are missing, the client resolves them from
   `subagent.list` and caches them; counts fall back to `session.list` when the
   summary route is unavailable.
-- Use `/agents` or `/agents-preview` when you need the full execution view.
-  `/agents-preview` opens managed Herdr plugin panes and needs a one-time
+- Use `/subagents` or `/subagents-preview` when you need the full execution view.
+  `/subagents-preview` opens managed Herdr plugin panes and needs a one-time
   `herdr plugin link`; see [Herdr integration](herdr.md).
 
 ## Reattach hint

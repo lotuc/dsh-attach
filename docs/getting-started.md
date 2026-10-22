@@ -150,7 +150,7 @@ dsh-attach --list --all
 ```
 
 Subagent sessions are excluded unless `--all` is supplied. The interactive
-session picker also excludes subagent sessions; use `/agents` inside the TUI to
+session picker also excludes subagent sessions; use `/subagents` inside the TUI to
 browse the lineage of the current session.
 
 ## Upgrade
