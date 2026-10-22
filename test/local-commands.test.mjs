@@ -27,6 +27,7 @@ function context() {
       model: record('model'),
       status: record('status'),
       quit: record('quit'),
+      reconnect: record('reconnect'),
       note: record('note'),
     },
   };
@@ -42,6 +43,7 @@ test('dispatches local command handlers', async () => {
   const cases = [
     ['/help', ['help']],
     ['/sessions', ['sessions']],
+    ['/reconnect', ['reconnect']],
     ['/subagents', ['agents']],
     ['/agents', ['agents']],
     ['/jobs', ['jobs']],

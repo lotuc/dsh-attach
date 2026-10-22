@@ -58,7 +58,8 @@ only by the current user.
 - **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
   running turn without quitting the client.
 - **Automatic reconnect**: after a Host or desktop-app restart, the client
-  retries with backoff and reopens the current session.
+  retries with backoff and reopens the current session; `/reconnect` forces a
+  fresh attempt.
 - **Background jobs**: `/jobs` lists the session roster, opens live read-only
   output with the original command/label, returns there on `Esc`, refreshes on
   demand, and stops a running job after a two-press confirmation; the activity

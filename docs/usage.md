@@ -361,7 +361,9 @@ once while idle, or twice within two seconds while a turn or panel is active
 (or run `/quit`) to detach the TUI; this never cancels a running turn.
 
 If the Host restarts, the client marks the connection as lost, retries with
-backoff, and reopens the current session after the new endpoint appears. This
+backoff, and reopens the current session after the new endpoint appears. Run
+`/reconnect` to force a fresh attempt immediately, for example after starting
+the Host again. This
 also covers restarting the DeepSeek Harness desktop app. The reconnect runs in
 the background; `Ctrl+C` twice still exits the client. Approvals or questions
 that were pending only in the old Host process may not survive the restart.

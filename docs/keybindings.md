@@ -203,6 +203,7 @@ cursor, so it never steals output from the model's `job_output`.
 |---|---|
 | `/help` | Show the built-in help. |
 | `/sessions` | Open the session picker. |
+| `/reconnect` | Force a fresh Host connection and reopen the current session. |
 | `/subagents` | List subagents under the current session, active first. `/agents` is an alias. |
 | `/subagents-preview [count]` | Open running subagents in managed Herdr plugin panes (1–2). `/agents-preview` is an alias. |
 | `/peek` | Toggle the bounded subagent peek. |
