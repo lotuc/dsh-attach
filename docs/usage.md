@@ -98,9 +98,10 @@ working directory.
 
 ## Prompts
 
-Press `Enter` to submit the composer contents. While a turn is running, the
-prompt is queued by default; the Host delivers it when the current turn is
-ready. The transcript shows a local echo marked `queued` until the Host claims
+Press `Enter` to submit the composer contents. Submitting also returns the
+transcript to the live edge and resumes auto-follow if you had scrolled back.
+While a turn is running, the prompt is queued by default; the Host delivers it
+when the current turn is ready. The transcript shows a local echo marked `queued` until the Host claims
 the message. Pending messages from any attached client appear in the queue
 panel above the composer, and `/status` reports the current count.
 

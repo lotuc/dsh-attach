@@ -105,6 +105,17 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     assert.equal(app.state.goal.phase, 'blocked');
     assert.match(app.activity.render(120).join('\n'), /goal blocked · Waiting for input/);
 
+    let scrollsToEnd = 0;
+    const scrollToEnd = app.transcript.scrollToEnd.bind(app.transcript);
+    app.transcript.scrollToEnd = () => {
+      scrollsToEnd += 1;
+      scrollToEnd();
+    };
+    app.editor.setText('hello after scrolling up');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.ok(scrollsToEnd > 0, 'submitting returns the transcript to the live edge');
+
     app.editor.handleInput('/');
     await wait(50);
 

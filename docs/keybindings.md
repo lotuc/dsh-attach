@@ -31,7 +31,7 @@ are closed.
 
 | Key | Action |
 |---|---|
-| `Enter` | Send the prompt. While a turn is running, the prompt is queued. |
+| `Enter` | Send the prompt and return the transcript to the newest message. While a turn is running, the prompt is queued. |
 | `Shift+Enter`, `Ctrl+J` | Insert a newline instead of sending. |
 | `Up`, `Ctrl+P` | Move up; on the first line at column 0, or while browsing history, go to the previous prompt. |
 | `Down`, `Ctrl+N` | Move down; on the last line while browsing, go to the next prompt. |
