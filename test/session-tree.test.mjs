@@ -44,7 +44,7 @@ test('builds a current workspace group and excludes archived sessions', () => {
     currentSessionId: 's2',
   });
 
-  assert.equal(items[0].value, '__new__');
+  assert.equal(items.some((item) => item.kind === 'action'), false);
   const group = items.find((item) => item.kind === 'group' && item.groupKey === 'workspace:w1');
   assert.ok(group);
   assert.equal(group.current, true);

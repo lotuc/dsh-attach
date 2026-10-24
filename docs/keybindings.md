@@ -80,6 +80,7 @@ not change the editor height or move the input line.
 | Key | Action |
 |---|---|
 | `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move the selection. |
+| `n` (session picker, navigation mode) | Create a new session. |
 | `/` or any printable character | Enter incremental search. |
 | Printable characters in search | Refine the filter; matching workspace groups expand. |
 | `Enter` | Select the highlighted session, model, or group. |
@@ -97,9 +98,9 @@ Search tokens match titles, working directories, descriptions, and the
 underlying picker values (for the model picker, provider/model labels). A single
 ASCII letter is matched at word starts to keep one-character queries useful.
 
-The session tree also shows a **New session** row; `Enter` on it creates a
-session. `Enter` on a workspace header toggles it; `Enter` on a session opens
-it.
+Press `n` in navigation mode to create a session. `Enter` on a workspace header
+toggles it; `Enter` on a session opens it. Once search mode is active, `n` is
+an ordinary search character.
 
 ## Approvals
 

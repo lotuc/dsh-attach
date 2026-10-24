@@ -68,7 +68,7 @@ and in-flight requests are shared; workspace lookup is best-effort and bounded
 so a slow Workspace registry falls back to `cwd` grouping instead of holding up
 the list.
 
-The first row is **New session**, which creates a session in the client
+In the picker's navigation mode, press `n` to create a session in the client
 process's working directory. Start `dsh-attach -C <path>` to override that for
 the whole run. Blank sessions are hidden unless they are running or already
 have subagents; archived sessions are hidden.

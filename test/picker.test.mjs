@@ -182,3 +182,24 @@ test('escape in navigation cancels the picker', () => {
   panel.handleInput('\x1b');
   assert.equal(events.cancelled, 1);
 });
+
+test('runs navigation shortcuts before entering search mode', () => {
+  const list = new FilterList([
+    { value: 'a', label: 'alpha' },
+    { value: 'b', label: 'beta' },
+  ], 5, selectTheme);
+  const shortcuts = [];
+  const panel = new PickerPanel('Fixture', list, {
+    requestRender: () => {},
+    onKey: (data) => {
+      if (data !== 'n') return false;
+      shortcuts.push(data);
+      return true;
+    },
+  });
+  panel.handleInput('n');
+  assert.deepEqual(shortcuts, ['n']);
+  assert.equal(panel.mode, 'nav');
+  panel.handleInput('x');
+  assert.equal(panel.mode, 'search');
+});
