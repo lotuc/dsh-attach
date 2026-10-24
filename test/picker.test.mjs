@@ -255,25 +255,27 @@ test('aligns fixed session columns across rows', () => {
   assert.match(lines[0], /1\/2 agents$/);
 });
 
-test('renders a compact table header and aligned session title column', () => {
-  const columns = [
-    { text: 'Main · /work', width: 30, align: 'left' },
-    { text: '2m ago', width: 8, align: 'right' },
-    { text: '1/2', width: 10, align: 'right' },
-  ];
+test('renders the selected session path in the footer preview', () => {
   const list = new FilterList([
-    { kind: 'session', flat: true, table: true, titleWidth: 26, value: 'a', label: 'A', columns },
-    { kind: 'session', flat: true, table: true, titleWidth: 26, value: 'b', label: 'Longer session', columns },
+    {
+      kind: 'session',
+      flat: true,
+      table: true,
+      titleWidth: 26,
+      value: 'a',
+      label: 'A',
+      path: '/Users/lotuc/Workspace/repos/lotuc/dsh-tui-attach',
+      columns: [
+        { text: '…/lotuc/dsh-tui-attach', width: 30, align: 'left', flex: true },
+        { text: '2m ago', width: 8, align: 'right' },
+        { text: '1/2', width: 10, align: 'right' },
+      ],
+    },
   ], 5, selectTheme);
   const panel = new PickerPanel('Sessions', list, {
     requestRender: () => {},
-    header: '  SESSION                  WORKSPACE                       AGE      AGENTS',
+    preview: (item) => `path ${item.path}`,
   });
-  const lines = panel.render(92).map((line) => stripTerminalSequences(line));
-  const header = lines.find((line) => line.includes('SESSION'));
-  assert.ok(header);
-  const rowA = lines.find((line) => line.includes('A') && line.includes('Main · /work'));
-  const rowB = lines.find((line) => line.includes('Longer session'));
-  assert.ok(rowA && rowB);
-  assert.equal(rowA.indexOf('Main · /work'), rowB.indexOf('Main · /work'));
+  const text = stripTerminalSequences(panel.render(92).join('\n'));
+  assert.match(text, /path \/Users\/lotuc\/Workspace\/repos\/lotuc\/dsh-tui-attach/);
 });
