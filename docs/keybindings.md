@@ -124,14 +124,16 @@ The details view is read-only and scrolls independently of the approval panel.
 |---|---|
 | `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move between options. |
 | `Space` | Toggle or select the highlighted option. |
-| `Enter` | Select and advance; with no options, enter custom text. |
+| `Enter` | Select and advance; for a free-text question, submit the focused input. |
 | `1`–`9` | Select an option by number. |
 | `c` | Enter custom text for the current question. |
 | `s` | Skip the entire batch and return `skipped` immediately. |
 | `Esc` | Dismiss the TUI panel; the Host may hand the question to another client or its timeout. |
 
-In custom-text mode, `Enter` submits the text and returns to the option list;
-`Esc` returns without submitting.
+Questions without options open with a focused input immediately. For questions
+with options, `c` opens custom text; `Enter` submits it and returns to the option
+list, while `Esc` cancels the custom text. On a free-text question, `Esc`
+dismisses the panel.
 
 ## Information panels
 

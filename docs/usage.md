@@ -48,9 +48,10 @@ reasoning row.
 ### Pick a session
 
 Running `dsh-attach` without `--session` opens the session picker. Every
-session is one flat row: the session title leads, followed by the workspace
-name and workspace path. Age and subagent count are right-aligned. The current
-session is selected first and marked with `★`; running sessions use `●`.
+session is one flat row: the session title is left-aligned, while the workspace
+name, workspace path, age, and subagent count share a right-aligned metadata
+column. The current session is selected first and marked with `★`; running
+sessions use `●`.
 
 Typing or pressing `/` enters incremental search over titles, workspace names,
 working directories, and descriptions. There are no collapsible workspace
@@ -218,14 +219,16 @@ completes.
 |---|---|
 | `Up`/`Down`, `Ctrl+P`/`Ctrl+N` | Move between options. |
 | `Space` | Toggle the highlighted option (multi select) or select it (single select). |
-| `Enter` | Select the highlighted option and advance; with no options, enter custom text. |
+| `Enter` | Select the highlighted option and advance; for a free-text question, submit the focused input. |
 | `1`–`9` | Jump to an option by number. |
 | `c` | Enter custom text. |
 | `s` | Skip the whole batch and immediately return `skipped` to the Host. |
 | `Esc` | Close the TUI panel and release the question from this client. |
 
-In custom-text mode, `Enter` submits the text and returns to the option list;
-`Esc` returns without submitting.
+Questions without options open with a focused text input. For questions with
+options, `c` opens custom text; `Enter` submits it and returns to the option list,
+while `Esc` cancels the custom text. On a free-text question, `Esc` dismisses the
+panel.
 
 `Esc` does not silently answer the question. It detaches the panel from the
 terminal and lets the Host's remaining flow (for example the Web GUI) or the
