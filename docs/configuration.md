@@ -79,6 +79,7 @@ added in Host plugin 0.8.0.
 | `DSH_ATTACH_LOG` | Lifecycle log path. `off` disables logging. The `--log` option takes priority. |
 | `DSH_ATTACH_KEYS=1` | Log raw key input for debugging. This can include prompt text; use only temporarily. |
 | `DSH_ATTACH_PERF=1` | Emit frame, input-latency, and event-loop diagnostics. |
+| `DSH_ATTACH_AUTO_RESUME=0` | Disable the one-time continuation prompt after a Host restart leaves the last turn interrupted. |
 | `DSH_ATTACH_PREVIEW_EXIT_AFTER` | Seconds a managed Herdr preview waits after the child becomes idle before exiting; default `0` keeps it open. |
 | `DSH_ATTACH_VERSION` | Optional version string recorded in the lifecycle log's `start` entry. |
 

@@ -369,10 +369,17 @@ once while idle, or twice within two seconds while a turn or panel is active
 If the Host restarts, the client marks the connection as lost, retries with
 backoff, and reopens the current session after the new endpoint appears. Run
 `/reconnect` to force a fresh attempt immediately, for example after starting
-the Host again. This
-also covers restarting the DeepSeek Harness desktop app. The reconnect runs in
-the background; `Ctrl+C` twice still exits the client. Approvals or questions
-that were pending only in the old Host process may not survive the restart.
+the Host again. This also covers restarting the DeepSeek Harness desktop app.
+The reconnect runs in the background; `Ctrl+C` still exits the client (once idle, or twice while a turn or panel is active).
+
+If the last turn was durably closed as `interrupted` during the restart, the
+client sends one continuation prompt after reopening the session. The prompt
+has a stable request id, so multiple reconnecting TUI clients do not enqueue
+duplicates. Set `DSH_ATTACH_AUTO_RESUME=0` to disable this behavior. Automatic
+continuation can repeat side-effecting tool work; the recovery prompt tells the
+model to inspect state first and avoid repeating completed work. Approvals or
+questions that were pending only in the old Host process may not survive the
+restart.
 
 ## Terminal focus and mouse
 

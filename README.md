@@ -146,7 +146,10 @@ Read [Security](docs/security.md) for the full model.
 - Image input is clipboard-only (`Ctrl+Shift+V` or `/paste-image`); file upload
   and `@` file indexing are not wired up.
 - One session per terminal at a time. Other sessions keep running in the Host.
-- The client reconnects automatically after a Host or desktop-app restart; pending approvals/questions from the old Host process may be lost.
+- The client reconnects automatically after a Host or desktop-app restart and
+  continues a durably interrupted last turn once; pending approvals/questions
+  from the old Host process may be lost. Set `DSH_ATTACH_AUTO_RESUME=0` to
+  disable automatic continuation.
 - No trajectory timeline, session fork, or diff preview. Subagent browsing is
   read-only, and subagents cannot be dispatched, continued, or interrupted from
   the TUI.

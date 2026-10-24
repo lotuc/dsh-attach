@@ -225,6 +225,9 @@ test('lists, opens, streams and prompts a session', async () => {
       { type: 'image', mediaType: 'image/png', data: 'YWJj', name: 'clipboard.png' },
     ]);
 
+    await client.request('session.prompt', { text: 'continue', mode: 'queue', requestId: 'attach-resume-s1-2' });
+    assert.equal(calls.filter((call) => call[0] === 'prompt').at(-1)[1].requestId, 'attach-resume-s1-2');
+
     const queueUpdate = await client.request('queue.update', {
       itemId: 'message-1',
       action: { kind: 'remove' },

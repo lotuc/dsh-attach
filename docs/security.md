@@ -97,7 +97,9 @@ are untrusted. Before rendering, the client strips:
 Line breaks and tabs are preserved so Markdown and code blocks render normally.
 Image content blocks are displayed as the literal text `[image]`. Clipboard
 images are read locally by the client and sent to the Host only when the prompt
-is submitted.
+is submitted. Automatic interrupted-turn continuation sends a normal user
+prompt; it can repeat side-effecting work, so set `DSH_ATTACH_AUTO_RESUME=0`
+when that risk is unacceptable.
 
 This prevents a model or tool from driving the terminal through output text. It
 does not protect against vulnerabilities in the terminal emulator itself, nor
