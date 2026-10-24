@@ -50,8 +50,8 @@ reasoning row.
 Running `dsh-attach` without `--session` opens the session picker. Every
 session is one flat row: the session title and workspace name share the first
 column, followed by a flexible directory column, a right-aligned age column,
-and a right-aligned subagent-count column. The directory column absorbs spare
-width and preserves both ends of a long path. The selected row's complete
+and a right-aligned subagent-count column. The session and directory columns adapt to terminal width and content: the
+directory column absorbs spare width and preserves both ends of a long path. The selected row's complete
 workspace path is shown below the list. The current session is selected first
 and marked with `★`; running sessions use `●`.
 
