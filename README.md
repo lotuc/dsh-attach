@@ -143,7 +143,8 @@ Read [Security](docs/security.md) for the full model.
 
 ## Known limitations
 
-- Text prompts only; image/attachment input and file upload are not wired up.
+- Image input is clipboard-only (`Ctrl+Shift+V` or `/paste-image`); file upload
+  and `@` file indexing are not wired up.
 - One session per terminal at a time. Other sessions keep running in the Host.
 - The client reconnects automatically after a Host or desktop-app restart; pending approvals/questions from the old Host process may be lost.
 - No trajectory timeline, session fork, or diff preview. Subagent browsing is

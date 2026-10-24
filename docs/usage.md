@@ -120,8 +120,14 @@ message. `/cancel` stops the running turn without adding a message; pressing
 `Esc` twice within 750 ms does the same. The first `Esc` shows
 `esc again to interrupt` in the activity line.
 
-Prompt text is sent to the Host as text content only. Images, attachments, file
-uploads, and `@` file indexing are not wired into the client.
+Press `Ctrl+Shift+V` or run `/paste-image` to read an image from the system
+clipboard. The image name appears above the composer; `/images clear` removes
+pending images. Images are sent with the next prompt, including an image-only
+prompt. Up to eight images can be attached at once. macOS uses `pngpaste` when
+available and otherwise AppleScript; Linux uses `wl-paste` or `xclip`. If the
+terminal consumes `Ctrl+Shift+V`, use `/paste-image`.
+
+File upload and `@` file indexing are not wired into the client.
 
 ## Transcript and history
 

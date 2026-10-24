@@ -214,6 +214,17 @@ test('lists, opens, streams and prompts a session', async () => {
     assert.equal(recorded.sessionId, 's1');
     assert.deepEqual(recorded.content, [{ type: 'text', text: 'hello' }]);
 
+    const imagePrompt = await client.request('session.prompt', {
+      text: '',
+      mode: 'queue',
+      images: [{ mediaType: 'image/png', data: 'YWJj', name: 'clipboard.png' }],
+    });
+    assert.equal(imagePrompt.accepted, true);
+    const imageRecorded = calls.filter((call) => call[0] === 'prompt').at(-1)[1];
+    assert.deepEqual(imageRecorded.content, [
+      { type: 'image', mediaType: 'image/png', data: 'YWJj', name: 'clipboard.png' },
+    ]);
+
     const queueUpdate = await client.request('queue.update', {
       itemId: 'message-1',
       action: { kind: 'remove' },

@@ -32,6 +32,7 @@ are closed.
 | Key | Action |
 |---|---|
 | `Enter` | Send the prompt and return the transcript to the newest message. While a turn is running, the prompt is queued. |
+| `Ctrl+Shift+V` | Attach an image from the system clipboard. `/paste-image` is the fallback when the terminal consumes this key. |
 | `Shift+Enter`, `Ctrl+J` | Insert a newline instead of sending. |
 | `Up`, `Ctrl+P` | Move up; on the first line at column 0, or while browsing history, go to the previous prompt. |
 | `Down`, `Ctrl+N` | Move down; on the last line while browsing, go to the next prompt. |
@@ -207,6 +208,8 @@ cursor, so it never steals output from the model's `job_output`.
 | `/subagents` | List subagents under the current session, active first. `/agents` is an alias. |
 | `/subagents-preview [count]` | Open running subagents in managed Herdr plugin panes (1–2). `/agents-preview` is an alias. |
 | `/peek` | Toggle the bounded subagent peek. |
+| `/paste-image` | Attach an image from the system clipboard. |
+| `/images [clear]` | Show attached image count, or clear pending images. |
 | `/jobs` | List background jobs; `Enter` opens output, `k` twice stops, `r` refreshes. |
 | `/job-output <id>` | Open a background job's live read-only output. |
 | `/job-kill <id>` | Request cancellation of a background job. |
