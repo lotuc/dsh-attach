@@ -47,20 +47,14 @@ reasoning row.
 
 ### Pick a session
 
-Running `dsh-attach` without `--session` opens the session picker. The list is
-grouped by durable Workspace, with a `cwd` fallback for sessions that the
-Workspace registry does not account for. Each group header shows its title and
-right-aligned session, running, and agent counts.
+Running `dsh-attach` without `--session` opens the session picker. Every
+session is one flat row: the session title leads, followed by the workspace
+name, workspace path, age, and subagent count. The current session is selected
+first and marked with `★`; running sessions use `●`.
 
-The picker starts compact: the current group, groups with running sessions, and
-the most recently used group are expanded. Typing or pressing `/` enters
-incremental search over titles, working directories, and descriptions, and
-expands matching groups. Group headers are marked with `▸`/`▾`, the current
-session with `★`, and running sessions with `●`.
-
-Session rows keep the title on the left and right-align the age and agent count.
-The working directory is not repeated on every row because the group header
-already identifies it; it remains part of the search text.
+Typing or pressing `/` enters incremental search over titles, workspace names,
+working directories, and descriptions. There are no collapsible workspace
+headers, so every matching session is visible immediately.
 
 Session discovery can take a moment on a large history. If it takes longer than
 about 120 ms, the picker shows a small loading panel. Results are cached briefly

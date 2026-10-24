@@ -82,10 +82,8 @@ not change the editor height or move the input line.
 | `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move the selection. |
 | `n` (session picker, navigation mode) | Create a new session. |
 | `/` or any printable character | Enter incremental search. |
-| Printable characters in search | Refine the filter; matching workspace groups expand. |
+| Printable characters in search | Refine the filter across titles and workspace metadata. |
 | `Enter` | Select the highlighted session, model, or group. |
-| `Left` | Collapse a workspace group, or collapse the current group and jump to its header. |
-| `Right` | Expand a workspace group. |
 | `Ctrl+U` | Clear the search query. |
 | `Ctrl+W` | Delete the previous search word. |
 | `Backspace` | Edit the search query. |
@@ -98,9 +96,8 @@ Search tokens match titles, working directories, descriptions, and the
 underlying picker values (for the model picker, provider/model labels). A single
 ASCII letter is matched at word starts to keep one-character queries useful.
 
-Press `n` in navigation mode to create a session. `Enter` on a workspace header
-toggles it; `Enter` on a session opens it. Once search mode is active, `n` is
-an ordinary search character.
+Press `n` in navigation mode to create a session. `Enter` opens the highlighted
+session. Once search mode is active, `n` is an ordinary search character.
 
 ## Approvals
 

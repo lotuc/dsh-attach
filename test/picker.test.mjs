@@ -203,3 +203,16 @@ test('runs navigation shortcuts before entering search mode', () => {
   panel.handleInput('x');
   assert.equal(panel.mode, 'search');
 });
+
+test('filters and renders flat session rows without group semantics', () => {
+  const list = new FilterList([
+    { kind: 'session', flat: true, value: 'a', label: 'alpha', description: 'Main · /a' },
+    { kind: 'session', flat: true, value: 'b', label: 'beta', description: 'Other · /b' },
+  ], 5, selectTheme);
+  list.setFilter('beta');
+  assert.deepEqual(list.filtered.map((item) => item.value), ['b']);
+  list.setFilter('');
+  const lines = list.render(80).map((line) => stripTerminalSequences(line));
+  assert.match(lines[0], /^→ ○ alpha/);
+  assert.match(lines[0], /Main · \/a/);
+});

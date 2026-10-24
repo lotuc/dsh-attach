@@ -32,8 +32,9 @@ only by the current user.
 - **Searchable pickers**: session and model pickers support `Ctrl+N`/`Ctrl+P`
   and arrows, and filter incrementally as you type. A leading `/` opens the
   command list.
-- **Workspace-grouped sessions**: collapsible workspace headers, with a `cwd`
-  fallback when the Host has no Workspace API.
+- **Flat session list**: session title first, followed by workspace name,
+  workspace path, age, and subagent counts; the current session is selected
+  first.
 - **Subagent visibility**: parent sessions show agent counts, `/subagents` lists
   the lineage, and subagent history opens read-only. `/parent` goes back.
 - **Command completion**: local commands and Host-registered commands appear
