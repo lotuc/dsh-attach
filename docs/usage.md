@@ -49,8 +49,8 @@ reasoning row.
 
 Running `dsh-attach` without `--session` opens the session picker. Every
 session is one flat row: the session title leads, followed by the workspace
-name, workspace path, age, and subagent count. The current session is selected
-first and marked with `★`; running sessions use `●`.
+name and workspace path. Age and subagent count are right-aligned. The current
+session is selected first and marked with `★`; running sessions use `●`.
 
 Typing or pressing `/` enters incremental search over titles, workspace names,
 working directories, and descriptions. There are no collapsible workspace

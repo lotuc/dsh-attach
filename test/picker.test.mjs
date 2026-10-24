@@ -216,3 +216,20 @@ test('filters and renders flat session rows without group semantics', () => {
   assert.match(lines[0], /^→ ○ alpha/);
   assert.match(lines[0], /Main · \/a/);
 });
+
+test('right-aligns flat row metadata after the title and workspace context', () => {
+  const list = new FilterList([
+    {
+      kind: 'session',
+      flat: true,
+      value: 'a',
+      label: 'Fix tests',
+      description: 'Main · /work',
+      meta: '2m ago · 1/2 agents',
+    },
+  ], 5, selectTheme);
+  const line = stripTerminalSequences(list.render(80)[0]);
+  assert.match(line, /Fix tests/);
+  assert.match(line, /Main · \/work/);
+  assert.match(line, /2m ago · 1\/2 agents$/);
+});

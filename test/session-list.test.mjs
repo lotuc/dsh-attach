@@ -51,7 +51,7 @@ test('builds one flat row per visible session with metadata after the title', ()
   assert.equal(items[0].label, 'Session s2');
   assert.match(items[0].description, /Main/);
   assert.match(items[0].description, /~?\/work/);
-  assert.match(items[0].description, /agent/);
+  assert.match(items[0].meta, /agent/);
   assert.equal(items.some((item) => item.value === 's4'), false);
 });
 
