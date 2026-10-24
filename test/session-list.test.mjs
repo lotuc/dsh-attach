@@ -52,7 +52,8 @@ test('builds one flat row per visible session with metadata after the title', ()
   assert.equal(items[0].table, true);
   assert.equal(items[0].columns[0].text, '/work');
   assert.equal(items[0].path, '/work');
-  assert.equal(items[0].columns[2].text, '1/1');
+  assert.equal(items[0].columns[1].text, '1/1');
+  assert.match(items[0].columns[2].text, /ago/);
   assert.equal(items.some((item) => item.value === 's4'), false);
 });
 
