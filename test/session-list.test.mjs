@@ -49,9 +49,9 @@ test('builds one flat row per visible session with metadata after the title', ()
   assert.equal(items[0].flat, true);
   assert.equal(items[0].current, true);
   assert.equal(items[0].label, 'Session s2');
-  assert.match(items[0].meta, /Main/);
-  assert.match(items[0].meta, /~?\/work/);
-  assert.match(items[0].meta, /agent/);
+  assert.match(items[0].columns[0].text, /Main/);
+  assert.match(items[0].columns[0].text, /~?\/work/);
+  assert.match(items[0].columns[2].text, /agent/);
   assert.equal(items.some((item) => item.value === 's4'), false);
 });
 
@@ -60,7 +60,7 @@ test('uses cwd basename as a fallback workspace label', () => {
     sessions: [s3],
     workspaceView: { items: [], archivedSessionIds: [] },
   });
-  assert.match(item.meta, /^other · \/other/);
+  assert.match(item.columns[0].text, /^other · \/other/);
 });
 
 test('sessionLabel falls back to a stable untitled label', () => {

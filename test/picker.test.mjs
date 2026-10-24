@@ -233,3 +233,24 @@ test('right-aligns flat row metadata after the title and workspace context', () 
   assert.match(line, /Main · \/work/);
   assert.match(line, /2m ago · 1\/2 agents$/);
 });
+
+test('aligns fixed session columns across rows', () => {
+  const list = new FilterList([
+    { kind: 'session', flat: true, value: 'a', label: 'A', description: '', columns: [
+      { text: 'Main · /work', width: 28, align: 'left' },
+      { text: '2m ago', width: 8, align: 'right' },
+      { text: '1/2 agents', width: 10, align: 'right' },
+    ] },
+    { kind: 'session', flat: true, value: 'b', label: 'Longer session', description: '', columns: [
+      { text: 'Other · /other', width: 28, align: 'left' },
+      { text: '1h ago', width: 8, align: 'right' },
+      { text: '3 agents', width: 10, align: 'right' },
+    ] },
+  ], 5, selectTheme);
+  const lines = list.render(88).map((line) => stripTerminalSequences(line));
+  const workspaceAt = lines[0].indexOf('Main · /work');
+  assert.equal(lines[1].indexOf('Other · /other'), workspaceAt);
+  assert.equal(lines[0].indexOf('2m ago'), lines[1].indexOf('1h ago'));
+  assert.equal(lines[0].indexOf('1/2 agents') + '1/2 agents'.length, lines[1].indexOf('3 agents') + '3 agents'.length);
+  assert.match(lines[0], /1\/2 agents$/);
+});
