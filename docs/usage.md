@@ -41,7 +41,9 @@ inspection. Failures add a `failed` count.
 
 The group label reflects the tools in the step: `commands`, `edited files`,
 `read files`, or a combination. Thinking-only activity remains a standalone
-reasoning row.
+reasoning row. Its collapsed preview follows the latest non-empty reasoning
+line and shows the live character count, like `tail -f`; `Ctrl+T` opens the full
+reasoning block.
 
 ## Sessions
 
