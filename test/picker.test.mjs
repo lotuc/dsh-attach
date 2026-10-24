@@ -254,3 +254,26 @@ test('aligns fixed session columns across rows', () => {
   assert.equal(lines[0].indexOf('1/2 agents') + '1/2 agents'.length, lines[1].indexOf('3 agents') + '3 agents'.length);
   assert.match(lines[0], /1\/2 agents$/);
 });
+
+test('renders a compact table header and aligned session title column', () => {
+  const columns = [
+    { text: 'Main · /work', width: 30, align: 'left' },
+    { text: '2m ago', width: 8, align: 'right' },
+    { text: '1/2', width: 10, align: 'right' },
+  ];
+  const list = new FilterList([
+    { kind: 'session', flat: true, table: true, titleWidth: 26, value: 'a', label: 'A', columns },
+    { kind: 'session', flat: true, table: true, titleWidth: 26, value: 'b', label: 'Longer session', columns },
+  ], 5, selectTheme);
+  const panel = new PickerPanel('Sessions', list, {
+    requestRender: () => {},
+    header: '  SESSION                  WORKSPACE                       AGE      AGENTS',
+  });
+  const lines = panel.render(92).map((line) => stripTerminalSequences(line));
+  const header = lines.find((line) => line.includes('SESSION'));
+  assert.ok(header);
+  const rowA = lines.find((line) => line.includes('A') && line.includes('Main · /work'));
+  const rowB = lines.find((line) => line.includes('Longer session'));
+  assert.ok(rowA && rowB);
+  assert.equal(rowA.indexOf('Main · /work'), rowB.indexOf('Main · /work'));
+});
