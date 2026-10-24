@@ -279,3 +279,12 @@ test('renders the selected session path in the footer preview', () => {
   const text = stripTerminalSequences(panel.render(92).join('\n'));
   assert.match(text, /path \/Users\/lotuc\/Workspace\/repos\/lotuc\/dsh-tui-attach/);
 });
+
+test('mouse wheel moves the picker selection', () => {
+  const { list, panel } = makePanel();
+  assert.equal(list.getSelectedItem()?.value, 'a');
+  panel.handleInput('\x1b[<65;10;5M');
+  assert.equal(list.getSelectedItem()?.value, 'b');
+  panel.handleInput('\x1b[<64;10;5M');
+  assert.equal(list.getSelectedItem()?.value, 'a');
+});

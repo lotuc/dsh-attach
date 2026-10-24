@@ -88,6 +88,7 @@ not change the editor height or move the input line.
 | `Ctrl+U` | Clear the search query. |
 | `Ctrl+W` | Delete the previous search word. |
 | `Backspace` | Edit the search query. |
+| `Mouse wheel` | Move the picker selection. |
 | `Esc` | Close the picker from navigation or search mode. |
 
 `Esc` closes the whole picker; it does not just leave search mode. Use `Ctrl+U`
@@ -114,7 +115,7 @@ The details view is read-only and scrolls independently of the approval panel.
 
 | Key | Action |
 |---|---|
-| `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Scroll one line. |
+| `Up`, `Down`, `Ctrl+P`, `Ctrl+N`, `Mouse wheel` | Scroll one line. |
 | `PgUp`, `PgDn`, `Ctrl+U`, `Ctrl+D` | Scroll one page. |
 | `Home`, `End`, `g`, `G` | Jump to the top or bottom. |
 | `Esc`, `q`, `Q` | Close details and return to the approval panel. |
