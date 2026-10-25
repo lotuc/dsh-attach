@@ -165,7 +165,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
 | `lib/client/command-catalog.js` | Local slash commands and `/resume` / `/model` completion. |
 | `lib/client/local-commands.js` | Local slash-command parsing and dispatch. |
-| `lib/client/keys.js` | Key constants and Ctrl/arrow matching across terminal encodings. |
+| `lib/client/keys.js` | Key constants, Ctrl/arrow matching, and mouse-wheel decoding. |
 | `lib/client/herdr.js` | Herdr agent state, title/display-name metadata, and pane release. |
 | `lib/client/herdr-preview.js` | Builds `plugin pane open` arguments and parses the opened pane ID. |
 | `lib/client/inbox.js` | Normalizes the durable inbox projection and applies queue splices. |
