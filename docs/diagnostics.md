@@ -108,11 +108,12 @@ The client is tuned for long-running sessions:
   so on) or the terminal width changes. Ordinary key presses do not re-wrap the
   whole history. A streaming answer re-renders only the row that is growing.
 - **Bounded transcript.** While following the end, the transcript keeps at most
-  8,000 rendered rows and drops the oldest rows. Trimming is deferred while you
-  are scrolled up so the scroll position does not jump.
+  5,000 rendered rows and drops the oldest rows. Trimming is deferred while you
+  are scrolled up, with a 10,000-row hard bound so a long-lived session cannot
+  grow without limit.
 - **Throttled subagent refresh.** Newer Hosts use the small
-  `subagent.summary` response with roughly a 1-second debounce and a 4-second
-  poll. Older Hosts fall back to `session.list` at roughly 12-second intervals
+  `subagent.summary` response with roughly a 1-second debounce and an 8-second
+  poll. Older Hosts fall back to `session.list` at roughly 24-second intervals
   and do not refresh on every tool result during a parent turn. The summary
   refresh itself does not trigger a redraw or Herdr report when the total and
   running counts are unchanged.

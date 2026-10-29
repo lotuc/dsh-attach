@@ -106,7 +106,7 @@ function createFixture(home) {
       return { commandId: 'cmd-1', result: { kind: 'success', text: `ran ${line}` } };
     },
   };
-  const state = { webLive: false, subagentListCalls: 0, directChildren: null };
+  const state = { webLive: false, subagentListCalls: 0, subagentChildrenCalls: 0, directChildren: null };
   const ctx = {
     sessionController: controller,
     logger: { debug() {}, warn() {} },
@@ -116,6 +116,7 @@ function createFixture(home) {
       if (name === 'subagents') {
         return {
           async listChildren() {
+            state.subagentChildrenCalls += 1;
             return state.directChildren ?? [{ id: 'child-1', mode: 'continuable', label: 'Reviewer', createdAt: 1 }];
           },
           async listDescendants() {
@@ -307,7 +308,7 @@ test('adds short catalog labels to active subagents', async () => {
 
     const cached = await client.request('subagent.summary', { sessionId: 's1' });
     assert.equal(cached.active[0].label, 'Reviewer');
-    assert.equal(state.subagentListCalls, 1);
+    assert.equal(state.subagentChildrenCalls, 1);
   });
 });
 

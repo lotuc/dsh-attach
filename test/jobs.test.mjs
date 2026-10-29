@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { formatJobDuration, jobItems, jobTitle, mergeJobEvent, runningJobCount } from '../lib/client/jobs.js';
+import { formatJobDuration, jobItems, jobTitle, mergeJobEvent, runningJobCount, trimJobRoster } from '../lib/client/jobs.js';
 import { JobOutputPanel } from '../lib/client/panels.js';
 
 test('formats job durations compactly', () => {
@@ -58,4 +58,22 @@ test('folds registration and settlement into a roster', () => {
   });
   assert.equal(runningJobCount([...roster.values()]), 0);
   assert.equal(roster.get('bash-a').detail, 'exit code: 0');
+});
+
+test('keeps live jobs and only recent settled jobs', () => {
+  const roster = new Map();
+  for (let index = 0; index < 250; index += 1) {
+    roster.set(`done-${index}`, {
+      id: `done-${index}`,
+      status: 'completed',
+      startedAt: index,
+      finishedAt: index,
+    });
+  }
+  roster.set('live', { id: 'live', status: 'running', startedAt: 1 });
+  const trimmed = trimJobRoster(roster);
+  assert.equal(trimmed.has('live'), true);
+  assert.equal(trimmed.size, 201);
+  assert.equal(trimmed.has('done-249'), true);
+  assert.equal(trimmed.has('done-0'), false);
 });

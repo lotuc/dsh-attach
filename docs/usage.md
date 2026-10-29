@@ -147,9 +147,10 @@ Scrolling and navigation:
 - The mouse wheel scrolls history. Scrolling up suspends auto-follow, so new
   streaming output does not pull the view back to the bottom.
 
-While following, the transcript is bounded to **8,000 rendered rows**. Older
+While following, the transcript is bounded to **5,000 rendered rows**. Older
 rows are dropped as new ones arrive. Trimming is deferred while you are scrolled
-up, so the view does not jump.
+up, but a hard bound of 10,000 rows still prevents unbounded memory growth. The
+background-job roster keeps live jobs and the 200 most recent settled jobs.
 
 Prompt history is kept in the editor for the current run, up to **100**
 entries. It is not persisted across client restarts. The composer stores a
