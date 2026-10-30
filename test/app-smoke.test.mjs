@@ -179,6 +179,12 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     await wait(20);
     assert.equal(app.modals.has('picker'), false, 'escape closes the shared picker slot');
 
+    client.emit('interactive', { type: 'approval', requestId: 'a1', toolName: 'bash', reason: 'test' });
+    assert.equal(app.modals.has('interactive'), true, 'approvals use the interactive modal slot');
+    client.emit('interactive-closed', { requestId: 'a1' });
+    await wait(40);
+    assert.equal(app.modals.has('interactive'), false, 'closing the request releases the slot');
+
     client.emit('frame', {
       sessionId: 's1',
       frame: {
