@@ -70,8 +70,11 @@ browsing; returning past the newest entry restores the draft.
 
 For commands with arguments, complete the command first with `Tab`, then type
 the argument. `/resume` completes session titles and IDs; `/model` completes
-`provider/model` pairs; relative paths such as `./src/` and `../` complete from
-the current session's working directory. `@` file indexing is not implemented.
+`provider/model` pairs; Host commands with bracket alternatives expose their
+subcommands, for example `/goal` offers `clear`, `edit`, `pause`, and `resume`,
+and `/plan` offers `off` and `message`. Relative paths such as `./src/` and
+`../` complete from the current session's working directory. `@` file indexing
+is not implemented.
 
 The completion panel is an overlay above the composer. Showing or hiding it does
 not change the editor height or move the input line.

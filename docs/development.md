@@ -163,7 +163,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
-| `lib/client/command-catalog.js` | Local slash commands and `/resume` / `/model` completion. |
+| `lib/client/command-catalog.js` | Local slash commands, Host subcommand hints, and `/resume` / `/model` completion. |
 | `lib/client/local-commands.js` | Local slash-command parsing and dispatch. |
 | `lib/client/keys.js` | Key constants, Ctrl/arrow matching, and mouse-wheel decoding. |
 | `lib/client/herdr.js` | Herdr agent state, title/display-name metadata, and pane release. |

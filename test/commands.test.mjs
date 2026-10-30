@@ -95,3 +95,22 @@ test('the combined provider suggests slash commands and their arguments', async 
   const appliedModel = provider.applyCompletion(['/model '], 0, 7, flash, model.prefix);
   assert.equal(appliedModel.lines[0], '/model deepseek flash');
 });
+
+test('completes nested Host subcommands such as /goal', async () => {
+  const goal = {
+    name: 'goal',
+    description: 'Set or view the goal for a long-running task',
+    argumentHint: '[<objective>|clear|edit <objective>|pause|resume]',
+  };
+  const [item] = mergeHostCommands([], [goal]);
+  assert.ok(item);
+  assert.equal(typeof item.getArgumentCompletions, 'function');
+  assert.deepEqual(
+    (await item.getArgumentCompletions('')).map((entry) => entry.value),
+    ['clear', 'edit ', 'pause', 'resume'],
+  );
+  assert.deepEqual(
+    (await item.getArgumentCompletions('p')).map((entry) => entry.value),
+    ['pause'],
+  );
+});
