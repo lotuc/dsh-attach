@@ -50,8 +50,10 @@ test('local command items expose resume and model argument completion', async ()
   const items = localCommandItems(client);
   const resume = items.find((item) => item.name === 'resume');
   const model = items.find((item) => item.name === 'model');
+  const permission = items.find((item) => item.name === 'permission');
   assert.equal(typeof resume.getArgumentCompletions, 'function');
   assert.equal(typeof model.getArgumentCompletions, 'function');
+  assert.equal(typeof permission.getArgumentCompletions, 'function');
   assert.deepEqual(await resume.getArgumentCompletions('fix'), [
     { value: 'session-a', label: 'Fix tests', description: '/work/a · session-' },
   ]);
@@ -60,6 +62,13 @@ test('local command items expose resume and model argument completion', async ()
   ]);
   assert.deepEqual(await resumeCompletions(client, 'nothing'), []);
   assert.deepEqual(await modelCompletions(client, 'nothing'), []);
+  assert.deepEqual((await permission.getArgumentCompletions('')).map((entry) => entry.value), [
+    'read-only',
+    'workspace-write',
+    'danger-full-access',
+    'auto',
+  ]);
+  assert.deepEqual((await permission.getArgumentCompletions('w')).map((entry) => entry.value), ['workspace-write']);
 });
 
 test('host commands merge after local commands without shadowing local names', () => {
