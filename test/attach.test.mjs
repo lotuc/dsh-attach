@@ -492,11 +492,41 @@ test('does not start the Web answerer while a terminal is watching', async () =>
       signal: new AbortController().signal,
     }, () => { delegated += 1; return 'unavailable'; });
     const [message] = await seen;
+    await client.request('interactive.ack', { requestId: message.requestId });
     await new Promise((resolve) => setTimeout(resolve, 50));
     assert.equal(delegated, 0);
     await client.request('approval.respond', { requestId: message.requestId, outcome: 'allowed-once' });
     assert.equal(await outcome, 'allowed-once');
     assert.equal(delegated, 0);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('hands an unacknowledged terminal approval to Web after grace', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home, { approvals: 'tui', approvalGraceSeconds: 0.01 });
+  host.state.webLive = true;
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    const seen = once(client, 'interactive');
+    let delegated = 0;
+    const outcome = host.listeners.get('approval/request')({
+      agent: { session: { id: 's1' } },
+      toolName: 'bash',
+      reason: 'terminal has not shown the panel',
+      signal: new AbortController().signal,
+    }, () => { delegated += 1; return 'allowed-once'; });
+    await seen;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.equal(delegated, 1);
+    assert.equal(await outcome, 'allowed-once');
   } finally {
     client.close();
     await host.server.stop();
@@ -522,7 +552,8 @@ test('hands a pending approval to Web when the terminal disconnects', async () =
       reason: 'terminal leaves',
       signal: new AbortController().signal,
     }, () => { delegated += 1; return 'allowed-once'; });
-    await seen;
+    const [message] = await seen;
+    await client.request('interactive.ack', { requestId: message.requestId });
     await new Promise((resolve) => setTimeout(resolve, 30));
     assert.equal(delegated, 0);
     client.close();

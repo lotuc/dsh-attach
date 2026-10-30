@@ -123,6 +123,7 @@ Server methods:
 | `subagent.list` | Catalog descendants when the runtime supports it, including short labels. |
 | `approval.respond` / `approval.cancel` | Answer or cancel an approval. |
 | `question.respond` / `question.cancel` | Answer or cancel a question batch. |
+| `interactive.ack` | Acknowledge that this terminal actually displayed a shared request; unacknowledged panels do not block the grace handoff. |
 | `interactive.detach` | Detach one terminal from a shared pending request. |
 | `activity` | Heartbeat used by `auto` routing. |
 

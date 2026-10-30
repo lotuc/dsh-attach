@@ -54,10 +54,17 @@ Approvals and questions use the same mode names independently.
 `approvalGraceSeconds` and `questionGraceSeconds` start when the request is
 created. On expiry:
 
-1. If a terminal is currently showing the request, it stays terminal-owned.
+1. If a terminal has acknowledged that it displayed the request, it stays
+   terminal-owned.
 2. Otherwise, if a Web client is live, the request is handed to the Web flow.
 3. If no Web client is live, the terminal path is released and the request falls
    through to the remaining Host listeners.
+
+Clients advertise `interactive.ack` in the handshake and send it after the
+approval/question panel is actually shown. This prevents a terminal that is
+connected but blocked behind another panel from holding the request forever.
+Older clients without the capability keep the historical single-owner
+behavior.
 
 If the terminal holding the request disconnects, the bridge immediately hands
 the pending request to the Web flow when one is live, or releases it otherwise.
@@ -79,6 +86,7 @@ added in Host plugin 0.8.0.
 | `DSH_ATTACH_LOG` | Lifecycle log path. `off` disables logging. The `--log` option takes priority. |
 | `DSH_ATTACH_KEYS=1` | Log raw key input for debugging. This can include prompt text; use only temporarily. |
 | `DSH_ATTACH_PERF=1` | Emit frame, input-latency, and event-loop diagnostics. |
+| `DSH_ATTACH_BELL=0` | Disable the terminal bell when a turn finishes or an approval/question arrives while the terminal is unfocused. |
 | `DSH_ATTACH_AUTO_RESUME=0` | Disable the one-time continuation prompt after a Host restart leaves the last turn interrupted. |
 | `DSH_ATTACH_PREVIEW_EXIT_AFTER` | Seconds a managed Herdr preview waits after the child becomes idle before exiting; default `0` keeps it open. |
 | `DSH_ATTACH_VERSION` | Optional version string recorded in the lifecycle log's `start` entry. |

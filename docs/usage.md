@@ -204,9 +204,10 @@ text, command, and raw arguments in a read-only, scrollable view. Use
 The default routing mode is `tui`: while a terminal is watching the session,
 the request is offered to the terminal. The client sends an `activity`
 heartbeat every 20 seconds, so a long turn does not make the terminal look
-inactive. If the panel is not answered within `approvalGraceSeconds`, the Host
-hands the request to the next Host listener, typically the Web GUI when one is
-connected. If no Web client is available, the request is released from the
+inactive. A terminal that actually displays the panel acknowledges it; an
+unacknowledged request is handed to the next Host listener after
+`approvalGraceSeconds`, typically the Web GUI when one is connected. If no Web
+client is available, the request is released from the
 terminal path rather than held forever.
 
 Other modes are described in [Configuration](configuration.md):
