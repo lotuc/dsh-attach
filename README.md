@@ -46,9 +46,10 @@ only by the current user.
   pickers, and question options; `Ctrl+A/E/B/F` move by line or character;
   `Ctrl+K/U/W/Y` kill and yank.
 - **Approvals and questions**: approval requests appear as panels; `y` allows
-  once, `n` rejects, and `d` opens the full request and command in a scrollable
-  read-only view. `ask_user_question` supports single select, multi select,
-  custom text, and plan approval.
+  once, `n` rejects, `Enter`/`d` opens the full request and command in a
+  scrollable read-only view, and `Esc` detaches this terminal without answering.
+  `ask_user_question` supports single select, multi select, custom text, and plan
+  approval.
 - **Host command passthrough**: unknown slash commands such as `/compact` and
   `/goal` are executed by the Host command registry instead of being sent as
   model prompts.

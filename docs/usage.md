@@ -189,15 +189,17 @@ reason, and command preview.
 
 | Key | Action |
 |---|---|
-| `y`, `Y`, `Enter` | Allow once. |
-| `n`, `N`, `Esc` | Reject. |
-| `d`, `D`, `e`, `E` | Open full request and command details. |
+| `y`, `Y` | Allow once. |
+| `n`, `N` | Reject. |
+| `Enter`, `d`, `D`, `e`, `E` | Open full request and command details. |
+| `Esc` | Detach this terminal from the request; another client or timeout may answer it. |
 
-The panel previews at most the first few lines of the command. Press `d` (or
-`e`) to open the complete request text, command, and raw arguments in a
-read-only, scrollable view. Use `PgUp`/`PgDn`, `Ctrl+U`/`Ctrl+D`, or the arrow
-keys to scroll; `Home`/`End` and `g`/`G` jump to the ends; `Esc` or `q` returns
-to the approval panel.
+`Enter` opens the details view instead of allowing, so the high-impact action
+always requires an explicit `y`. The panel previews at most the first few lines
+of the command. Press `d` (or `e`, or `Enter`) to open the complete request
+text, command, and raw arguments in a read-only, scrollable view. Use
+`PgUp`/`PgDn`, `Ctrl+U`/`Ctrl+D`, or the arrow keys to scroll; `Home`/`End` and
+`g`/`G` jump to the ends; `Esc` or `q` returns to the approval panel.
 
 The default routing mode is `tui`: while a terminal is watching the session,
 the request is offered to the terminal. The client sends an `activity`

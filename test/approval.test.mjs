@@ -90,3 +90,26 @@ test('approval details scrolls long content and closes with escape', () => {
   panel.handleInput('\x1b'); // Escape
   assert.equal(closed, 1);
 });
+
+test('approval requires explicit keys and detaches on escape', () => {
+  const answers = [];
+  let details = 0;
+  let detached = 0;
+  const panel = new ApprovalPanel(
+    { toolName: 'bash' },
+    'echo ok',
+    (outcome) => answers.push(outcome),
+    { onDetails: () => { details += 1; }, onDetach: () => { detached += 1; } },
+  );
+
+  panel.handleInput('\r');
+  assert.deepEqual(answers, [], 'enter inspects details instead of allowing');
+  assert.equal(details, 1);
+  panel.handleInput('y');
+  assert.deepEqual(answers, ['allowed-once']);
+  panel.handleInput('n');
+  assert.deepEqual(answers, ['allowed-once', 'rejected']);
+  panel.handleInput('\x1b');
+  assert.equal(detached, 1);
+  assert.deepEqual(answers, ['allowed-once', 'rejected'], 'escape does not answer');
+});

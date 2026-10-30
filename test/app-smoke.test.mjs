@@ -32,8 +32,10 @@ class FakeClient extends EventEmitter {
     super();
     this.host = { capabilities: [], pluginVersion: '0.14.0' };
     this.closed = false;
+    this.requests = [];
   }
   async request(method) {
+    this.requests.push(method);
     switch (method) {
       case 'session.list':
         return {
@@ -45,6 +47,14 @@ class FakeClient extends EventEmitter {
             cwd: '/tmp/work',
             agentAvailable: true,
             projections: { kind: 'sequenced', values: { title: 'Smoke' } },
+          }, {
+            sessionId: 's2',
+            updatedAt: Date.now() - 1_000,
+            running: false,
+            blank: false,
+            cwd: '/tmp/work',
+            agentAvailable: true,
+            projections: { kind: 'sequenced', values: { title: 'Other' } },
           }],
         };
       case 'commands.list':
@@ -178,6 +188,45 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     app.modals.get('picker').component.handleInput('\x1b');
     await wait(20);
     assert.equal(app.modals.has('picker'), false, 'escape closes the shared picker slot');
+
+    // Drafts and pending images belong to the session that owned them.
+    app.editor.setText('/sessions');
+    app.editor.handleInput('\r');
+    await wait(50);
+    const firstPicker = app.modals.get('picker').component.panel;
+    app.editor.setText('draft for s1');
+    app.pendingImages = [{ name: 's1.png' }];
+    const s2Item = firstPicker.list.items.find((item) => item.value === 's2');
+    assert.ok(s2Item, 'second session is listed');
+    firstPicker.list.onSelect(s2Item);
+    await wait(80);
+    assert.equal(app.state.sessionId, 's2');
+    assert.equal(app.editor.getText(), '', 'another session gets its own empty draft');
+    assert.equal(app.pendingImages.length, 0, 'images do not leak across sessions');
+
+    app.editor.setText('/sessions');
+    app.editor.handleInput('\r');
+    await wait(50);
+    const secondPicker = app.modals.get('picker').component.panel;
+    app.editor.setText('draft for s2');
+    const s1Item = secondPicker.list.items.find((item) => item.value === 's1');
+    secondPicker.list.onSelect(s1Item);
+    await wait(80);
+    assert.equal(app.state.sessionId, 's1');
+    assert.equal(app.editor.getText(), 'draft for s1', 'the original draft is restored');
+    assert.equal(app.pendingImages[0]?.name, 's1.png', 'the original image is restored');
+
+    client.emit('interactive', {
+      type: 'question',
+      requestId: 'qq1',
+      questions: [{ id: 'q1', question: 'Pick one', options: [{ label: 'A' }] }],
+    });
+    assert.equal(app.modals.has('interactive'), true, 'questions use the interactive modal slot');
+    app.modals.get('interactive').component.handleInput('\x1b');
+    await wait(40);
+    assert.ok(client.requests.includes('interactive.detach'), 'question escape detaches instead of cancelling');
+    assert.equal(client.requests.includes('question.cancel'), false);
+    assert.equal(app.modals.has('interactive'), false, 'detached question releases the slot');
 
     client.emit('interactive', { type: 'approval', requestId: 'a1', toolName: 'bash', reason: 'test' });
     assert.equal(app.modals.has('interactive'), true, 'approvals use the interactive modal slot');

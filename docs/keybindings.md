@@ -109,9 +109,13 @@ session. Once search mode is active, `n` is an ordinary search character.
 
 | Key | Action |
 |---|---|
-| `y`, `Y`, `Enter` | Allow once. |
-| `n`, `N`, `Esc` | Reject. |
-| `d`, `D`, `e`, `E` | Open the full request text, command, and raw arguments in a read-only details view. |
+| `y`, `Y` | Allow once. |
+| `n`, `N` | Reject. |
+| `Enter`, `d`, `D`, `e`, `E` | Open the full request text, command, and raw arguments in a read-only details view. |
+| `Esc` | Detach this terminal from the request; another client or timeout may answer it. |
+
+`Enter` does not allow; it opens details so the high-impact action requires an
+explicit `y`.
 
 ### Approval details
 
