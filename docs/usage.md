@@ -70,7 +70,9 @@ the list.
 In the picker's navigation mode, press `n` to create a session in the client
 process's working directory. Start `dsh-attach -C <path>` to override that for
 the whole run. Blank sessions are hidden unless they are running or already
-have subagents; archived sessions are hidden.
+have subagents; archived sessions are hidden until you press `a` to show them.
+Pinned sessions are marked with `◆` and sort immediately after the current
+session.
 
 ### Open a session directly
 
@@ -113,9 +115,10 @@ Use a slash command to change delivery:
 ```
 
 The queue manager lists this session's pending messages. `Enter` opens the full
-message, `s` sends a next-turn message into the current turn as steering, and
-`d` twice removes it. `r` refreshes, and `Esc` closes the manager. Messages
-already in the next-step lane are steering already; they cannot be sent again.
+message, `e` edits it in place, `s` sends a next-turn message into the current
+turn as steering, and `d` twice removes it. `r` refreshes, and `Esc` closes the
+manager. Messages already in the next-step lane are steering already; they
+cannot be sent again.
 
 `/steer` is the only operation that interrupts the current turn and inserts a
 message. `/cancel` stops the running turn without adding a message; pressing
@@ -135,7 +138,10 @@ File upload and `@` file indexing are not wired into the client.
 
 When a session opens, the Host follows it and sends a snapshot of recent
 history plus live frames. The snapshot is capped at the most recent **300
-messages**; earlier pages are not fetched yet.
+messages** by default; earlier pages are not fetched yet. If the Host reports
+more history, or the client trims old rendered rows, the activity line and
+`/status` say so instead of silently pretending the visible transcript is
+complete.
 
 Scrolling and navigation:
 
@@ -146,6 +152,9 @@ Scrolling and navigation:
 - `Ctrl+L` returns to the newest message and re-enables auto-follow.
 - The mouse wheel scrolls history. Scrolling up suspends auto-follow, so new
   streaming output does not pull the view back to the bottom.
+- `/find <text>` jumps to the first loaded match; `/find` opens an incremental
+  search over the loaded transcript. Collapsed groups are searched as they
+  render, so expand a group with `Ctrl+O`/`Ctrl+G` to search its children.
 
 While following, the transcript is bounded to **5,000 rendered rows**. Older
 rows are dropped as new ones arrive. Trimming is deferred while you are scrolled
@@ -168,8 +177,13 @@ the argument second is the safer workflow.
 Completion also covers:
 
 - `/resume` session titles and IDs;
-- `/model` provider/model pairs;
+- `/model` provider/model pairs and reasoning-effort variants;
+- `/permission` sandbox presets;
 - relative file paths from the current session's working directory.
+
+`/permission` with no argument opens a preset picker. `/model` lists one row per
+reasoning effort when the Host catalog advertises them; the current default is
+marked `(default)`.
 
 The completion panel floats above the composer and never changes the editor's
 height.
@@ -199,7 +213,9 @@ always requires an explicit `y`. The panel previews at most the first few lines
 of the command. Press `d` (or `e`, or `Enter`) to open the complete request
 text, command, and raw arguments in a read-only, scrollable view. Use
 `PgUp`/`PgDn`, `Ctrl+U`/`Ctrl+D`, or the arrow keys to scroll; `Home`/`End` and
-`g`/`G` jump to the ends; `Esc` or `q` returns to the approval panel.
+`g`/`G` jump to the ends; `Esc` or `q` returns to the approval panel. When the
+tool arguments carry a target path or old/new text, the details also show the
+target and proposed edit, plus the working directory, sandbox and current model.
 
 The default routing mode is `tui`: while a terminal is watching the session,
 the request is offered to the terminal. The client sends an `activity`

@@ -635,6 +635,22 @@ test('opens a subagent with its durable parent address', async () => {
   }
 });
 
+test('honors the configured history snapshot limit', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home, { historyMessages: 600 });
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    const follow = host.calls.find((call) => call[0] === 'follow');
+    assert.equal(follow?.[1]?.maxMessages, 600);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test('rejects a bad token and accepts the real one', async () => {
   const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
   const host = await makeServer(home);

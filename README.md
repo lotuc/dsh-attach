@@ -35,6 +35,9 @@ only by the current user.
 - **Flat session list**: session title first, followed by workspace name,
   workspace path, age, and subagent counts; the current session is selected
   first.
+- **Transcript search**: `/find [text]` jumps to a loaded match or opens an
+  incremental picker; the activity line marks Host-side history limits and
+  locally trimmed rows.
 - **Subagent visibility**: parent sessions show agent counts, `/subagents` lists
   the lineage, and subagent history opens read-only. `/parent` goes back.
 - **Command completion**: local commands and Host-registered commands appear
@@ -55,8 +58,8 @@ only by the current user.
   model prompts.
 - **Visible pending queue**: local prompts keep a `queued` / `steering` marker
   until the Host claims them, pending inbox messages from other clients render
-  above the composer, and `/queue` opens a manager for full view, steer-now,
-  and removal.
+  above the composer, and `/queue` opens a manager for full view, edit,
+  steer-now, and removal.
 - **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
   running turn without quitting the client.
 - **Automatic reconnect**: after a Host or desktop-app restart, the client
@@ -155,8 +158,8 @@ Read [Security](docs/security.md) for the full model.
   read-only, and subagents cannot be dispatched, continued, or interrupted from
   the TUI.
 - Windows is untested; the transport assumes Unix-domain sockets.
-- The client loads the most recent 300 messages on attach and does not page
-  further back yet.
+- The client loads the most recent 300 messages by default (configurable with
+  the Host's `historyMessages`) and does not page further back yet.
 
 ## License
 

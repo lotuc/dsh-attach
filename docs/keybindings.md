@@ -86,6 +86,7 @@ not change the editor height or move the input line.
 |---|---|
 | `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move the selection. |
 | `n` (session picker, navigation mode) | Create a new session. |
+| `a` (session picker, navigation mode) | Show or hide archived sessions. |
 | `/` or any printable character | Enter incremental search. |
 | Printable characters in search | Refine the filter across titles and workspace metadata. |
 | `Enter` | Select the highlighted session, model, or group. |
@@ -174,6 +175,7 @@ Host has accepted them.
 |---|---|
 | `↑`/`↓`, `Ctrl+P`/`Ctrl+N` | Move in the queue. |
 | `Enter` | Open the full message, delivery target, and item id. |
+| `e` | Edit the selected message in place. |
 | `s` | Send a next-turn message into the running turn as steering. |
 | `d` twice | Remove the selected pending message. |
 | `r` | Refresh from the current snapshot. |
@@ -229,7 +231,9 @@ cursor, so it never steals output from the model's `job_output`.
 | `/cancel` | Cancel the running turn (same as pressing `Esc` twice). |
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
 | `/queue [text]` | Queue a message, or open the pending-message manager when no text is given. |
+| `/find [text]` | Jump to the first loaded transcript match, or open an incremental transcript search when no text is given. |
 | `/model [provider model]` | Open the model picker, or switch directly. |
+| `/permission [mode]` | Open the sandbox-preset picker, or apply `read-only`, `workspace-write`, `danger-full-access`, or `auto` directly. |
 | `/status` | Show session, model, preset, sandbox, context, token, queued-message count, todo, goal, host, theme, and socket details. |
 | `/quit`, `/exit` | Exit the client without stopping Host work. |
 

@@ -166,12 +166,17 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
+| `lib/client/transcript-search.js` | Search over the loaded transcript with row/line offsets. |
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
+| `lib/client/approval-context.js` | Target, proposed-edit and session context for approval details. |
+| `lib/client/notifications.js` | Unfocused-terminal bell policy for turns and interactions. |
 | `lib/client/modals.js` | Named overlay registry shared by every modal panel. |
 | `lib/client/picker-session.js` | Filterable picker setup and in-place row refresh. |
 | `lib/client/scroll.js` | Shared key-to-offset mapping for read-only scroll panels. |
 | `lib/client/command-catalog.js` | Local slash commands, Host subcommand hints, and `/resume` / `/model` completion. |
 | `lib/client/local-commands.js` | Local slash-command parsing and dispatch. |
+| `lib/client/model-picker.js` | Model rows, including reasoning-effort variants. |
+| `lib/client/permission-presets.js` | Sandbox presets shared by completion and the picker. |
 | `lib/client/keys.js` | Key constants, Ctrl/arrow matching, and mouse-wheel decoding. |
 | `lib/client/herdr.js` | Herdr agent state, title/display-name metadata, and pane release. |
 | `lib/client/herdr-preview.js` | Builds `plugin pane open` arguments and parses the opened pane ID. |
@@ -221,12 +226,17 @@ Coverage includes:
 - subagent parent addresses, question cancellation, and Host command execution;
 - subagent catalog labels and peek name fallback;
 - approval details: full request/command content and scroll navigation;
+- approval context: target, proposed edit and session metadata;
+- interaction acknowledgement and notification policy;
 - completion catalogs, picker filtering, and metadata layout;
+- model reasoning-effort rows and permission presets;
+- pinned/archived session ordering;
 - modal-slot lifecycle and picker row refresh;
 - session snapshot projection and shared path/approval/version helpers;
 - Host subagent traversal, row mapping, and catalog labels;
 - shared scroll-key decoding for the read-only panels;
 - shared left/right line fitting;
+- loaded-transcript search and history truncation markers;
 - editor completion splitting, dismissal callbacks, and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
 - Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;

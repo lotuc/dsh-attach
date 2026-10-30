@@ -69,3 +69,20 @@ test('uses cwd basename as a fallback workspace label', () => {
 test('sessionLabel falls back to a stable untitled label', () => {
   assert.equal(sessionLabel({ sessionId: '1234567890', title: '' }), '(untitled) 12345678');
 });
+
+test('pins sort before unpinned sessions and archived rows are opt-in', () => {
+  const pinnedView = { ...workspaceView, pinnedSessionIds: ['s3'] };
+  const items = buildSessionList({
+    sessions: [s1, s2, s3, s4],
+    workspaceView: pinnedView,
+    allSessions: [s1, s2, s3, s4, child],
+    currentSessionId: 's2',
+    includeArchived: true,
+  });
+
+  assert.deepEqual(items.map((item) => item.value), ['s2', 's3', 's1', 's4']);
+  assert.equal(items[1].pinned, true);
+  assert.match(items[1].label, /^◆ /);
+  assert.equal(items[3].archived, true);
+  assert.match(items[3].label, /· archived$/);
+});
