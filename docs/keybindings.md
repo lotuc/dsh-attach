@@ -86,7 +86,7 @@ not change the editor height or move the input line.
 |---|---|
 | `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move the selection. |
 | `n` (session picker, navigation mode) | Create a new session. |
-| `a` (session picker, navigation mode) | Show or hide archived sessions. |
+| `Ctrl+A` (session picker, navigation mode) | Show or hide archived sessions. |
 | `/` or any printable character | Enter incremental search. |
 | Printable characters in search | Refine the filter across titles and workspace metadata. |
 | `Enter` | Select the highlighted session, model, or group. |

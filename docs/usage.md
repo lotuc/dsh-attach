@@ -70,9 +70,9 @@ the list.
 In the picker's navigation mode, press `n` to create a session in the client
 process's working directory. Start `dsh-attach -C <path>` to override that for
 the whole run. Blank sessions are hidden unless they are running or already
-have subagents; archived sessions are hidden until you press `a` to show them.
-Pinned sessions are marked with `◆` and sort immediately after the current
-session.
+have subagents; archived sessions are hidden until you press `Ctrl+A` to show
+them. Pinned sessions are marked with `◆` and sort immediately after the
+current session.
 
 ### Open a session directly
 
