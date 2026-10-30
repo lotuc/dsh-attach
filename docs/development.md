@@ -159,6 +159,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/session-events.js` | Pure projection for state-only Session events. |
 | `lib/client/session-snapshot.js` | Pure projection of snapshot metadata onto visible session state. |
 | `lib/client/format.js` | Shared age and cwd formatting. |
+| `lib/client/layout.js` | Left/right line fitting shared by the header, footer, preview and picker rows. |
 | `lib/client/goal.js` | Goal projection normalization and blocked/status labels. |
 | `lib/client/subagent-picker.js` | Ordered `/subagents` rows from the lightweight catalog or session summaries. |
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
@@ -224,6 +225,7 @@ Coverage includes:
 - session snapshot projection and shared path/approval/version helpers;
 - Host subagent traversal, row mapping, and catalog labels;
 - shared scroll-key decoding for the read-only panels;
+- shared left/right line fitting;
 - editor completion splitting, dismissal callbacks, and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
 - Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;
