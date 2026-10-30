@@ -72,7 +72,8 @@ For commands with arguments, complete the command first with `Tab`, then type
 the argument. `/resume` completes session titles and IDs; `/model` completes
 `provider/model` pairs; Host commands with bracket alternatives expose their
 subcommands, for example `/goal` offers `clear`, `edit`, `pause`, and `resume`,
-and `/plan` offers `off` and `message`. Relative paths such as `./src/` and
+`/plan` offers `off` and `message`, and `/permission` offers `read-only`,
+`workspace-write`, `danger-full-access`, and `auto`. Relative paths such as `./src/` and
 `../` complete from the current session's working directory. `@` file indexing
 is not implemented.
 

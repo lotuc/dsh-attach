@@ -114,3 +114,19 @@ test('completes nested Host subcommands such as /goal', async () => {
     ['pause'],
   );
 });
+
+test('completes Host permission presets', async () => {
+  const [item] = mergeHostCommands([], [{
+    name: 'permission',
+    description: 'Switch the permission preset',
+    argumentHint: '<preset>',
+  }]);
+  assert.deepEqual(
+    (await item.getArgumentCompletions('')).map((entry) => entry.value),
+    ['read-only', 'workspace-write', 'danger-full-access', 'auto'],
+  );
+  assert.deepEqual(
+    (await item.getArgumentCompletions('w')).map((entry) => entry.value),
+    ['workspace-write'],
+  );
+});
