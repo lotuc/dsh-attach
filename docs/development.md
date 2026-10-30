@@ -167,6 +167,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
 | `lib/client/modals.js` | Named overlay registry shared by every modal panel. |
 | `lib/client/picker-session.js` | Filterable picker setup and in-place row refresh. |
+| `lib/client/scroll.js` | Shared key-to-offset mapping for read-only scroll panels. |
 | `lib/client/command-catalog.js` | Local slash commands, Host subcommand hints, and `/resume` / `/model` completion. |
 | `lib/client/local-commands.js` | Local slash-command parsing and dispatch. |
 | `lib/client/keys.js` | Key constants, Ctrl/arrow matching, and mouse-wheel decoding. |
@@ -185,6 +186,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/shared/protocol.js` | Protocol version, limits, endpoint names, JSONL helpers. |
 | `lib/shared/paths.js` | Shared `$DSH_HOME` resolution for the bridge and client. |
 | `lib/shared/approval.js` | Localized approval-reason fallback shared by the bridge and panel. |
+| `lib/shared/version.js` | Release version consumed by the bridge, CLI and client handshake. |
 | `cordis.patch.yml` | Bundle patch that inserts the `tui-attach` entry. |
 | `herdr-plugin.toml` | Herdr plugin manifest with the `preview` pane entrypoint. |
 | `test/*.test.mjs` | Node test runner suites. |
@@ -219,8 +221,9 @@ Coverage includes:
 - approval details: full request/command content and scroll navigation;
 - completion catalogs, picker filtering, and metadata layout;
 - modal-slot lifecycle and picker row refresh;
-- session snapshot projection and shared path/approval helpers;
+- session snapshot projection and shared path/approval/version helpers;
 - Host subagent traversal, row mapping, and catalog labels;
+- shared scroll-key decoding for the read-only panels;
 - editor completion splitting, dismissal callbacks, and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
 - Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;
@@ -261,17 +264,17 @@ DSH_ATTACH_NO_MOUSE=1 dsh-attach               # isolate focus/mouse issues
 
 The version appears in several places and must be kept in sync:
 
-- `package.json` (`version`);
-- `lib/host/server.js` (`PLUGIN_VERSION`);
-- `lib/client/cli.js` (`--version` output);
-- `lib/client/connection.js` (client `hello` payload);
+- `package.json` (`version`, the release source of truth);
+- `lib/shared/version.js` (`VERSION`, consumed by the Host bridge, CLI and
+  client handshake);
 - `herdr-plugin.toml` (Herdr plugin manifest `version`);
 - the tarball and descriptor examples in `README.md` and `docs/`.
 
 Release steps:
 
 1. Run `pnpm test`.
-2. Update all version strings and the tarball example.
+2. Update `package.json`, `lib/shared/version.js`, the Herdr manifest and the
+   tarball example together; `pnpm test` checks they agree.
 3. If the wire format changed, bump `PROTOCOL_VERSION` in
    `lib/shared/protocol.js` and verify old/new compatibility behavior.
 4. Run `pnpm pack`.

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
+import { VERSION } from '../lib/shared/version.js';
+
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
 function match(text, pattern, label) {
@@ -13,14 +15,14 @@ function match(text, pattern, label) {
 test('all release version strings agree with package.json', async () => {
   const pkg = JSON.parse(await read('../package.json'));
   const version = pkg.version;
-  const checks = [
-    ['Host plugin', await read('../lib/host/server.js'), /const PLUGIN_VERSION = '([^']+)'/, 'PLUGIN_VERSION'],
-    ['CLI', await read('../lib/client/cli.js'), /console\.log\('dsh-attach ([^']+)'\)/, 'CLI version'],
-    ['client hello', await read('../lib/client/connection.js'), /version: '([^']+)', protocol: PROTOCOL_VERSION/, 'hello version'],
-    ['Herdr manifest', await read('../herdr-plugin.toml'), /^version = "([^"]+)"/m, 'manifest version'],
-  ];
 
-  for (const [label, text, pattern, description] of checks) {
-    assert.equal(match(text, pattern, description), version, `${label} is out of sync with package.json`);
-  }
+  assert.equal(VERSION, version, 'shared VERSION is out of sync with package.json');
+
+  const manifest = match(await read('../herdr-plugin.toml'), /^version = "([^"]+)"/m, 'manifest version');
+  assert.equal(manifest, version, 'Herdr manifest is out of sync with package.json');
+
+  // The implementation must consume the shared constant rather than copy it.
+  assert.match(await read('../lib/host/server.js'), /pluginVersion: VERSION/);
+  assert.match(await read('../lib/client/cli.js'), /console\.log\(`dsh-attach \$\{VERSION\}`\)/);
+  assert.match(await read('../lib/client/connection.js'), /version: VERSION, protocol: PROTOCOL_VERSION/);
 });
