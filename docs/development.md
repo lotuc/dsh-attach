@@ -147,6 +147,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `bin/herdr-preview.js` | Herdr plugin pane entrypoint; reconstructs the preview client invocation from pane env. |
 | `lib/host.js` | Cordis plugin entry, injection, and Config schema. |
 | `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
+| `lib/host/subagents.js` | Pure subagent catalog row mapping and descendant counting. |
 | `lib/host.d.ts` | Type declarations for the plugin entry. |
 | `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow. |
 | `lib/client/connection.js` | Descriptor discovery, socket connection/reconnect, request/response, notifications. |
@@ -179,6 +180,8 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/theme.js` | Light and dark palettes and theme helpers. |
 | `lib/client/subagent-labels.js` | Merges short catalog labels into active subagent rows. |
 | `lib/shared/protocol.js` | Protocol version, limits, endpoint names, JSONL helpers. |
+| `lib/shared/paths.js` | Shared `$DSH_HOME` resolution for the bridge and client. |
+| `lib/shared/approval.js` | Localized approval-reason fallback shared by the bridge and panel. |
 | `cordis.patch.yml` | Bundle patch that inserts the `tui-attach` entry. |
 | `herdr-plugin.toml` | Herdr plugin manifest with the `preview` pane entrypoint. |
 | `test/*.test.mjs` | Node test runner suites. |
