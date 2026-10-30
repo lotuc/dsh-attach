@@ -157,6 +157,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/interrupted-resume.js` | Interrupted-turn detection and idempotent continuation policy. |
 | `lib/client/session-list.js` | Flat session rows with workspace metadata. |
 | `lib/client/session-events.js` | Pure projection for state-only Session events. |
+| `lib/client/session-snapshot.js` | Pure projection of snapshot metadata onto visible session state. |
 | `lib/client/format.js` | Shared age and cwd formatting. |
 | `lib/client/goal.js` | Goal projection normalization and blocked/status labels. |
 | `lib/client/subagent-picker.js` | Ordered `/subagents` rows from the lightweight catalog or session summaries. |
