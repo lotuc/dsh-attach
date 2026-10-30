@@ -165,6 +165,8 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
+| `lib/client/modals.js` | Named overlay registry shared by every modal panel. |
+| `lib/client/picker-session.js` | Filterable picker setup and in-place row refresh. |
 | `lib/client/command-catalog.js` | Local slash commands, Host subcommand hints, and `/resume` / `/model` completion. |
 | `lib/client/local-commands.js` | Local slash-command parsing and dispatch. |
 | `lib/client/keys.js` | Key constants, Ctrl/arrow matching, and mouse-wheel decoding. |
@@ -216,6 +218,9 @@ Coverage includes:
 - subagent catalog labels and peek name fallback;
 - approval details: full request/command content and scroll navigation;
 - completion catalogs, picker filtering, and metadata layout;
+- modal-slot lifecycle and picker row refresh;
+- session snapshot projection and shared path/approval helpers;
+- Host subagent traversal, row mapping, and catalog labels;
 - editor completion splitting, dismissal callbacks, and focus cursor stripping;
 - render caching, transcript ordering, and ANSI/OSC sanitization;
 - Herdr state/title metadata arguments, release ordering, and lifecycle log redaction/rotation;

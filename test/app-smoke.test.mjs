@@ -51,6 +51,17 @@ class FakeClient extends EventEmitter {
         return { commands: [] };
       case 'subagent.list':
         return { supported: false, items: [] };
+      case 'job.list':
+        return {
+          jobs: [{
+            id: 'j1',
+            kind: 'bash',
+            label: 'npm test',
+            status: 'running',
+            startedAt: Date.now(),
+            output: { total: 0, earliest: 0 },
+          }],
+        };
       default:
         return {};
     }
@@ -135,6 +146,38 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     await wait(50);
     assert.ok(app.queueManagerPanel, 'queue manager opens');
     assert.ok(app.pendingQueuePanel, 'queue manager must not clobber the pending queue panel');
+    assert.equal(app.modals.has('queue'), true, 'queue manager owns a modal slot');
+    const queuePanel = app.queueManagerPanel;
+    queuePanel.handleInput('\x1b');
+    await wait(20);
+    assert.equal(app.modals.has('queue'), false, 'escape closes the queue slot');
+    assert.equal(app.queueManagerPanel, null);
+
+    app.editor.setText('/jobs');
+    app.editor.handleInput('\r');
+    await wait(50);
+    assert.equal(app.modals.has('jobs'), true, 'jobs panel owns a modal slot');
+    assert.ok(app.jobsPanel);
+    app.jobsPanel.handleInput('\x1b');
+    await wait(20);
+    assert.equal(app.modals.has('jobs'), false, 'escape closes the jobs slot');
+    assert.equal(app.jobsPanel, null);
+
+    app.editor.setText('/status');
+    app.editor.handleInput('\r');
+    await wait(50);
+    assert.equal(app.modals.has('info'), true, 'status uses the info modal slot');
+    app.modals.get('info').component.handleInput('\x1b');
+    await wait(20);
+    assert.equal(app.modals.has('info'), false, 'info closes through its panel callback');
+
+    app.editor.setText('/sessions');
+    app.editor.handleInput('\r');
+    await wait(50);
+    assert.equal(app.modals.has('picker'), true, 'session picker uses the shared picker slot');
+    app.modals.get('picker').component.handleInput('\x1b');
+    await wait(20);
+    assert.equal(app.modals.has('picker'), false, 'escape closes the shared picker slot');
 
     client.emit('frame', {
       sessionId: 's1',
