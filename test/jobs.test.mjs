@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { formatJobDuration, jobItems, jobTitle, mergeJobEvent, runningJobCount, trimJobRoster } from '../lib/client/jobs.js';
+import { formatJobDuration, jobDetailsSections, jobItems, jobTitle, mergeJobEvent, runningJobCount, trimJobRoster } from '../lib/client/jobs.js';
 import { JobOutputPanel } from '../lib/client/panels.js';
 
 test('formats job durations compactly', () => {
@@ -14,6 +14,30 @@ test('formats job durations compactly', () => {
 test('builds stable output-panel titles', () => {
   assert.equal(jobTitle({ id: 'bash-a', kind: 'bash' }), 'Job bash-a · bash');
   assert.equal(jobTitle({}), 'Job job · job');
+});
+
+test('builds full job details without truncating the command', () => {
+  const command = `npm test -- ${'very-long-argument '.repeat(10)}`;
+  const sections = jobDetailsSections({
+    id: 'bash-a',
+    kind: 'bash',
+    label: command,
+    status: 'completed',
+    owner: 's1',
+    startedAt: 1_000,
+    finishedAt: 6_000,
+    detail: 'exit code: 0',
+    output: { total: 2048, earliest: 12, lossy: true },
+  }, 10_000);
+
+  assert.deepEqual(sections.map((section) => section.label), ['Job', 'Command', 'Timing', 'Progress', 'Output']);
+  assert.equal(sections[1].text, command);
+  assert.match(sections[2].text, /^started: 1970-01-01T00:00:01\.000Z$/m);
+  assert.match(sections[2].text, /^elapsed: 5s$/m);
+  assert.match(sections[3].text, /exit code: 0/);
+  assert.match(sections[4].text, /total: 2048 B/);
+  assert.match(sections[4].text, /earliest offset: 12/);
+  assert.match(sections[4].text, /dropped/);
 });
 
 test('orders live jobs first and keeps ids searchable', () => {
@@ -31,9 +55,11 @@ test('orders live jobs first and keeps ids searchable', () => {
 test('job output panel renders text and routes kill/scroll keys', () => {
   let killed = 0;
   let closed = 0;
+  let details = 0;
   const panel = new JobOutputPanel('Job bash-a', {
     onKill: () => { killed += 1; },
     onClose: () => { closed += 1; },
+    onDetails: () => { details += 1; },
   });
   panel.setText('line one\nline two');
   panel.setCommand('sleep 10', 'bash');
@@ -42,8 +68,12 @@ test('job output panel renders text and routes kill/scroll keys', () => {
   assert.ok(lines.some((line) => line.includes('sleep 10')));
   assert.ok(lines.some((line) => line.includes('line one')));
   assert.ok(lines.some((line) => line.includes('bash · running')));
+  assert.ok(lines.some((line) => line.includes('enter/d details')));
+  panel.handleInput('\r');
+  panel.handleInput('d');
   panel.handleInput('k');
   panel.handleInput('\x1b');
+  assert.equal(details, 2);
   assert.equal(killed, 1);
   assert.equal(closed, 1);
 });

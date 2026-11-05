@@ -67,8 +67,9 @@ only by the current user.
   fresh attempt.
 - **Background jobs**: `/jobs` lists the session roster, opens live read-only
   output with the original command/label, returns there on `Esc`, refreshes on
-  demand, and stops a running job after a two-press confirmation; the activity
-  line shows the live-job count.
+  demand, and stops a running job after a two-press confirmation; `d` in the
+  output view opens full untruncated job details. The activity line shows the
+  live-job count.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
   resume command when running inside a Herdr pane, shows the session title in
   pane lists, and opens managed subagent preview panes that can auto-close

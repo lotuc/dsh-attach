@@ -367,11 +367,13 @@ selected job.
 
 The direct commands are `/job-output <job-id>` and `/job-kill <job-id>`. The
 output panel shows the job's command/label above its read-only output, follows
-new output at the bottom, and scrolls with the usual page keys. Closing it with
-`Esc`/`q` returns to the job list when it was opened from `/jobs` (or to the
-composer for a direct `/job-output`). It reads the Host's observer cursor,
-which is separate from the model's `job_output` cursor, so viewing a job does
-not consume output the agent still needs.
+new output at the bottom, and scrolls with the usual page keys. Press `Enter`
+or `d` for a full read-only detail view with the untruncated command, id, owner,
+timing and progress; this is the way to read a command that wraps or is too long
+for the header. Closing the output with `Esc`/`q` returns to the job list when it
+was opened from `/jobs` (or to the composer for a direct `/job-output`). It reads
+the Host's observer cursor, which is separate from the model's `job_output`
+cursor, so viewing a job does not consume output the agent still needs.
 
 If the Host predates the job bridge or was composed without a job registry,
 `/jobs` reports that background jobs are unavailable. Restart the Host after

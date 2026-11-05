@@ -179,6 +179,18 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     await wait(50);
     assert.equal(app.modals.has('jobs'), true, 'jobs panel owns a modal slot');
     assert.ok(app.jobsPanel);
+    app.jobsPanel.handleInput('\r');
+    await wait(80);
+    assert.equal(app.modals.has('jobOutput'), true, 'enter opens job output');
+    app.modals.get('jobOutput').component.handleInput('d');
+    await wait(20);
+    assert.equal(app.modals.has('jobDetails'), true, 'job details open from output');
+    app.modals.get('jobDetails').component.handleInput('\x1b');
+    await wait(20);
+    assert.equal(app.modals.has('jobDetails'), false, 'job details close back to output');
+    app.modals.get('jobOutput').component.handleInput('\x1b');
+    await wait(20);
+    assert.equal(app.modals.has('jobOutput'), false, 'output closes back to jobs');
     app.jobsPanel.handleInput('\x1b');
     await wait(20);
     assert.equal(app.modals.has('jobs'), false, 'escape closes the jobs slot');
