@@ -37,6 +37,35 @@ test('cancels the provider list when backspace removes the slash prefix', async 
   assert.ok(changes >= 1);
 });
 
+test('reopens argument completion after Tab accepts a parent command', async () => {
+  const editor = makeEditor();
+  editor.setAutocompleteProvider({
+    async getSuggestions(lines, line, col) {
+      const text = (lines[line] ?? '').slice(0, col);
+      if (text === '/sk') return { items: [{ value: '/skill ', label: 'skill' }], prefix: '/sk' };
+      if (text === '/skill ') return { items: [{ value: 'list', label: 'list' }], prefix: 'skill ' };
+      return null;
+    },
+    applyCompletion(lines, line, col, item, prefix) {
+      const text = lines[line] ?? '';
+      return {
+        lines: [...lines.slice(0, line), text.slice(0, col - prefix.length) + item.value + text.slice(col), ...lines.slice(line + 1)],
+        cursorLine: line,
+        cursorCol: col - prefix.length + item.value.length,
+      };
+    },
+  });
+
+  editor.setText('/sk');
+  editor.handleInput('\t');
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(editor.isShowingAutocomplete(), true);
+  editor.handleInput('\t');
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(editor.getText(), '/skill ');
+  assert.equal(editor.isShowingAutocomplete(), true, 'argument completion should reopen after the parent command');
+});
+
 test('notifies when the autocomplete list is cancelled', () => {
   const editor = makeEditor();
   let changes = 0;
