@@ -139,3 +139,12 @@ The design does not defend against:
   while it is watching a session. Use `web` or `off` otherwise.
 - Restart the Host after upgrading the plugin so the new socket code is active.
 - Windows is not supported; do not rely on named-pipe permission semantics.
+
+
+## Herdr environment forwarding
+
+When the client runs in a managed Herdr pane, it forwards only `HERDR_*`
+variables to the Host, scoped to the followed session. The bridge rejects other
+names and merges them only into model shell requests. This is deliberate: it
+lets shell commands address the same pane without exposing the terminal's full
+environment or credentials.

@@ -73,8 +73,8 @@ only by the current user.
   live-job count.
 - **Herdr integration**: reports `idle` / `working` / `blocked` state and a
   resume command when running inside a Herdr pane, shows the session title in
-  pane lists, and opens managed subagent preview panes that can auto-close
-  after an opt-in idle timeout.
+  pane lists, opens managed subagent preview panes that can auto-close after an
+  opt-in idle timeout, and forwards `HERDR_*` facts to model shell commands.
 - **Local-only security**: owner-only Unix socket, a per-process random token,
   constant-time token comparison, and terminal control-sequence sanitization.
 

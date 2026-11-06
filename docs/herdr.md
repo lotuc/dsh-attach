@@ -40,6 +40,31 @@ The client also:
 - The client reads `HERDR_ENV=1`, `HERDR_PANE_ID`, and `HERDR_BIN_PATH` from the
   pane environment. Outside a Herdr pane all reporting is a no-op.
 
+## Herdr environment in model commands
+
+The Host runs outside the Herdr pane, so model `bash` commands do not inherit
+`HERDR_ENV` and the pane ids by default. When `dsh-attach` opens a session
+inside Herdr, it sends the current `HERDR_*` variables with `session.open`; the
+Host bridge scopes them to that followed session and merges them into the
+ordinary `env` of each shell request.
+
+This makes patterns such as `herdr pane ...` in model-run commands see the same
+pane context as the terminal client:
+
+```text
+HERDR_ENV=1
+HERDR_PANE_ID=...
+HERDR_BIN_PATH=...
+HERDR_SOCKET_PATH=...
+HERDR_WORKSPACE_ID=...
+```
+
+Only names matching `HERDR_[A-Z0-9_]+` are accepted; values are capped, and
+`PATH` or other arbitrary variables are intentionally not forwarded. If several
+terminals follow the same session, the most recently opened connection's Herdr
+facts win. This is a local same-user bridge: shell commands can see these pane
+identities, so do not place secrets in custom `HERDR_*` variables.
+
 ## Pane titles
 
 When a Session has a title, the client reports it as both the pane `title` and

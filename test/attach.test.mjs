@@ -112,6 +112,13 @@ function createFixture(home) {
     subagentChildrenCalls: 0,
     directChildren: null,
     goal: { id: 'g1', revision: 1, objective: 'Finish', phase: 'active', activation: 'disarmed', maxGoalRounds: 10 },
+    shellRequests: [],
+  };
+  const shell = {
+    resolve(request) {
+      state.shellRequests.push(request);
+      return request;
+    },
   };
   const ctx = {
     sessionController: controller,
@@ -156,6 +163,7 @@ function createFixture(home) {
         };
       }
       if (name === 'goals') return { get: () => state.goal };
+      if (name === 'shell') return shell;
       if (name === 'typertGateway') return { hasLiveClient: () => state.webLive };
       return undefined;
     },
@@ -335,6 +343,32 @@ test('serves goal activation and broadcasts activation changes', async () => {
     assert.equal(message.sessionId, 's1');
     assert.equal(message.goal.activation, 'armed');
     state.goal = { ...state.goal, activation: 'armed' };
+  });
+});
+
+test('injects Herdr facts into shell requests for the followed session', async () => {
+  await withHost(async ({ client, ctx, state }) => {
+    await client.request('session.open', {
+      sessionId: 's1',
+      env: {
+        HERDR_ENV: '1',
+        HERDR_PANE_ID: 'w1:p1',
+        HERDR_BIN_PATH: '/bin/herdr',
+        PATH: '/client/bin',
+        ignored: 'no',
+      },
+    });
+    const resolved = await ctx.get('shell').resolve({
+      command: 'pwd',
+      env: { BASE: '1' },
+      dshEnv: { DSH_SESSION_ID: 's1' },
+    });
+    assert.equal(resolved.env.HERDR_ENV, '1');
+    assert.equal(resolved.env.HERDR_PANE_ID, 'w1:p1');
+    assert.equal(resolved.env.HERDR_BIN_PATH, '/bin/herdr');
+    assert.equal(resolved.env.PATH, undefined, 'only HERDR_* names are accepted');
+    assert.equal(resolved.env.BASE, '1');
+    assert.equal(state.shellRequests.length, 1);
   });
 });
 

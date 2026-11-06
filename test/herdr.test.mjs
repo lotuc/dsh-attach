@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { HerdrReporter, herdrContext, herdrReportArgs, herdrReportMetadataArgs } from '../lib/client/herdr.js';
+import { HerdrReporter, herdrContext, herdrEnvironment, herdrReportArgs, herdrReportMetadataArgs } from '../lib/client/herdr.js';
 
 const ENV = {
   HERDR_ENV: '1',
@@ -17,6 +17,22 @@ test('ignores environments outside a Herdr pane', () => {
     bin: '/opt/homebrew/bin/herdr',
     socket: null,
   });
+});
+
+test('captures only Herdr facts from a managed pane', () => {
+  assert.deepEqual(herdrEnvironment({
+    ...ENV,
+    HERDR_SOCKET_PATH: '/tmp/herdr.sock',
+    HERDR_WORKSPACE_ID: 'w1',
+    PATH: '/usr/bin',
+  }), {
+    HERDR_ENV: '1',
+    HERDR_PANE_ID: 'w1:p1',
+    HERDR_BIN_PATH: '/opt/homebrew/bin/herdr',
+    HERDR_SOCKET_PATH: '/tmp/herdr.sock',
+    HERDR_WORKSPACE_ID: 'w1',
+  });
+  assert.deepEqual(herdrEnvironment({ HERDR_ENV: '0', HERDR_PANE_ID: 'p' }), {});
 });
 
 test('builds report-agent arguments with a resume command', () => {

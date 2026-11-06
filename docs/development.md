@@ -151,6 +151,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/host.js` | Cordis plugin entry, injection, Config schema, and optional Host hot reload. |
 | `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
 | `lib/host/subagents.js` | Pure subagent catalog row mapping and descendant counting. |
+| `lib/host/shell-env.js` | Bounded `HERDR_*` env intake and shell-request merge for model commands. |
 | `lib/host.d.ts` | Type declarations for the plugin entry. |
 | `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow, `--hot`. |
 | `lib/client/hot-reload.js` | Development supervisor that restarts the TUI child on source changes. |
@@ -237,6 +238,7 @@ Coverage includes:
 - modal-slot lifecycle and picker row refresh;
 - session snapshot projection and shared path/approval/version helpers;
 - Host subagent traversal, row mapping, and catalog labels;
+- Herdr env intake and shell-request merging;
 - shared scroll-key decoding for the read-only panels;
 - shared left/right line fitting;
 - loaded-transcript search and history truncation markers;
