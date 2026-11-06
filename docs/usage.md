@@ -17,6 +17,9 @@ footer      shortcuts, context/token usage, permission state
 The header and activity line update as the Host streams turns, steps, tool
 calls, model selection changes, todos, and goals. A blocked goal is shown in the
 activity line with its reason, for example `goal blocked · needs input`.
+The client also reads the process-local goal activation: an `active` goal that
+is `disarmed` is shown as `goal inactive`, matching the Web GUI's "Inactive
+Goal"; `goal active` is reserved for an armed goal.
 
 ### Step groups
 

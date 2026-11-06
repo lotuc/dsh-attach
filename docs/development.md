@@ -117,6 +117,7 @@ Server methods:
 | `session.selectModel` | Switch provider/model (and optional reasoning effort). |
 | `model.catalog` | Provider and model groups. |
 | `commands.list` / `commands.execute` | Discover and execute Host slash commands. |
+| `goal.get` | Read the live goal view including process-local `activation` (`armed`/`disarmed`). |
 | `workspace.list` | Workspace tree snapshot, with a `cwd` fallback on the client. |
 | `subagent.summary` | Counts plus the active window (IDs, titles, and short catalog labels). Newer Hosts include labels; the client fills missing labels from `subagent.list`. |
 | `subagent.children` | Fast direct-child catalog for `/subagent list`; falls back to recursive listing for small trees. |
@@ -125,6 +126,7 @@ Server methods:
 | `question.respond` / `question.cancel` | Answer or cancel a question batch. |
 | `interactive.ack` | Acknowledge that this terminal actually displayed a shared request; unacknowledged panels do not block the grace handoff. |
 | `interactive.detach` | Detach one terminal from a shared pending request. |
+| `goal` notification | Process-local goal activation changed for the followed session. |
 | `activity` | Heartbeat used by `auto` routing. |
 
 Limits:

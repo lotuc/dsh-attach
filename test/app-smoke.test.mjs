@@ -130,6 +130,28 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
 
     client.emit('frame', {
       sessionId: 's1',
+      frame: {
+        type: 'snapshot',
+        header: { cwd: '/tmp/work' },
+        projections: {
+          values: {
+            title: 'Snapshot title',
+            goal: { goal: { phase: 'complete', objective: 'done' } },
+          },
+        },
+        records: [{
+          type: 'event',
+          event: {
+            type: 'goal/change',
+            data: { goal: { goal: { phase: 'active', objective: 'stale' } } },
+          },
+        }],
+      },
+    });
+    assert.equal(app.state.goal.phase, 'complete', 'snapshot goal wins over stale history');
+
+    client.emit('frame', {
+      sessionId: 's1',
       frame: { type: 'event', event: { type: 'session/title', data: { title: 'Smoke session' } } },
     });
     assert.equal(app.state.title, 'Smoke session');

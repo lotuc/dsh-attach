@@ -106,7 +106,13 @@ function createFixture(home) {
       return { commandId: 'cmd-1', result: { kind: 'success', text: `ran ${line}` } };
     },
   };
-  const state = { webLive: false, subagentListCalls: 0, subagentChildrenCalls: 0, directChildren: null };
+  const state = {
+    webLive: false,
+    subagentListCalls: 0,
+    subagentChildrenCalls: 0,
+    directChildren: null,
+    goal: { id: 'g1', revision: 1, objective: 'Finish', phase: 'active', activation: 'disarmed', maxGoalRounds: 10 },
+  };
   const ctx = {
     sessionController: controller,
     logger: { debug() {}, warn() {} },
@@ -149,6 +155,7 @@ function createFixture(home) {
           },
         };
       }
+      if (name === 'goals') return { get: () => state.goal };
       if (name === 'typertGateway') return { hasLiveClient: () => state.webLive };
       return undefined;
     },
@@ -309,6 +316,25 @@ test('adds short catalog labels to active subagents', async () => {
     const cached = await client.request('subagent.summary', { sessionId: 's1' });
     assert.equal(cached.active[0].label, 'Reviewer');
     assert.equal(state.subagentChildrenCalls, 1);
+  });
+});
+
+test('serves goal activation and broadcasts activation changes', async () => {
+  await withHost(async ({ client, listeners, state }) => {
+    await client.request('session.open', { sessionId: 's1' });
+    const value = await client.request('goal.get');
+    assert.equal(value.supported, true);
+    assert.equal(value.goal.activation, 'disarmed');
+
+    const seen = once(client, 'goal');
+    listeners.get('goal/activation-changed')({
+      sessionId: 's1',
+      goal: { id: 'g1', revision: 1, activation: 'armed' },
+    });
+    const [message] = await seen;
+    assert.equal(message.sessionId, 's1');
+    assert.equal(message.goal.activation, 'armed');
+    state.goal = { ...state.goal, activation: 'armed' };
   });
 });
 

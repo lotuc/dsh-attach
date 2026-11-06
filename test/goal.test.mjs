@@ -25,11 +25,14 @@ test('shows every goal phase in the activity label', () => {
   assert.equal(goalActivityLabel(goal('paused')), 'goal paused');
   assert.equal(goalActivityLabel(goal('complete')), 'goal complete');
   assert.equal(goalActivityLabel(goal('blocked', { blockedReason: { code: 'x', message: 'needs input' } })), 'goal blocked · needs input');
+  assert.equal(goalActivityLabel(goal('active'), 64, 'disarmed'), 'goal inactive');
+  assert.equal(goalActivityLabel(goal('active'), 64, 'armed'), 'goal active');
 });
 
 test('shows the blocked reason in the status line', () => {
   assert.equal(goalStatus(null), '—');
   assert.equal(goalStatus(goal('active')), 'active · Finish the task');
+  assert.equal(goalStatus(goal('active'), 'disarmed'), 'inactive · Finish the task');
   assert.equal(
     goalStatus(goal('blocked', { blockedReason: { code: 'x', message: 'needs input' } })),
     'blocked · Finish the task · needs input',
