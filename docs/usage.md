@@ -125,12 +125,16 @@ message. `/cancel` stops the running turn without adding a message; pressing
 `Esc` twice within 750 ms does the same. The first `Esc` shows
 `esc again to interrupt` in the activity line.
 
-Press `Ctrl+Shift+V` or run `/paste-image` to read an image from the system
-clipboard. The image name appears above the composer; `/images clear` removes
-pending images. Images are sent with the next prompt, including an image-only
-prompt. Up to eight images can be attached at once. macOS uses `pngpaste` when
-available and otherwise AppleScript; Linux uses `wl-paste` or `xclip`. If the
-terminal consumes `Ctrl+Shift+V`, use `/paste-image`.
+Press `Ctrl+V`/`Cmd+V` (native clipboard paste), `Ctrl+Shift+V`, or run `/paste-image`
+to read an image from the system clipboard. `Ctrl+V` checks for an image first;
+if the clipboard has no image, it inserts clipboard text instead, so it behaves
+like a normal paste on terminals that deliver Ctrl+V to the application. The
+image name appears above the composer; `/images clear` removes pending images.
+Images are sent with the next prompt, including an image-only prompt. Up to eight
+images can be attached at once. macOS uses `pngpaste` when available and
+otherwise AppleScript; Linux uses `wl-paste` or `xclip`; Windows uses
+PowerShell's `System.Windows.Forms.Clipboard`. If the terminal consumes `Ctrl+V`
+or `Ctrl+Shift+V`, use `/paste-image`.
 
 File upload and `@` file indexing are not wired into the client.
 
@@ -145,7 +149,7 @@ complete.
 
 Scrolling and navigation:
 
-- `PgUp`/`PgDn`, `Shift+PgUp`/`Shift+PgDn`, `Alt+V`/`Ctrl+V`, and
+- `PgUp`/`PgDn`, `Shift+PgUp`/`Shift+PgDn`, `Alt+V`, and
   `Ctrl+Alt+B`/`Ctrl+Alt+F` move through the transcript.
 - `Ctrl+Home` jumps to the top of the loaded history; `Ctrl+End` jumps to the
   bottom.

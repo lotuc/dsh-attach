@@ -154,7 +154,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/connection.js` | Descriptor discovery, socket connection/reconnect, request/response, notifications. |
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
 | `lib/client/step-activity.js` | Turn/step lifecycle, tool grouping, and reasoning attachment. |
-| `lib/client/clipboard-image.js` | Clipboard image intake for macOS and Linux. |
+| `lib/client/clipboard-image.js` | Clipboard image intake for macOS, Linux and Windows. |
 | `lib/client/interrupted-resume.js` | Interrupted-turn detection and idempotent continuation policy. |
 | `lib/client/session-list.js` | Flat session rows with workspace metadata. |
 | `lib/client/session-events.js` | Pure projection for state-only Session events. |

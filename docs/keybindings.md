@@ -17,7 +17,7 @@ falling back to a normal prompt.
 | `PgUp` | Scroll the transcript up one page. |
 | `Shift+PgUp`, `Alt+V`, `Ctrl+Alt+B` | Alternative scroll-up bindings. |
 | `PgDn` | Scroll the transcript down one page. |
-| `Shift+PgDn`, `Ctrl+V`, `Ctrl+Alt+F` | Alternative scroll-down bindings. |
+| `Shift+PgDn`, `Ctrl+Alt+F` | Alternative scroll-down bindings. |
 | `Ctrl+Home` | Jump to the top of the loaded history. |
 | `Ctrl+End` | Jump to the bottom of the loaded history. |
 | Mouse wheel | Scroll the transcript. |
@@ -32,7 +32,8 @@ are closed.
 | Key | Action |
 |---|---|
 | `Enter` | Send the prompt and return the transcript to the newest message. While a turn is running, the prompt is queued. |
-| `Ctrl+Shift+V` | Attach an image from the system clipboard. `/paste-image` is the fallback when the terminal consumes this key. |
+| `Ctrl+V` / `Cmd+V` | Native clipboard paste: attach an image when the clipboard contains one, otherwise insert clipboard text. |
+| `Ctrl+Shift+V` | Explicit clipboard-image paste, with text fallback; `/paste-image` is the fallback when the terminal consumes this key. |
 | `Shift+Enter`, `Ctrl+J` | Insert a newline instead of sending. |
 | `Up`, `Ctrl+P` | Move up; on the first line at column 0, or while browsing history, go to the previous prompt. |
 | `Down`, `Ctrl+N` | Move down; on the last line while browsing, go to the next prompt. |

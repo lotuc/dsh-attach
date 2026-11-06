@@ -94,13 +94,39 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     sigterm: process.listenerCount('SIGTERM'),
     stdinEnd: process.stdin.listenerCount('end'),
   };
-  const app = new AttachApp(client, { session: 's1', logPath: 'off', terminal, tui });
+  const clipboard = {
+    useImage: true,
+    image: { mediaType: 'image/png', data: 'YWJj', name: 'clipboard.png' },
+    text: 'clipboard text',
+  };
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    readClipboardImage: async () => {
+      if (!clipboard.useImage) throw new Error('clipboard does not contain an image');
+      return clipboard.image;
+    },
+    readClipboardText: async () => clipboard.text,
+  });
   const running = app.run();
   try {
     for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
     assert.equal(app.state.sessionId, 's1');
     assert.ok(app.pendingQueuePanel, 'pending queue panel was built');
     assert.equal(app.queueManagerPanel, null);
+
+    const input = tui.inputListeners[0];
+    input('\x16'); // Ctrl+V
+    await wait(30);
+    assert.equal(app.pendingImages.length, 1, 'Ctrl+V attaches a clipboard image');
+    app.pendingImages = [];
+    clipboard.useImage = false;
+    input('\x16');
+    await wait(30);
+    assert.match(app.editor.getText(), /clipboard text/, 'Ctrl+V falls back to clipboard text');
+    app.editor.setText('');
 
     client.emit('frame', {
       sessionId: 's1',

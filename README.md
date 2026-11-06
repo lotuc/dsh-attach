@@ -148,7 +148,8 @@ Read [Security](docs/security.md) for the full model.
 
 ## Known limitations
 
-- Image input is clipboard-only (`Ctrl+Shift+V` or `/paste-image`); file upload
+- Image input is clipboard-only (`Ctrl+V`, `Ctrl+Shift+V`, or `/paste-image`);
+  `Ctrl+V` falls back to clipboard text when no image is present. File upload
   and `@` file indexing are not wired up.
 - One session per terminal at a time. Other sessions keep running in the Host.
 - The client reconnects automatically after a Host or desktop-app restart and
