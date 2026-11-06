@@ -119,7 +119,7 @@ Server methods:
 | `commands.list` / `commands.execute` | Discover and execute Host slash commands. |
 | `workspace.list` | Workspace tree snapshot, with a `cwd` fallback on the client. |
 | `subagent.summary` | Counts plus the active window (IDs, titles, and short catalog labels). Newer Hosts include labels; the client fills missing labels from `subagent.list`. |
-| `subagent.children` | Fast direct-child catalog for `/subagents`; falls back to recursive listing for small trees. |
+| `subagent.children` | Fast direct-child catalog for `/subagent list`; falls back to recursive listing for small trees. |
 | `subagent.list` | Catalog descendants when the runtime supports it, including short labels. |
 | `approval.respond` / `approval.cancel` | Answer or cancel an approval. |
 | `question.respond` / `question.cancel` | Answer or cancel a question batch. |
@@ -162,7 +162,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/format.js` | Shared age and cwd formatting. |
 | `lib/client/layout.js` | Left/right line fitting shared by the header, footer, preview and picker rows. |
 | `lib/client/goal.js` | Goal projection normalization and blocked/status labels. |
-| `lib/client/subagent-picker.js` | Ordered `/subagents` rows from the lightweight catalog or session summaries. |
+| `lib/client/subagent-picker.js` | Ordered `/subagent list` rows from the lightweight catalog or session summaries. |
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
@@ -173,8 +173,8 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/modals.js` | Named overlay registry shared by every modal panel. |
 | `lib/client/picker-session.js` | Filterable picker setup and in-place row refresh. |
 | `lib/client/scroll.js` | Shared key-to-offset mapping for read-only scroll panels. |
-| `lib/client/command-catalog.js` | Local slash commands, Host subcommand hints, and `/resume` / `/model` completion. |
-| `lib/client/local-commands.js` | Local slash-command parsing and dispatch. |
+| `lib/client/command-catalog.js` | Local grouped commands, Host subcommand hints, and `/session`, `/job`, `/model` completion. |
+| `lib/client/local-commands.js` | Local slash-command parsing and grouped dispatch. |
 | `lib/client/model-picker.js` | Model rows, including reasoning-effort variants. |
 | `lib/client/permission-presets.js` | Sandbox presets shared by completion and the picker. |
 | `lib/client/keys.js` | Key constants, Ctrl/arrow matching, and mouse-wheel decoding. |
@@ -228,7 +228,7 @@ Coverage includes:
 - approval details: full request/command content and scroll navigation;
 - approval context: target, proposed edit and session metadata;
 - interaction acknowledgement and notification policy;
-- completion catalogs, picker filtering, and metadata layout;
+- completion catalogs, grouped local subcommands, picker filtering, and metadata layout;
 - model reasoning-effort rows and permission presets;
 - pinned/archived session ordering;
 - modal-slot lifecycle and picker row refresh;

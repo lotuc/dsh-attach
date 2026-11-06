@@ -33,7 +33,7 @@ are closed.
 |---|---|
 | `Enter` | Send the prompt and return the transcript to the newest message. While a turn is running, the prompt is queued. |
 | `Ctrl+V` / `Cmd+V` | Native clipboard paste: attach an image when the clipboard contains one, otherwise insert clipboard text. |
-| `Ctrl+Shift+V` | Explicit clipboard-image paste, with text fallback; `/paste-image` is the fallback when the terminal consumes this key. |
+| `Ctrl+Shift+V` | Explicit clipboard-image paste, with text fallback; `/image paste` is the fallback when the terminal consumes this key. |
 | `Shift+Enter`, `Ctrl+J` | Insert a newline instead of sending. |
 | `Up`, `Ctrl+P` | Move up; on the first line at column 0, or while browsing history, go to the previous prompt. |
 | `Down`, `Ctrl+N` | Move down; on the last line while browsing, go to the next prompt. |
@@ -70,9 +70,10 @@ browsing; returning past the newest entry restores the draft.
 | `Ctrl+N`, `Ctrl+P`, `Up`, `Down` | Move through completion items. |
 
 For commands with arguments, complete the command first with `Tab`, then type
-the argument. `/resume` completes session titles and IDs; `/model` completes
-`provider/model` pairs; Host commands with bracket alternatives expose their
-subcommands, for example `/goal` offers `clear`, `edit`, `pause`, and `resume`,
+the argument. `/session resume` completes session titles and IDs; `/job output`
+and `/job kill` complete job IDs; `/subagent preview` completes the count;
+`/model` completes `provider/model` pairs; Host commands with bracket
+alternatives expose their subcommands, for example `/goal` offers `clear`, `edit`, `pause`, and `resume`,
 `/plan` offers `off` and `message`, and `/permission` offers `read-only`,
 `workspace-write`, `danger-full-access`, and `auto`. Relative paths such as `./src/` and
 `../` complete from the current session's working directory. `@` file indexing
@@ -188,10 +189,11 @@ cannot be sent again.
 
 ## Background jobs
 
-`/jobs` opens the session's background-job picker. Running jobs sort first;
+`/job list` opens the session's background-job picker. Running jobs sort first;
 `Enter` opens the job's live, read-only output and `r` refreshes the roster.
 Press `k` twice within three seconds to stop the selected job. The direct
-forms are `/job-output <job-id>` and `/job-kill <job-id>`.
+forms are `/job output <job-id>` and `/job kill <job-id>` (the older
+`/job-output` and `/job-kill` remain aliases).
 
 | Key | Action |
 |---|---|
@@ -205,8 +207,8 @@ The output panel shows the job's command/label above its read-only output and
 keeps following new output at the bottom. `PgUp`/`PgDn`, arrows, `Home`/`End`,
 and `g`/`G` scroll; `Enter` or `d` opens the full job details (including untruncated
 command, id, owner, timing and progress); `k` twice stops the job. `Esc` or `q`
-returns to the job list when the panel was opened from `/jobs`, or to the
-composer when it was opened directly with `/job-output`. The panel reads the
+returns to the job list when the panel was opened from `/job list`, or to the
+composer when it was opened directly with `/job output`. The panel reads the
 non-consuming observer cursor, so it never steals output from the model's
 `job_output`.
 
@@ -217,20 +219,11 @@ non-consuming observer cursor, so it never steals output from the model's
 | Command | Description |
 |---|---|
 | `/help` | Show the built-in help. |
-| `/sessions` | Open the session picker. |
+| `/session [list|new [cwd]|resume [id]|rename <title>]` | Session picker, creation, resume, or rename. Aliases: `/sessions`, `/new`, `/resume`, `/rename`. |
 | `/reconnect` | Force a fresh Host connection and reopen the current session. |
-| `/subagents` | List subagents under the current session, active first. `/agents` is an alias. |
-| `/subagents-preview [count]` | Open running subagents in managed Herdr plugin panes (1–2). `/agents-preview` is an alias. |
-| `/peek` | Toggle the bounded subagent peek. |
-| `/paste-image` | Attach an image from the system clipboard. |
-| `/images [clear]` | Show attached image count, or clear pending images. |
-| `/jobs` | List background jobs; `Enter` opens output, `k` twice stops, `r` refreshes. |
-| `/job-output <id>` | Open a background job's live read-only output. |
-| `/job-kill <id>` | Request cancellation of a background job. |
-| `/parent` | Open the direct parent of a subagent history. |
-| `/new [cwd]` | Create a session, optionally in `cwd`. |
-| `/resume [id]` | Open the picker, or open the given session directly. |
-| `/rename <title>` | Rename the current session. |
+| `/subagent [list|preview [count]|parent|peek]` | Subagent picker, Herdr preview, parent navigation, or peek toggle. Aliases: `/subagents`, `/subagents-preview`, `/parent`, `/peek`. |
+| `/image [paste|list|clear]` | Paste a clipboard image, list attached images, or clear them. Aliases: `/paste-image`, `/images`. |
+| `/job [list|output <id>|kill <id>]` | List jobs, open live output, or stop a job. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
 | `/cancel` | Cancel the running turn (same as pressing `Esc` twice). |
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
 | `/queue [text]` | Queue a message, or open the pending-message manager when no text is given. |
@@ -239,6 +232,11 @@ non-consuming observer cursor, so it never steals output from the model's
 | `/permission [mode]` | Open the sandbox-preset picker, or apply `read-only`, `workspace-write`, `danger-full-access`, or `auto` directly. |
 | `/status` | Show session, model, preset, sandbox, context, token, queued-message count, todo, goal, host, theme, and socket details. |
 | `/quit`, `/exit` | Exit the client without stopping Host work. |
+
+The grouped commands complete their own subcommands: `/session resume` completes
+session titles/IDs, `/job output` and `/job kill` complete job IDs, and
+`/subagent preview` completes the count. Legacy hyphenated commands remain
+working for compatibility but are no longer listed in completion.
 
 ### Host commands
 

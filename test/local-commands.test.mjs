@@ -47,6 +47,25 @@ test('dispatches local command handlers', async () => {
   const { value, calls } = context();
   const cases = [
     ['/help', ['help']],
+    ['/session', ['sessions']],
+    ['/session list', ['sessions']],
+    ['/session new /tmp/work', ['newSession', '/tmp/work']],
+    ['/session resume abc', ['openSession', 'abc']],
+    ['/session resume', ['sessions']],
+    ['/session rename Title', ['rename', 'Title']],
+    ['/subagent', ['agents']],
+    ['/subagent list', ['agents']],
+    ['/subagent preview 2', ['previewAgents', '2']],
+    ['/subagent parent', ['parent']],
+    ['/subagent peek', ['togglePeek']],
+    ['/image', ['images']],
+    ['/image list', ['images']],
+    ['/image paste', ['pasteImage']],
+    ['/image clear', ['clearImages']],
+    ['/job', ['jobs']],
+    ['/job list', ['jobs']],
+    ['/job output abc', ['jobOutput', 'abc']],
+    ['/job kill abc', ['killJob', 'abc']],
     ['/sessions', ['sessions']],
     ['/reconnect', ['reconnect']],
     ['/subagents', ['agents']],
@@ -88,7 +107,7 @@ test('dispatches local command handlers', async () => {
 
 test('reports usage for commands with required arguments', async () => {
   const { value, calls } = context();
-  for (const line of ['/job-output', '/job-kill', '/rename', '/steer']) {
+  for (const line of ['/job-output', '/job-kill', '/rename', '/steer', '/job output', '/job kill', '/image bad', '/subagent bad', '/session rename', '/session bad']) {
     calls.length = 0;
     assert.equal(await executeLocalCommand(line, value), true);
     assert.equal(calls.length, 1);

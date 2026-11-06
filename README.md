@@ -38,11 +38,12 @@ only by the current user.
 - **Transcript search**: `/find [text]` jumps to a loaded match or opens an
   incremental picker; the activity line marks Host-side history limits and
   locally trimmed rows.
-- **Subagent visibility**: parent sessions show agent counts, `/subagents` lists
-  the lineage, and subagent history opens read-only. `/parent` goes back.
+- **Subagent visibility**: parent sessions show agent counts, `/subagent list` shows the lineage, and
+  subagent history opens read-only. `/subagent parent` goes back.
 - **Command completion**: local commands and Host-registered commands appear
-  from `/`; `/resume` and `/model` complete their arguments, and relative file
-  paths complete from the session working directory.
+  from `/`; grouped commands such as `/session resume` and `/job output`
+  complete their arguments, as does `/model`; relative file paths complete from
+  the session working directory.
 - **Floating completion panel**: completions render above the composer without
   changing its height or pushing the input around.
 - **Emacs-style editing**: `Ctrl+N/P` move through the editor, completions,
@@ -65,7 +66,7 @@ only by the current user.
 - **Automatic reconnect**: after a Host or desktop-app restart, the client
   retries with backoff and reopens the current session; `/reconnect` forces a
   fresh attempt.
-- **Background jobs**: `/jobs` lists the session roster, opens live read-only
+- **Background jobs**: `/job list` lists the session roster, opens live read-only
   output with the original command/label, returns there on `Esc`, refreshes on
   demand, and stops a running job after a two-press confirmation; `d` in the
   output view opens full untruncated job details. The activity line shows the
@@ -148,7 +149,7 @@ Read [Security](docs/security.md) for the full model.
 
 ## Known limitations
 
-- Image input is clipboard-only (`Ctrl+V`, `Ctrl+Shift+V`, or `/paste-image`);
+- Image input is clipboard-only (`Ctrl+V`, `Ctrl+Shift+V`, or `/image paste`);
   `Ctrl+V` falls back to clipboard text when no image is present. File upload
   and `@` file indexing are not wired up.
 - One session per terminal at a time. Other sessions keep running in the Host.

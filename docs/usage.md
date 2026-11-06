@@ -90,8 +90,8 @@ process.
 Inside the TUI:
 
 ```text
-/new [cwd]        create a session in cwd, or in the client working directory
-/rename <title>   rename the current session
+/session new [cwd]        create a session in cwd, or in the client working directory
+/session rename <title>   rename the current session
 ```
 
 From the command line, `--new` creates a session and `-C`/`--cwd` chooses its
@@ -125,16 +125,16 @@ message. `/cancel` stops the running turn without adding a message; pressing
 `Esc` twice within 750 ms does the same. The first `Esc` shows
 `esc again to interrupt` in the activity line.
 
-Press `Ctrl+V`/`Cmd+V` (native clipboard paste), `Ctrl+Shift+V`, or run `/paste-image`
+Press `Ctrl+V`/`Cmd+V` (native clipboard paste), `Ctrl+Shift+V`, or run `/image paste`
 to read an image from the system clipboard. `Ctrl+V` checks for an image first;
 if the clipboard has no image, it inserts clipboard text instead, so it behaves
 like a normal paste on terminals that deliver Ctrl+V to the application. The
-image name appears above the composer; `/images clear` removes pending images.
+image name appears above the composer; `/image clear` removes pending images.
 Images are sent with the next prompt, including an image-only prompt. Up to eight
 images can be attached at once. macOS uses `pngpaste` when available and
 otherwise AppleScript; Linux uses `wl-paste` or `xclip`; Windows uses
 PowerShell's `System.Windows.Forms.Clipboard`. If the terminal consumes `Ctrl+V`
-or `Ctrl+Shift+V`, use `/paste-image`.
+or `Ctrl+Shift+V`, use `/image paste`.
 
 File upload and `@` file indexing are not wired into the client.
 
@@ -180,7 +180,9 @@ the argument second is the safer workflow.
 
 Completion also covers:
 
-- `/resume` session titles and IDs;
+- `/session resume` session titles and IDs;
+- `/job output` and `/job kill` job IDs;
+- `/subagent preview` the preview count;
 - `/model` provider/model pairs and reasoning-effort variants;
 - `/permission` sandbox presets;
 - relative file paths from the current session's working directory.
@@ -281,10 +283,10 @@ While any are running, the badge shows running/total, for example
 ● ready · agents 27 idle                  everything is idle
 ```
 
-`/subagents` lists the lineage under the current session. Active subagents are
+`/subagent list` lists the lineage under the current session. Active subagents are
 listed first; within the same status, newer children come first. `/agents` and
 `/agents-preview` remain accepted as compatibility aliases. Indentation shows
-nesting depth; `Enter` opens a subagent, and `/parent` returns to the direct
+nesting depth; `Enter` opens a subagent, and `/subagent parent` returns to the direct
 parent. Subagent history is read-only and the footer is marked
 `subagent · read-only`.
 
@@ -326,14 +328,14 @@ the activity line:
 - Text updates are throttled to about 10 per second; the parent UI repaints at
   about 3 per second.
 - Peeks close automatically when the child stops running, when you switch
-  sessions, when `/peek` is disabled, or when the TUI exits.
-- `/peek` toggles the feature; it is enabled by default.
+  sessions, when `/subagent peek` is disabled, or when the TUI exits.
+- `/subagent peek` toggles the feature; it is enabled by default.
 - Newer Hosts return active subagent IDs and short catalog labels in
   `subagent.summary`. When labels are missing, the client resolves them from
   `subagent.list` and caches them; counts fall back to `session.list` when the
   summary route is unavailable.
-- Use `/subagents` or `/subagents-preview` when you need the full execution view.
-  `/subagents-preview` opens managed Herdr plugin panes and needs a one-time
+- Use `/subagent list` or `/subagent preview` when you need the full execution view.
+  `/subagent preview` opens managed Herdr plugin panes and needs a one-time
   `herdr plugin link`; see [Herdr integration](herdr.md).
 
 ## Reattach hint
@@ -350,7 +352,7 @@ exit codes, because the terminal may already be gone. `DSH_ATTACH_NO_EXIT_HINT=1
 disables it entirely.
 
 The hint preserves `--profile`, `--endpoint`, and `--theme dark` from the
-original invocation. `/resume` opens the picker or takes an ID; `--reattach`
+original invocation. `/session resume` opens the picker or takes an ID; `--reattach`
 goes directly to the given session.
 
 ## Multiple TUI windows
@@ -363,24 +365,24 @@ plugin builds), a request may go to only one connection; keep a single
 
 ## Background jobs
 
-When the Host exposes its job registry, `/jobs` lists the current session's
+When the Host exposes its job registry, `/job list` lists the current session's
 background and long-running jobs, running first. The activity line shows a
 `jobs N` count for live jobs. Select a job with `Enter` to open its live output;
 `r` refreshes the roster, and pressing `k` twice within three seconds stops the
 selected job.
 
-The direct commands are `/job-output <job-id>` and `/job-kill <job-id>`. The
+The direct commands are `/job output <job-id>` and `/job kill <job-id>`. The
 output panel shows the job's command/label above its read-only output, follows
 new output at the bottom, and scrolls with the usual page keys. Press `Enter`
 or `d` for a full read-only detail view with the untruncated command, id, owner,
 timing and progress; this is the way to read a command that wraps or is too long
 for the header. Closing the output with `Esc`/`q` returns to the job list when it
-was opened from `/jobs` (or to the composer for a direct `/job-output`). It reads
+was opened from `/job list` (or to the composer for a direct `/job output`). It reads
 the Host's observer cursor, which is separate from the model's `job_output`
 cursor, so viewing a job does not consume output the agent still needs.
 
 If the Host predates the job bridge or was composed without a job registry,
-`/jobs` reports that background jobs are unavailable. Restart the Host after
+`/job list` reports that background jobs are unavailable. Restart the Host after
 upgrading the plugin to load the new routes.
 
 ## Attaching to a live agent

@@ -24,6 +24,14 @@ function fakeClient() {
           ],
         };
       }
+      if (method === 'job.list') {
+        return {
+          jobs: [
+            { id: 'job-a', kind: 'bash', label: 'npm test', status: 'running' },
+            { id: 'job-b', kind: 'bash', label: 'build', status: 'completed' },
+          ],
+        };
+      }
       if (method === 'model.catalog') {
         return {
           groups: [
@@ -36,26 +44,44 @@ function fakeClient() {
   };
 }
 
-test('local commands expose subagent navigation', () => {
+test('local commands expose grouped navigation', () => {
   const items = localCommandItems(fakeClient());
-  assert.ok(items.some((item) => item.name === 'subagents'));
-  assert.ok(items.some((item) => item.name === 'parent'));
-  assert.ok(items.some((item) => item.name === 'jobs'));
-  assert.ok(items.some((item) => item.name === 'job-output'));
-  assert.ok(items.some((item) => item.name === 'job-kill'));
+  for (const name of ['session', 'subagent', 'image', 'job']) {
+    assert.ok(items.some((item) => item.name === name), name);
+  }
+  assert.equal(items.some((item) => item.name === 'job-output'), false, 'legacy aliases stay out of completion');
 });
 
-test('local command items expose resume and model argument completion', async () => {
+test('local command items expose grouped, resume and model argument completion', async () => {
   const client = fakeClient();
   const items = localCommandItems(client);
-  const resume = items.find((item) => item.name === 'resume');
+  const session = items.find((item) => item.name === 'session');
+  const subagent = items.find((item) => item.name === 'subagent');
+  const image = items.find((item) => item.name === 'image');
+  const job = items.find((item) => item.name === 'job');
   const model = items.find((item) => item.name === 'model');
   const permission = items.find((item) => item.name === 'permission');
-  assert.equal(typeof resume.getArgumentCompletions, 'function');
-  assert.equal(typeof model.getArgumentCompletions, 'function');
-  assert.equal(typeof permission.getArgumentCompletions, 'function');
-  assert.deepEqual(await resume.getArgumentCompletions('fix'), [
-    { value: 'session-a', label: 'Fix tests', description: '/work/a · session-' },
+  for (const item of [session, subagent, image, job, model, permission]) {
+    assert.equal(typeof item.getArgumentCompletions, 'function');
+  }
+
+  assert.deepEqual((await session.getArgumentCompletions('')).map((entry) => entry.value), [
+    'list',
+    'new ',
+    'resume ',
+    'rename ',
+  ]);
+  assert.deepEqual(await session.getArgumentCompletions('resume fix'), [
+    { value: 'resume session-a', label: 'resume Fix tests', description: '/work/a · session-' },
+  ]);
+  assert.deepEqual((await image.getArgumentCompletions('')).map((entry) => entry.value), ['paste', 'list', 'clear']);
+  assert.deepEqual((await subagent.getArgumentCompletions('preview ')).map((entry) => entry.value), [
+    'preview 1',
+    'preview 2',
+  ]);
+  assert.deepEqual((await job.getArgumentCompletions('output ')).map((entry) => entry.value), [
+    'output job-a',
+    'output job-b',
   ]);
   assert.deepEqual(await model.getArgumentCompletions('pro'), [
     { value: 'deepseek pro', label: 'deepseek/pro', description: 'Pro' },
@@ -95,8 +121,16 @@ test('the combined provider suggests slash commands and their arguments', async 
   const applied = provider.applyCompletion(['/co'], 0, 3, compact, slash.prefix);
   assert.equal(applied.lines[0], '/compact ');
 
-  const resume = await provider.getSuggestions(['/resume '], 0, 8, { signal });
-  assert.ok(resume.items.some((item) => item.value === 'session-a'));
+  const resumeText = '/session resume ';
+  const resume = await provider.getSuggestions([resumeText], 0, resumeText.length, { signal });
+  assert.ok(resume.items.some((item) => item.value === 'resume session-a'));
+
+  const jobText = '/job output ';
+  const job = await provider.getSuggestions([jobText], 0, jobText.length, { signal });
+  const jobItem = job.items.find((item) => item.value === 'output job-a');
+  assert.ok(jobItem);
+  const appliedJob = provider.applyCompletion([jobText], 0, jobText.length, jobItem, job.prefix);
+  assert.equal(appliedJob.lines[0], '/job output job-a');
 
   const model = await provider.getSuggestions(['/model '], 0, 7, { signal });
   const flash = model.items.find((item) => item.value === 'deepseek flash');
