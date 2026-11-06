@@ -122,6 +122,7 @@ The TUI requires a TTY. Use `--list` for scripts and non-interactive output.
 | `--profile <name>` | Only consider endpoints written by this profile. |
 | `--theme <name>` | Palette: `light` (default) or `dark`. |
 | `--log <file>` | Lifecycle log path. `off` disables it. |
+| `--hot` | Development only: restart the TUI child when client/shared sources change. |
 | `-h`, `--help` | Show help. |
 | `-V`, `--version` | Print the client version. |
 

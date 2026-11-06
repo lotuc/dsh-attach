@@ -19,6 +19,7 @@ entry ID from the bundle patch:
     approvalGraceSeconds: 120
     questionGraceSeconds: 300
     historyMessages: 300
+    hotReload: false
 ```
 
 Restart DeepSeek Harness after changing Host configuration; the bridge is built
@@ -34,6 +35,7 @@ at process start and advertises the active modes in its handshake.
 | `approvalGraceSeconds` | number | `120` | Time before an unanswered approval is delegated; `0` waits forever. |
 | `questionGraceSeconds` | number | `300` | Time before an unanswered question batch is delegated; `0` waits forever. |
 | `historyMessages` | number | `300` | Maximum messages in one follow snapshot, clamped to `1..5000`. Increase it to see more history on attach; it is not incremental pagination. |
+| `hotReload` | boolean | `false` | Development only: watch `lib/host/server.js` and restart the bridge in-process when it changes. Requires a restart once to enable. |
 
 The socket directory is created with mode `0700`; the socket and descriptor
 files use `0600`. If the default socket path would exceed the platform limit

@@ -146,11 +146,12 @@ together. A protocol mismatch is rejected during descriptor discovery.
 |---|---|
 | `bin/dsh-attach.js` | Executable entry point; delegates to the client CLI. |
 | `bin/herdr-preview.js` | Herdr plugin pane entrypoint; reconstructs the preview client invocation from pane env. |
-| `lib/host.js` | Cordis plugin entry, injection, and Config schema. |
+| `lib/host.js` | Cordis plugin entry, injection, Config schema, and optional Host hot reload. |
 | `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
 | `lib/host/subagents.js` | Pure subagent catalog row mapping and descendant counting. |
 | `lib/host.d.ts` | Type declarations for the plugin entry. |
-| `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow. |
+| `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow, `--hot`. |
+| `lib/client/hot-reload.js` | Development supervisor that restarts the TUI child on source changes. |
 | `lib/client/connection.js` | Descriptor discovery, socket connection/reconnect, request/response, notifications. |
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
 | `lib/client/step-activity.js` | Turn/step lifecycle, tool grouping, and reasoning attachment. |
@@ -247,6 +248,7 @@ Coverage includes:
 - Double-Escape interrupt timing and Ctrl+C exit policy;
 - Background-job roster formatting, event folding, output polling, and bridge routes;
 - Same-client reconnect against a restarted Host;
+- client hot-reload supervisor lifecycle and Host module cache-busting;
 - light/dark themes.
 
 ## Local development loop
@@ -262,8 +264,27 @@ pnpm pack
 dsh plugin --profile desktop add ./dsh-tui-attach-0.14.0.tgz
 ```
 
-Restart DeepSeek Harness after changing anything under `lib/host/` or the bundle
-patch. Client-only changes take effect the next time `dsh-attach` starts.
+### Hot reload (development)
+
+The package is copied into a profile, so normal edits in this checkout do not
+affect an installed client or Host by themselves. Use a checkout-backed
+install/symlink for live editing.
+
+**Client:** `--hot` (or `DSH_ATTACH_HOT=1`) starts a small supervisor that
+watches `bin/`, `lib/client/` and `lib/shared/`, restarts the TUI child on a
+JavaScript change, and reopens the same `--session`/`--reattach` argument. The
+Host and session keep running; the draft, pending images and scroll position
+are not preserved across the restart.
+
+```sh
+node bin/dsh-attach.js --hot -s <session-id>
+```
+
+**Host:** enable `hotReload: true` in the profile patch, or start DSH with
+`DSH_ATTACH_HOT=1`. The bridge watches `lib/host/server.js` and stops/restarts
+itself through a cache-busted import; attached clients reconnect automatically.
+Changes to `lib/host.js`, `lib/host/subagents.js` or `lib/shared/*` still need a
+DSH restart. Enabling `hotReload` itself also needs one restart.
 
 Useful environment variables during development:
 
@@ -271,6 +292,7 @@ Useful environment variables during development:
 DSH_ATTACH_PERF=1 dsh-attach -s <session-id>
 DSH_ATTACH_KEYS=1 dsh-attach -s <session-id>   # raw key logging; may contain prompts
 DSH_ATTACH_NO_MOUSE=1 dsh-attach               # isolate focus/mouse issues
+DSH_ATTACH_HOT=1 dsh-attach -s <session-id>    # client hot supervisor
 ```
 
 ## Versioning and release checklist
