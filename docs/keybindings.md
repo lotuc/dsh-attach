@@ -224,6 +224,7 @@ non-consuming observer cursor, so it never steals output from the model's
 | `/subagent [list|preview [count]|parent|peek]` | Subagent picker, Herdr preview, parent navigation, or peek toggle. Aliases: `/subagents`, `/subagents-preview`, `/parent`, `/peek`. |
 | `/image [paste|list|clear]` | Paste a clipboard image, list attached images, or clear them. Aliases: `/paste-image`, `/images`. |
 | `/job [list|output <id>|kill <id>]` | List jobs, open live output, or stop a job. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
+| `/skill [list|show <name>|run <name>]` | List user-invocable skills, show a skill's instructions, or invoke it as a prompt. |
 | `/cancel` | Cancel the running turn (same as pressing `Esc` twice). |
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
 | `/queue [text]` | Queue a message, or open the pending-message manager when no text is given. |
@@ -235,7 +236,9 @@ non-consuming observer cursor, so it never steals output from the model's
 
 The grouped commands complete their own subcommands: `/session resume` completes
 session titles/IDs, `/job output` and `/job kill` complete job IDs, and
-`/subagent preview` completes the count. Legacy hyphenated commands remain
+`/subagent preview` completes the count. `/skill show` and `/skill run`
+complete skill names; user-invocable skill names also appear as top-level `/`
+commands after the local and Host commands. Legacy hyphenated commands remain
 working for compatibility but are no longer listed in completion.
 
 ### Host commands

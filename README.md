@@ -57,6 +57,9 @@ only by the current user.
 - **Host command passthrough**: unknown slash commands such as `/compact` and
   `/goal` are executed by the Host command registry instead of being sent as
   model prompts.
+- **Skill catalog**: `/skill list|show|run` lists user-invocable skills,
+  inspects instructions, and invokes them; user skill names also complete in the
+  `/` menu and can be typed as `/name`.
 - **Visible pending queue**: local prompts keep a `queued` / `steering` marker
   until the Host claims them, pending inbox messages from other clients render
   above the composer, and `/queue` opens a manager for full view, edit,

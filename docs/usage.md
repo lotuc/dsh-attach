@@ -186,6 +186,7 @@ Completion also covers:
 - `/session resume` session titles and IDs;
 - `/job output` and `/job kill` job IDs;
 - `/subagent preview` the preview count;
+- `/skill show` and `/skill run` user-invocable skill names;
 - `/model` provider/model pairs and reasoning-effort variants;
 - `/permission` sandbox presets;
 - relative file paths from the current session's working directory.
@@ -204,6 +205,17 @@ as a normal prompt. Host commands do **not** become model prompts when they are
 executed.
 
 See [Keys and commands](keybindings.md) for the complete list.
+
+## Skills
+
+The Host's skill catalog is available without leaving the TUI. `/skill` or
+`/skill list` shows every skill the user may invoke; `/skill show <name>` opens
+its full instructions and provider/path metadata; `/skill run <name>` submits
+the canonical `/<name>` prompt so the Host injects the skill.
+
+User-invocable skill names also appear in the `/` completion list, after local
+and Host commands. Names shadowed by an existing local or Host command are
+omitted from that top-level list but remain available through `/skill run`.
 
 ## Approvals
 

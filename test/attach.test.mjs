@@ -113,6 +113,11 @@ function createFixture(home) {
     directChildren: null,
     goal: { id: 'g1', revision: 1, objective: 'Finish', phase: 'active', activation: 'disarmed', maxGoalRounds: 10 },
     shellRequests: [],
+    skills: [
+      { name: 'clojure-eval', description: 'Evaluate Clojure', invocation: { modelInvocable: true, userInvocable: true }, provider: 'filesystem', source: 'user', content: 'REPL instructions' },
+      { name: 'user-only', description: 'User only', invocation: { modelInvocable: false, userInvocable: true }, provider: 'filesystem', source: 'user', content: 'user only body' },
+      { name: 'model-only', description: 'Model only', invocation: { modelInvocable: true, userInvocable: false }, provider: 'filesystem', source: 'user', content: 'model only body' },
+    ],
   };
   const shell = {
     resolve(request) {
@@ -164,6 +169,11 @@ function createFixture(home) {
       }
       if (name === 'goals') return { get: () => state.goal };
       if (name === 'shell') return shell;
+      if (name === 'skills') return {
+        snapshot: async () => ({ skills: state.skills, complete: true }),
+        list: async () => state.skills,
+        get: async (skillName) => state.skills.find((skill) => skill.name === skillName),
+      };
       if (name === 'typertGateway') return { hasLiveClient: () => state.webLive };
       return undefined;
     },
@@ -369,6 +379,26 @@ test('injects Herdr facts into shell requests for the followed session', async (
     assert.equal(resolved.env.PATH, undefined, 'only HERDR_* names are accepted');
     assert.equal(resolved.env.BASE, '1');
     assert.equal(state.shellRequests.length, 1);
+  });
+});
+
+test('lists and loads user-invocable skills for the followed session', async () => {
+  await withHost(async ({ client }) => {
+    await client.request('session.open', { sessionId: 's1' });
+    const list = await client.request('skill.list');
+    assert.equal(list.supported, true);
+    assert.equal(list.complete, true);
+    assert.deepEqual(list.skills.map((skill) => skill.name), ['clojure-eval', 'user-only']);
+    assert.equal(list.skills.find((skill) => skill.name === 'clojure-eval').modelInvocable, true);
+
+    const loaded = await client.request('skill.get', { name: 'clojure-eval' });
+    assert.equal(loaded.supported, true);
+    assert.equal(loaded.skill.content, 'REPL instructions');
+    assert.equal(loaded.skill.provider, 'filesystem');
+
+    const hidden = await client.request('skill.get', { name: 'model-only' });
+    assert.equal(hidden.supported, true);
+    assert.equal(hidden.skill, null);
   });
 });
 

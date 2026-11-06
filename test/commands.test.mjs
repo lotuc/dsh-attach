@@ -8,6 +8,7 @@ import {
   mergeHostCommands,
   modelCompletions,
   resumeCompletions,
+  skillCommandItems,
 } from '../lib/client/command-catalog.js';
 
 function fakeClient() {
@@ -32,6 +33,14 @@ function fakeClient() {
           ],
         };
       }
+      if (method === 'skill.list') {
+        return {
+          skills: [
+            { name: 'clojure-eval', description: 'Evaluate Clojure code via nREPL' },
+            { name: 'office', description: 'Create and edit Office documents' },
+          ],
+        };
+      }
       if (method === 'model.catalog') {
         return {
           groups: [
@@ -46,7 +55,7 @@ function fakeClient() {
 
 test('local commands expose grouped navigation', () => {
   const items = localCommandItems(fakeClient());
-  for (const name of ['session', 'subagent', 'image', 'job']) {
+  for (const name of ['session', 'subagent', 'image', 'job', 'skill']) {
     assert.ok(items.some((item) => item.name === name), name);
   }
   assert.equal(items.some((item) => item.name === 'job-output'), false, 'legacy aliases stay out of completion');
@@ -59,9 +68,10 @@ test('local command items expose grouped, resume and model argument completion',
   const subagent = items.find((item) => item.name === 'subagent');
   const image = items.find((item) => item.name === 'image');
   const job = items.find((item) => item.name === 'job');
+  const skill = items.find((item) => item.name === 'skill');
   const model = items.find((item) => item.name === 'model');
   const permission = items.find((item) => item.name === 'permission');
-  for (const item of [session, subagent, image, job, model, permission]) {
+  for (const item of [session, subagent, image, job, skill, model, permission]) {
     assert.equal(typeof item.getArgumentCompletions, 'function');
   }
 
@@ -75,6 +85,10 @@ test('local command items expose grouped, resume and model argument completion',
     { value: 'resume session-a', label: 'resume Fix tests', description: '/work/a · session-' },
   ]);
   assert.deepEqual((await image.getArgumentCompletions('')).map((entry) => entry.value), ['paste', 'list', 'clear']);
+  assert.deepEqual((await skill.getArgumentCompletions('')).map((entry) => entry.value), ['list', 'show ', 'run ']);
+  assert.deepEqual(await skill.getArgumentCompletions('show clo'), [
+    { value: 'show clojure-eval', label: 'show clojure-eval', description: 'Evaluate Clojure code via nREPL' },
+  ]);
   assert.deepEqual((await subagent.getArgumentCompletions('preview ')).map((entry) => entry.value), [
     'preview 1',
     'preview 2',
@@ -107,6 +121,18 @@ test('host commands merge after local commands without shadowing local names', (
   assert.equal(merged.filter((item) => item.name === 'help').length, 1);
   assert.equal(merged.find((item) => item.name === 'compact').description, 'Compact context');
   assert.equal(merged.find((item) => item.name === 'plan').argumentHint, '<message>');
+});
+
+test('skill names become slash commands unless a command already owns the name', () => {
+  const items = skillCommandItems(
+    [
+      { name: 'clojure-eval', description: 'Evaluate Clojure' },
+      { name: 'skill', description: 'Collides with the local skill group' },
+      { name: 'bad name', description: 'invalid' },
+    ],
+    new Set(['skill']),
+  );
+  assert.deepEqual(items, [{ name: 'clojure-eval', description: 'Evaluate Clojure' }]);
 });
 
 test('the combined provider suggests slash commands and their arguments', async () => {

@@ -117,6 +117,7 @@ Server methods:
 | `session.selectModel` | Switch provider/model (and optional reasoning effort). |
 | `model.catalog` | Provider and model groups. |
 | `commands.list` / `commands.execute` | Discover and execute Host slash commands. |
+| `skill.list` / `skill.get` | User-invocable skill summaries and full instructions for `/skill` and `/name` completion. |
 | `goal.get` | Read the live goal view including process-local `activation` (`armed`/`disarmed`). |
 | `workspace.list` | Workspace tree snapshot, with a `cwd` fallback on the client. |
 | `subagent.summary` | Counts plus the active window (IDs, titles, and short catalog labels). Newer Hosts include labels; the client fills missing labels from `subagent.list`. |
@@ -239,6 +240,7 @@ Coverage includes:
 - session snapshot projection and shared path/approval/version helpers;
 - Host subagent traversal, row mapping, and catalog labels;
 - Herdr env intake and shell-request merging;
+- skill catalog routes, `/skill` grouping, and slash-name completion;
 - shared scroll-key decoding for the read-only panels;
 - shared left/right line fitting;
 - loaded-transcript search and history truncation markers;
