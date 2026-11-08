@@ -225,6 +225,7 @@ non-consuming observer cursor, so it never steals output from the model's
 | `/image [paste|list|clear]` | Paste a clipboard image, list attached images, or clear them. Aliases: `/paste-image`, `/images`. |
 | `/job [list|output <id>|kill <id>]` | List jobs, open live output, or stop a job. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
 | `/skill [list|show <name>|run <name>]` | List user-invocable skills, show a skill's instructions, or invoke it as a prompt. |
+| `/todo` | Show the current model todo list with pending / in-progress / completed state. Alias: `/todos`. |
 | `/cancel` | Cancel the running turn (same as pressing `Esc` twice). |
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
 | `/queue [text]` | Queue a message, or open the pending-message manager when no text is given. |

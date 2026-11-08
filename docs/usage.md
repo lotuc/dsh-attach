@@ -206,6 +206,13 @@ executed.
 
 See [Keys and commands](keybindings.md) for the complete list.
 
+## Todos
+
+The model's `todo_write` plan is visible in the activity line as a completed
+count and the current item. `/todo` (or `/todos`) opens the full list with
+`○` pending, `◐` in-progress, and `✓` completed markers; the panel refreshes
+when the model writes a new list.
+
 ## Skills
 
 The Host's skill catalog is available without leaving the TUI. `/skill` or

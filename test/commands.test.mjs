@@ -55,7 +55,7 @@ function fakeClient() {
 
 test('local commands expose grouped navigation', () => {
   const items = localCommandItems(fakeClient());
-  for (const name of ['session', 'subagent', 'image', 'job', 'skill']) {
+  for (const name of ['session', 'subagent', 'image', 'job', 'skill', 'todo']) {
     assert.ok(items.some((item) => item.name === name), name);
   }
   assert.equal(items.some((item) => item.name === 'job-output'), false, 'legacy aliases stay out of completion');

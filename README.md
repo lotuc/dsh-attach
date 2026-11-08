@@ -57,6 +57,9 @@ only by the current user.
 - **Host command passthrough**: unknown slash commands such as `/compact` and
   `/goal` are executed by the Host command registry instead of being sent as
   model prompts.
+- **Todo list**: `/todo` shows the model's current plan with pending,
+  in-progress, and completed markers; the activity line carries the active
+  count.
 - **Skill catalog**: `/skill list|show|run` lists user-invocable skills,
   inspects instructions, and invokes them; user skill names also complete in the
   `/` menu and can be typed as `/name`.
