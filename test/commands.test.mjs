@@ -7,7 +7,9 @@ import {
   localCommandItems,
   mergeHostCommands,
   modelCompletions,
+  presetCompletions,
   resumeCompletions,
+  sessionTargetCompletions,
   skillCommandItems,
 } from '../lib/client/command-catalog.js';
 
@@ -22,6 +24,20 @@ function fakeClient() {
           items: [
             { sessionId: 'session-a', title: 'Fix tests', cwd: '/work/a', blank: false, origin: undefined },
             { sessionId: 'session-b', title: 'Blank', cwd: '/work/b', blank: true, origin: undefined },
+            { sessionId: 'session-archived', title: 'Old work', cwd: '/work/c', blank: false, origin: undefined },
+          ],
+        };
+      }
+      if (method === 'workspace.list') {
+        return { items: [], archivedSessionIds: ['session-archived'], pinnedSessionIds: ['session-a'] };
+      }
+      if (method === 'session.presets') {
+        return {
+          supported: true,
+          defaultId: 'standard',
+          presets: [
+            { id: 'standard', name: 'Standard mode', description: 'General work', isDefault: true },
+            { id: 'minimal', name: 'Minimal mode', description: 'Minimal', isDefault: false, broken: 'missing service' },
           ],
         };
       }
@@ -55,7 +71,7 @@ function fakeClient() {
 
 test('local commands expose grouped navigation', () => {
   const items = localCommandItems(fakeClient());
-  for (const name of ['session', 'subagent', 'image', 'job', 'skill', 'todo']) {
+  for (const name of ['session', 'subagent', 'image', 'job', 'skill', 'todo', 'history', 'goal', 'plan']) {
     assert.ok(items.some((item) => item.name === name), name);
   }
   assert.equal(items.some((item) => item.name === 'job-output'), false, 'legacy aliases stay out of completion');
@@ -69,9 +85,11 @@ test('local command items expose grouped, resume and model argument completion',
   const image = items.find((item) => item.name === 'image');
   const job = items.find((item) => item.name === 'job');
   const skill = items.find((item) => item.name === 'skill');
+  const goal = items.find((item) => item.name === 'goal');
+  const plan = items.find((item) => item.name === 'plan');
   const model = items.find((item) => item.name === 'model');
   const permission = items.find((item) => item.name === 'permission');
-  for (const item of [session, subagent, image, job, skill, model, permission]) {
+  for (const item of [session, subagent, image, job, skill, goal, plan, model, permission]) {
     assert.equal(typeof item.getArgumentCompletions, 'function');
   }
 
@@ -80,14 +98,49 @@ test('local command items expose grouped, resume and model argument completion',
     'new ',
     'resume ',
     'rename ',
+    'fork ',
+    'archive ',
+    'unarchive ',
+    'pin ',
+    'unpin ',
+    'presets',
+    'preset ',
   ]);
   assert.deepEqual(await session.getArgumentCompletions('resume fix'), [
     { value: 'resume session-a', label: 'resume Fix tests', description: '/work/a · session-' },
+  ]);
+  assert.deepEqual(await session.getArgumentCompletions('fork fix'), [
+    { value: 'fork session-a', label: 'fork Fix tests', description: '/work/a · session-' },
+  ]);
+  assert.deepEqual((await session.getArgumentCompletions('archive ')).map((entry) => entry.value), [
+    'archive session-a',
+  ]);
+  assert.deepEqual((await session.getArgumentCompletions('unarchive ')).map((entry) => entry.value), [
+    'unarchive session-a',
+    'unarchive session-archived',
+  ]);
+  assert.deepEqual((await session.getArgumentCompletions('preset ')).map((entry) => entry.value), [
+    'preset standard',
+    'preset minimal',
+  ]);
+  assert.deepEqual((await session.getArgumentCompletions('new --preset ')).map((entry) => entry.value), [
+    'new --preset standard',
+    'new --preset minimal',
   ]);
   assert.deepEqual((await image.getArgumentCompletions('')).map((entry) => entry.value), ['paste', 'list', 'clear']);
   assert.deepEqual((await skill.getArgumentCompletions('')).map((entry) => entry.value), ['list', 'show ', 'run ']);
   assert.deepEqual(await skill.getArgumentCompletions('show clo'), [
     { value: 'show clojure-eval', label: 'show clojure-eval', description: 'Evaluate Clojure code via nREPL' },
+  ]);
+  assert.deepEqual((await subagent.getArgumentCompletions('')).map((entry) => entry.value), [
+    'list',
+    'continue ',
+    'interrupt ',
+    'stop ',
+    'cancel ',
+    'preview ',
+    'parent',
+    'peek',
   ]);
   assert.deepEqual((await subagent.getArgumentCompletions('preview ')).map((entry) => entry.value), [
     'preview 1',
@@ -109,6 +162,54 @@ test('local command items expose grouped, resume and model argument completion',
     'auto',
   ]);
   assert.deepEqual((await permission.getArgumentCompletions('w')).map((entry) => entry.value), ['workspace-write']);
+  assert.deepEqual((await goal.getArgumentCompletions('')).map((entry) => entry.value), [
+    'status',
+    'create ',
+    'edit ',
+    'pause',
+    'resume',
+    'complete',
+    'clear',
+  ]);
+  assert.deepEqual((await goal.getArgumentCompletions('c')).map((entry) => entry.value), [
+    'create ',
+    'complete',
+    'clear',
+  ]);
+  assert.deepEqual((await plan.getArgumentCompletions('')).map((entry) => entry.value), [
+    'status',
+    'enter ',
+    'exit',
+    'approve',
+  ]);
+  assert.deepEqual((await plan.getArgumentCompletions('e')).map((entry) => entry.value), ['enter ', 'exit']);
+});
+
+test('preset and archived-session completions come from Host routes', async () => {
+  const client = fakeClient();
+  assert.deepEqual((await presetCompletions(client, 'sta')).map((entry) => entry.value), ['preset standard']);
+  assert.deepEqual(
+    (await presetCompletions(client, '', { subcommand: 'new --preset' })).map((entry) => entry.value),
+    ['new --preset standard', 'new --preset minimal'],
+  );
+  assert.deepEqual(
+    (await sessionTargetCompletions(client, '', { archived: 'only' })).map((entry) => entry.value),
+    ['session-archived'],
+  );
+  assert.deepEqual(
+    (await sessionTargetCompletions(client, '', { archived: 'exclude' })).map((entry) => entry.value),
+    ['session-a'],
+  );
+  assert.deepEqual(
+    (await sessionTargetCompletions(client, '', { archived: 'all' })).map((entry) => entry.value),
+    ['session-a', 'session-archived'],
+  );
+  assert.deepEqual(
+    await presetCompletions({ request: async () => { throw new Error('offline'); } }, ''),
+    [],
+  );
+  const unsupported = { request: async () => ({ supported: false, presets: [] }) };
+  assert.deepEqual(await presetCompletions(unsupported, ''), []);
 });
 
 test('host commands merge after local commands without shadowing local names', () => {
@@ -120,7 +221,7 @@ test('host commands merge after local commands without shadowing local names', (
   ]);
   assert.equal(merged.filter((item) => item.name === 'help').length, 1);
   assert.equal(merged.find((item) => item.name === 'compact').description, 'Compact context');
-  assert.equal(merged.find((item) => item.name === 'plan').argumentHint, '<message>');
+  assert.equal(merged.find((item) => item.name === 'plan').argumentHint, '[status|enter [message]|exit]');
 });
 
 test('skill names become slash commands unless a command already owns the name', () => {

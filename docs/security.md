@@ -8,7 +8,8 @@ of the Host. Its security boundary is the operating-system user account.
 
 The terminal client runs as the **same user** as the Host process. Once
 connected, it can list sessions, open them, send prompts, cancel turns, switch
-models, and answer approvals or questions with the same authority as that user.
+models, control subagents, and answer approvals or questions with the same
+authority as that user.
 
 **Anyone who can connect to the socket can operate the Harness.** Protect the
 account, the `$DSH_HOME` directory, and the endpoint descriptor accordingly. Do
@@ -78,6 +79,9 @@ As a result:
   an answer from the Web GUI;
 - when several clients hold the same request, the first answer wins, and the
   other panels close;
+- subagent follow-ups and stops use the Host's own `ctx.subagents` authority:
+  a follow-up requires the exact live direct parent, and a stop is addressed by
+  the durable parent; neither route grants access to an unrelated session;
 - the terminal does not gain permissions the user does not already have.
 
 Approval and question routing is configurable. The default `tui` mode prefers

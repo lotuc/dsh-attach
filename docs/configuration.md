@@ -34,7 +34,7 @@ at process start and advertises the active modes in its handshake.
 | `activeWindowMinutes` | number | `10` | Activity window used by `auto` routing. |
 | `approvalGraceSeconds` | number | `120` | Time before an unanswered approval is delegated; `0` waits forever. |
 | `questionGraceSeconds` | number | `300` | Time before an unanswered question batch is delegated; `0` waits forever. |
-| `historyMessages` | number | `300` | Maximum messages in one follow snapshot, clamped to `1..5000`. Increase it to see more history on attach; it is not incremental pagination. |
+| `historyMessages` | number | `300` | Maximum messages in one follow snapshot and in one older-history page, clamped to `1..5000`. Larger values load more at attach and per `Ctrl+R`/`/history` page; paging does not require raising it. |
 | `hotReload` | boolean | `false` | Development only: watch `lib/host/server.js` and restart the bridge in-process when it changes. Requires a restart once to enable. |
 
 The socket directory is created with mode `0700`; the socket and descriptor

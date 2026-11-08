@@ -9,11 +9,12 @@ falling back to a normal prompt.
 | Key | Action |
 |---|---|
 | `Ctrl+C` | Quit immediately when idle with no panel open. While a turn is running or a panel is open, press twice within two seconds. Running Host work is not stopped; `/quit` always exits immediately. |
-| `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. |
+| `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. In a subagent history view this opens the stop confirmation for that subagent. |
 | `Ctrl+T` | Expand or collapse reasoning blocks. Collapsed previews follow the latest reasoning line. |
 | `Ctrl+O` | Expand or collapse individual tool arguments and output. |
 | `Ctrl+G` | Expand all step groups; by default running groups expand automatically. |
 | `Ctrl+L` | Return to the newest message and resume auto-follow. |
+| `Ctrl+R` | Load one older page of session history; the reader's scroll position stays anchored. |
 | `PgUp` | Scroll the transcript up one page. |
 | `Shift+PgUp`, `Alt+V`, `Ctrl+Alt+B` | Alternative scroll-up bindings. |
 | `PgDn` | Scroll the transcript down one page. |
@@ -71,11 +72,15 @@ browsing; returning past the newest entry restores the draft.
 
 For commands with arguments, complete the command first with `Tab`, then type
 the argument. `/session resume` completes session titles and IDs; `/job output`
-and `/job kill` complete job IDs; `/subagent preview` completes the count;
-`/model` completes `provider/model` pairs; Host commands with bracket
-alternatives expose their subcommands, for example `/goal` offers `clear`, `edit`, `pause`, and `resume`,
-`/plan` offers `off` and `message`, and `/permission` offers `read-only`,
-`workspace-write`, `danger-full-access`, and `auto`. Relative paths such as `./src/` and
+and `/job kill` complete job IDs; `/subagent` completes `list`, `continue`,
+`interrupt`, `stop`, `cancel`, `preview`, `parent`, and `peek`, and
+`/subagent preview` completes the count;
+`/model` completes `provider/model` pairs; `/goal` offers `status`, `create`,
+`edit`, `pause`, `resume`, `complete`, and `clear`; `/plan` offers `status`,
+`enter`, `exit`, and `approve` (which points at the review panel); and
+`/permission` offers `read-only`, `workspace-write`, `danger-full-access`, and
+`auto`. Host commands with bracket alternatives also expose their subcommands.
+Relative paths such as `./src/` and
 `../` complete from the current session's working directory. `@` file indexing
 is not implemented.
 
@@ -88,6 +93,9 @@ not change the editor height or move the input line.
 |---|---|
 | `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move the selection. |
 | `n` (session picker, navigation mode) | Create a new session. |
+| `f` (session picker, navigation mode) | Fork the selected session and open the child. |
+| `a` (session picker, navigation mode) | Archive the selected session, or unarchive an archived row. |
+| `p` (session picker, navigation mode) | Pin or unpin the selected session. |
 | `Ctrl+A` (session picker, navigation mode) | Show or hide archived sessions. |
 | `/` or any printable character | Enter incremental search. |
 | Printable characters in search | Refine the filter across titles and workspace metadata. |
@@ -107,6 +115,29 @@ ASCII letter is matched at word starts to keep one-character queries useful.
 
 Press `n` in navigation mode to create a session. `Enter` opens the highlighted
 session. Once search mode is active, `n` is an ordinary search character.
+
+## Subagent picker
+
+`/subagent list` opens the lineage under the current session. `Enter` opens the
+selected child's read-only history. Control keys act on the selected row only
+when the Host reports them as available; the picker footer shows `c continue`
+and `x stop` when at least one row supports them.
+
+| Key | Action |
+|---|---|
+| `Up`, `Down`, `Ctrl+P`, `Ctrl+N` | Move the selection. |
+| `Enter` | Open the selected subagent history. |
+| `c` | Open the follow-up editor for a continuable child with a live parent. |
+| `x` | Ask to stop the selected running subagent. |
+| `y` (confirmation) | Confirm the stop request. |
+| `n`, `Enter`, `Esc` (confirmation) | Cancel the stop request. |
+| `/` or any printable character | Enter incremental search; `c` and `x` are ordinary search characters there. |
+| `Esc` | Close the picker. |
+
+The picker marks a continuable child whose direct parent is not live with
+`parent offline`; `c` then reports that the parent session must be opened first.
+One-shot children never offer continuation. The confirmation text explains that
+a one-shot or external execution stops permanently.
 
 ## Approvals
 
@@ -219,34 +250,40 @@ non-consuming observer cursor, so it never steals output from the model's
 | Command | Description |
 |---|---|
 | `/help` | Show the built-in help. |
-| `/session [list|new [cwd]|resume [id]|rename <title>]` | Session picker, creation, resume, or rename. Aliases: `/sessions`, `/new`, `/resume`, `/rename`. |
+| `/session [list|new [cwd] [--preset <id>]|resume [id]|rename <title>|fork [id]|archive [id] [--stop]|unarchive <id>|pin [id]|unpin [id]|presets|preset [id]|delete [id]]` | Session picker, creation (with an optional Agent preset), resume, rename, fork, archive/unarchive, pin/unpin, preset roster/selection, or an explicit "deletion is unavailable" notice. Aliases: `/sessions`, `/new`, `/resume`, `/rename`. |
 | `/reconnect` | Force a fresh Host connection and reopen the current session. |
-| `/subagent [list|preview [count]|parent|peek]` | Subagent picker, Herdr preview, parent navigation, or peek toggle. Aliases: `/subagents`, `/subagents-preview`, `/parent`, `/peek`. |
+| `/subagent [list|continue [id] [text]|interrupt [id]|stop [id]|cancel [id]|preview [count]|parent|peek]` | Subagent picker, follow-up delivery, confirmed stop, Herdr preview, parent navigation, or peek toggle. Aliases: `/subagents`, `/subagents-preview`, `/parent`, `/peek`. |
 | `/image [paste|list|clear]` | Paste a clipboard image, list attached images, or clear them. Aliases: `/paste-image`, `/images`. |
 | `/job [list|output <id>|kill <id>]` | List jobs, open live output, or stop a job. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
 | `/skill [list|show <name>|run <name>]` | List user-invocable skills, show a skill's instructions, or invoke it as a prompt. |
 | `/todo` | Show the current model todo list with pending / in-progress / completed state. Alias: `/todos`. |
-| `/cancel` | Cancel the running turn (same as pressing `Esc` twice). |
+| `/goal [status|create <objective>|edit [objective]|pause|resume|complete|clear]` | Show or change the session goal. `complete` and `clear` require an explicit `y` confirmation. |
+| `/plan [status|enter [message]|exit|approve]` | Enter, leave or inspect plan mode. `approve` answers an open plan-review question; otherwise use the plan-review question panel. |
+| `/cancel` | Cancel the running turn (same as pressing `Esc` twice). In a subagent history view, ask before interrupting that subagent. |
 | `/steer <text>` | Interrupt the turn and insert a steering message. |
 | `/queue [text]` | Queue a message, or open the pending-message manager when no text is given. |
 | `/find [text]` | Jump to the first loaded transcript match, or open an incremental transcript search when no text is given. |
+| `/history` | Load the next older page of session history. Alias: `/earlier`. |
 | `/model [provider model]` | Open the model picker, or switch directly. |
 | `/permission [mode]` | Open the sandbox-preset picker, or apply `read-only`, `workspace-write`, `danger-full-access`, or `auto` directly. |
 | `/status` | Show session, model, preset, sandbox, context, token, queued-message count, todo, goal, host, theme, and socket details. |
 | `/quit`, `/exit` | Exit the client without stopping Host work. |
 
-The grouped commands complete their own subcommands: `/session resume` completes
-session titles/IDs, `/job output` and `/job kill` complete job IDs, and
-`/subagent preview` completes the count. `/skill show` and `/skill run`
-complete skill names; user-invocable skill names also appear as top-level `/`
-commands after the local and Host commands. Legacy hyphenated commands remain
-working for compatibility but are no longer listed in completion.
+The grouped commands complete their own subcommands: `/session resume`,
+`/session fork`, `/session archive`, `/session unarchive`, `/session pin`, and
+`/session unpin` complete session titles/IDs; `/session preset` and
+`/session new --preset` complete Host Agent-preset ids; `/job output` and
+`/job kill` complete job IDs; and `/subagent preview` completes the count.
+`/skill show` and `/skill run` complete skill names; user-invocable skill names
+also appear as top-level `/` commands after the local and Host commands. Legacy
+hyphenated commands remain working for compatibility but are no longer listed in
+completion.
 
 ### Host commands
 
 Commands registered by the Host through `ctx.commands` are merged into the
-command list after the local commands. Examples include `/compact` and `/goal`.
-They execute inside the Host and do not become model prompts. If the Host does
+command list after the local commands. An example is `/compact`. They execute
+inside the Host and do not become model prompts. If the Host does
 not recognize a command, or predates the command routes, the line is sent to
 the model as a normal prompt.
 

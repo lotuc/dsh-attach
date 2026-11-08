@@ -73,3 +73,44 @@ test('builds picker rows from the lightweight catalog route', () => {
   assert.match(picker.items[1].description, /nested/);
   assert.equal(picker.items[2].parentSessionId, 'root');
 });
+
+test('marks continue and stop availability from the Host catalog', () => {
+  const picker = buildSubagentPickerFromRows({
+    rows: [
+      { id: 'running', parentId: 'root', depth: 1, mode: 'continuable', activity: 'running', label: 'Reviewer', parentActive: true },
+      { id: 'one-shot', parentId: 'root', depth: 1, mode: 'one-shot', activity: 'running', label: 'One shot', parentActive: true },
+      { id: 'orphan', parentId: 'gone', depth: 1, mode: 'continuable', activity: 'inactive', label: 'Orphan', parentActive: false },
+    ],
+    currentSessionId: 'root',
+    control: { continue: true, interrupt: true },
+  });
+  const byId = new Map(picker.items.map((item) => [item.value, item]));
+  assert.equal(byId.get('running').canContinue, true);
+  assert.equal(byId.get('running').canInterrupt, true);
+  assert.match(byId.get('running').description, /c continue · x stop/);
+  assert.equal(byId.get('one-shot').canContinue, false);
+  assert.equal(byId.get('one-shot').canInterrupt, true);
+  assert.equal(byId.get('orphan').canContinue, false);
+  assert.equal(byId.get('orphan').canInterrupt, false);
+  assert.match(byId.get('orphan').description, /parent offline/);
+  assert.equal(byId.get('orphan').plainLabel, 'Orphan');
+});
+
+test('host-provided control flags win over derived availability', () => {
+  const picker = buildSubagentPickerFromRows({
+    rows: [{
+      id: 'child',
+      parentId: 'root',
+      depth: 1,
+      mode: 'continuable',
+      activity: 'running',
+      parentActive: true,
+      canContinue: false,
+      canInterrupt: false,
+    }],
+    currentSessionId: 'root',
+    control: { continue: true, interrupt: true },
+  });
+  assert.equal(picker.items[0].canContinue, false);
+  assert.equal(picker.items[0].canInterrupt, false);
+});

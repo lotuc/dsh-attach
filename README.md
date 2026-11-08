@@ -22,8 +22,17 @@ only by the current user.
 
 ## Features
 
-- **Same Host, same state**: list, resume, and create sessions; read persisted
-  history; subscribe to live tokens, reasoning, and tool calls.
+- **Same Host, same state**: list, resume, create, fork, archive, and pin
+  sessions; read persisted history; subscribe to live tokens, reasoning, and
+  tool calls.
+- **Session lifecycle**: `/session fork`, `archive`, `unarchive`, `pin`, and
+  `unpin` call the same Host services as the Web UI, and the session picker
+  offers `f`/`a`/`p` actions on the selected row. Archive respects the Host's
+  running-work refusal and accepts `--stop`; DSH has no Session deletion, so
+  `/session delete` reports that limitation instead of inventing one.
+- **Agent presets**: when the Host mounts the preset registry, `/session
+  presets` discloses the roster (including activation failures) and `/session
+  preset` or `/session new --preset <id>` selects the preset for new sessions.
 - **Live conversation view**: streaming Markdown, code blocks, collapsible
   reasoning and tool output, turn/step state, and a token/context/permission
   status line.
@@ -38,12 +47,19 @@ only by the current user.
 - **Transcript search**: `/find [text]` jumps to a loaded match or opens an
   incremental picker; the activity line marks Host-side history limits and
   locally trimmed rows.
-- **Subagent visibility**: parent sessions show agent counts, `/subagent list` shows the lineage, and
-  subagent history opens read-only. `/subagent parent` goes back.
+- **Older-history paging**: `Ctrl+R` or `/history` reads the next older page
+  from DSH's durable Session log, anchored to the reader's scroll position. The
+  loaded transcript grows at the top without disturbing live follow; reconnect
+  starts again from a fresh snapshot.
+- **Subagent visibility and control**: parent sessions show agent counts,
+  `/subagent list` shows the lineage, and subagent history opens read-only.
+  `/subagent continue` delivers a follow-up to a continuable child;
+  `/subagent interrupt|stop|cancel` stops a running child after confirmation.
+  `/subagent parent` goes back.
 - **Command completion**: local commands and Host-registered commands appear
-  from `/`; grouped commands such as `/session resume` and `/job output`
-  complete their arguments, as does `/model`; relative file paths complete from
-  the session working directory.
+  from `/`; grouped commands such as `/session resume`, `/session fork`,
+  `/session preset`, and `/job output` complete their arguments, as does
+  `/model`; relative file paths complete from the session working directory.
 - **Floating completion panel**: completions render above the composer without
   changing its height or pushing the input around.
 - **Emacs-style editing**: `Ctrl+N/P` move through the editor, completions,
@@ -54,9 +70,12 @@ only by the current user.
   scrollable read-only view, and `Esc` detaches this terminal without answering.
   `ask_user_question` supports single select, multi select, custom text, and plan
   approval.
-- **Host command passthrough**: unknown slash commands such as `/compact` and
-  `/goal` are executed by the Host command registry instead of being sent as
-  model prompts.
+- **Goals and plan mode**: `/goal` shows phase, rounds, activation, and blocked
+  reason, with create/edit/pause/resume/complete/clear actions; `/plan` enters,
+  leaves, or inspects plan mode. Destructive goal actions require an explicit
+  `y` confirmation, and plan approval stays in the plan-review question panel.
+- **Host command passthrough**: unknown slash commands such as `/compact` are
+  executed by the Host command registry instead of being sent as model prompts.
 - **Todo list**: `/todo` shows the model's current plan with pending,
   in-progress, and completed markers; the activity line carries the active
   count.
@@ -68,7 +87,8 @@ only by the current user.
   above the composer, and `/queue` opens a manager for full view, edit,
   steer-now, and removal.
 - **Interrupt**: press `Esc` twice within 750 ms, or run `/cancel`, to stop the
-  running turn without quitting the client.
+  running turn without quitting the client. In a subagent history view this
+  opens a confirmation before interrupting that child.
 - **Automatic reconnect**: after a Host or desktop-app restart, the client
   retries with backoff and reopens the current session; `/reconnect` forces a
   fresh attempt.
@@ -163,12 +183,14 @@ Read [Security](docs/security.md) for the full model.
   continues a durably interrupted last turn once; pending approvals/questions
   from the old Host process may be lost. Set `DSH_ATTACH_AUTO_RESUME=0` to
   disable automatic continuation.
-- No trajectory timeline, session fork, or diff preview. Subagent browsing is
-  read-only, and subagents cannot be dispatched, continued, or interrupted from
-  the TUI.
+- No trajectory timeline, session fork, or diff preview. Subagent history is
+  read-only; control covers text follow-up messages and interrupting the current
+  turn. The TUI cannot dispatch a new subagent, release a child activation, or
+  route a subagent approval/question to the parent terminal.
 - Windows is untested; the transport assumes Unix-domain sockets.
 - The client loads the most recent 300 messages by default (configurable with
-  the Host's `historyMessages`) and does not page further back yet.
+  the Host's `historyMessages`); `Ctrl+R`/`/history` pages further back through
+  the durable Session log.
 
 ## License
 

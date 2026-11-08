@@ -67,6 +67,11 @@ function createFixture(home) {
       calls.push(['prompt', request]);
       return { accepted: true };
     },
+    async events(request) {
+      calls.push(['events', request]);
+      if (typeof state.historyPage === 'function') return state.historyPage(request);
+      return { cursor: request.beforeSeq - 1, records: [], hasMore: false };
+    },
     cancel(request) {
       calls.push(['cancel', request]);
       return { accepted: true };
@@ -82,6 +87,10 @@ function createFixture(home) {
     async rename(request) {
       calls.push(['rename', request]);
       return { title: request.title };
+    },
+    async fork(request) {
+      calls.push(['fork', request]);
+      return { sessionId: 'fork-1' };
     },
     async modelCatalog() {
       return { default: { provider: 'p', model: 'm' }, routableProviders: ['p'], groups: [{ id: 'p', name: 'P', models: [{ id: 'm', name: 'M' }] }], failures: [] };
@@ -110,8 +119,16 @@ function createFixture(home) {
     webLive: false,
     subagentListCalls: 0,
     subagentChildrenCalls: 0,
+    subagentPromptCalls: [],
+    subagentPromptError: null,
+    subagentSendCalls: [],
+    subagentInterruptCalls: [],
     directChildren: null,
+    historyPage: null,
+    subagentRows: null,
+    liveAgents: new Set(),
     goal: { id: 'g1', revision: 1, objective: 'Finish', phase: 'active', activation: 'disarmed', maxGoalRounds: 10 },
+    goalCompleteCalls: [],
     shellRequests: [],
     skills: [
       { name: 'clojure-eval', description: 'Evaluate Clojure', invocation: { modelInvocable: true, userInvocable: true }, provider: 'filesystem', source: 'user', content: 'REPL instructions' },
@@ -119,55 +136,110 @@ function createFixture(home) {
       { name: 'model-only', description: 'Model only', invocation: { modelInvocable: true, userInvocable: false }, provider: 'filesystem', source: 'user', content: 'model only body' },
     ],
   };
+  const goals = {
+    get: () => state.goal,
+    complete(agent, ref) {
+      state.goalCompleteCalls.push({ agent, ref });
+      const goal = { ...state.goal, revision: ref.revision + 1, phase: 'complete', activation: 'disarmed' };
+      state.goal = goal;
+      return goal;
+    },
+  };
   const shell = {
     resolve(request) {
       state.shellRequests.push(request);
       return request;
     },
   };
+  const workspaceCalls = [];
+  const presetRows = [
+    { id: 'standard', name: 'Standard mode', description: 'General work', isDefault: true },
+    { id: 'minimal', description: 'Minimal mode', isDefault: false },
+    { id: 'broken', name: 'Broken', isDefault: false, broken: 'missing service' },
+  ];
+  const workspaceController = {
+    async *follow() {
+      yield {
+        type: 'baseline',
+        value: {
+          items: [{ workspaceId: 'w1', title: 'Work', path: '/work', sessionIds: ['s1'] }],
+          archivedSessionIds: [],
+          pinnedSessionIds: [],
+        },
+      };
+    },
+    async archiveSession(request) {
+      workspaceCalls.push(['archiveSession', request]);
+      return { archivedSessionIds: [request.sessionId] };
+    },
+    async unarchiveSession(request) {
+      workspaceCalls.push(['unarchiveSession', request]);
+      return { archivedSessionIds: [] };
+    },
+    async pinSession(request) {
+      workspaceCalls.push(['pinSession', request]);
+      return { pinnedSessionIds: [request.sessionId] };
+    },
+    async unpinSession(request) {
+      workspaceCalls.push(['unpinSession', request]);
+      return { pinnedSessionIds: [] };
+    },
+  };
+  const agentPresets = {
+    get defaultId() {
+      return 'standard';
+    },
+    async remoteExportList() {
+      return { presets: presetRows };
+    },
+  };
+  const subagentRuntime = {
+    async listChildren() {
+      state.subagentChildrenCalls += 1;
+      return state.directChildren ?? [{ id: 'child-1', mode: 'continuable', label: 'Reviewer', createdAt: 1 }];
+    },
+    async listDescendants() {
+      state.subagentListCalls += 1;
+      return state.subagentRows ?? [
+        {
+          kind: 'child',
+          id: 'child-1',
+          parentId: 's1',
+          depth: 1,
+          mode: 'continuable',
+          activity: 'running',
+          label: 'Reviewer',
+        },
+      ];
+    },
+    async prompt(request) {
+      state.subagentPromptCalls.push(request);
+      if (state.subagentPromptError !== null) throw state.subagentPromptError;
+      return { messageId: 'message-1' };
+    },
+    sendMessage(sender, targetId, content) {
+      state.subagentSendCalls.push({ sender, targetId, content });
+      return 'message-legacy';
+    },
+    interruptByParent(childId, parentId, mode) {
+      state.subagentInterruptCalls.push({ childId, parentId, mode });
+      return { accepted: true };
+    },
+  };
   const ctx = {
     sessionController: controller,
     logger: { debug() {}, warn() {} },
     get(name) {
-      if (name === 'agents') return { get: (id) => (id === 's1' ? agent : undefined) };
+      if (name === 'agents') {
+        return {
+          get: (id) => (id === 's1' ? agent : (state.liveAgents.has(id) ? { id, session: { id } } : undefined)),
+        };
+      }
       if (name === 'commands') return commands;
-      if (name === 'subagents') {
-        return {
-          async listChildren() {
-            state.subagentChildrenCalls += 1;
-            return state.directChildren ?? [{ id: 'child-1', mode: 'continuable', label: 'Reviewer', createdAt: 1 }];
-          },
-          async listDescendants() {
-            state.subagentListCalls += 1;
-            return [
-              {
-                kind: 'child',
-                id: 'child-1',
-                parentId: 's1',
-                depth: 1,
-                mode: 'continuable',
-                activity: 'running',
-                label: 'Reviewer',
-              },
-            ];
-          },
-        };
-      }
-      if (name === 'workspaceController') {
-        return {
-          async *follow() {
-            yield {
-              type: 'baseline',
-              value: {
-                items: [{ workspaceId: 'w1', title: 'Work', path: '/work', sessionIds: ['s1'] }],
-                archivedSessionIds: [],
-                pinnedSessionIds: [],
-              },
-            };
-          },
-        };
-      }
-      if (name === 'goals') return { get: () => state.goal };
+      if (name === 'subagents') return subagentRuntime;
+      if (name === 'workspaceController') return workspaceController;
+      if (name === 'agentPresets') return agentPresets;
+      if (name === 'goals') return goals;
       if (name === 'shell') return shell;
       if (name === 'skills') return {
         snapshot: async () => ({ skills: state.skills, complete: true }),
@@ -183,11 +255,10 @@ function createFixture(home) {
     },
   };
 
-  return { ctx, listeners, calls, push, agent, commands, executions, state };
+  return { ctx, listeners, calls, push, agent, commands, executions, state, workspaceCalls, presetRows, workspaceController, agentPresets };
 }
 
-async function makeServer(home, overrides = {}) {
-  const fixture = createFixture(home);
+async function makeServerWithFixture(home, fixture, overrides = {}) {
   const server = new AttachServer(fixture.ctx, {
     enabled: true,
     socketPath: '',
@@ -201,6 +272,10 @@ async function makeServer(home, overrides = {}) {
   await server.start();
   const descriptor = JSON.parse(await readFile(join(home, 'tui-attach', 'endpoint.json'), 'utf8'));
   return { ...fixture, server, descriptor };
+}
+
+async function makeServer(home, overrides = {}) {
+  return makeServerWithFixture(home, createFixture(home), overrides);
 }
 
 async function withHost(fn) {
@@ -284,6 +359,88 @@ test('lists, opens, streams and prompts a session', async () => {
   });
 });
 
+test('forks, archives and pins sessions through optional Host services', async () => {
+  await withHost(async ({ client, calls, workspaceCalls }) => {
+    const described = await client.request('host.describe');
+    for (const capability of ['session.fork', 'session.archive', 'session.pin', 'session.presets']) {
+      assert.ok(described.host.capabilities.includes(capability), capability);
+    }
+
+    const created = await client.request('session.create', { cwd: '/tmp/work', agentPreset: 'minimal' });
+    assert.deepEqual(created, { sessionId: 's2' });
+    assert.deepEqual(calls.find((call) => call[0] === 'create')[1], { cwd: '/tmp/work', agentPreset: 'minimal' });
+
+    const forked = await client.request('session.fork', { sessionId: 's1', atSeq: 4 });
+    assert.deepEqual(forked, { sessionId: 'fork-1' });
+    assert.deepEqual(calls.find((call) => call[0] === 'fork')[1], { sessionId: 's1', atSeq: 4 });
+
+    const archived = await client.request('session.archive', { sessionId: 's1', stopActivity: true });
+    assert.deepEqual(archived, { archivedSessionIds: ['s1'] });
+    assert.deepEqual(workspaceCalls.find((call) => call[0] === 'archiveSession')[1], {
+      sessionId: 's1',
+      stopActivity: true,
+    });
+
+    assert.deepEqual(await client.request('session.unarchive', { sessionId: 's1' }), { archivedSessionIds: [] });
+    assert.deepEqual(await client.request('session.pin', { sessionId: 's1' }), { pinnedSessionIds: ['s1'] });
+    assert.deepEqual(await client.request('session.unpin', { sessionId: 's1' }), { pinnedSessionIds: [] });
+    assert.deepEqual(workspaceCalls.map((call) => call[0]), [
+      'archiveSession',
+      'unarchiveSession',
+      'pinSession',
+      'unpinSession',
+    ]);
+
+    const presets = await client.request('session.presets');
+    assert.equal(presets.supported, true);
+    assert.equal(presets.defaultId, 'standard');
+    assert.deepEqual(presets.presets, [
+      { id: 'standard', name: 'Standard mode', description: 'General work', isDefault: true },
+      { id: 'minimal', name: null, description: 'Minimal mode', isDefault: false },
+      { id: 'broken', name: 'Broken', description: null, isDefault: false, broken: 'missing service' },
+    ]);
+  });
+});
+
+test('rejects invalid fork boundaries', async () => {
+  await withHost(async ({ client }) => {
+    await assert.rejects(
+      client.request('session.fork', { sessionId: 's1', atSeq: -1 }),
+      (error) => error.code === 'attach/bad-request',
+    );
+  });
+});
+
+test('degrades gracefully when optional lifecycle services are absent', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const fixture = createFixture(home);
+  const originalGet = fixture.ctx.get.bind(fixture.ctx);
+  fixture.ctx.get = (name) => (
+    name === 'workspaceController' || name === 'agentPresets' ? undefined : originalGet(name)
+  );
+  const host = await makeServerWithFixture(home, fixture);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    assert.equal(client.host.capabilities.includes('session.archive'), false);
+    assert.equal(client.host.capabilities.includes('session.pin'), false);
+    assert.equal(client.host.capabilities.includes('session.presets'), false);
+    assert.deepEqual(await client.request('session.presets'), { supported: false, presets: [] });
+    await assert.rejects(
+      client.request('session.archive', { sessionId: 's1' }),
+      (error) => error.code === 'session/archive-unavailable',
+    );
+    await assert.rejects(
+      client.request('session.pin', { sessionId: 's1' }),
+      (error) => error.code === 'session/pin-unavailable',
+    );
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test('reconnects the same client to a restarted Host', async () => {
   const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
   let host = await makeServer(home);
@@ -337,6 +494,28 @@ test('adds short catalog labels to active subagents', async () => {
   });
 });
 
+test('advertises goal completion only when the goal service supports it', () => {
+  const base = {
+    sessionController: {},
+    get(name) {
+      if (name === 'goals') return undefined;
+      return undefined;
+    },
+  };
+  const without = new AttachServer(base, {});
+  assert.equal(without.hostInfo.capabilities.includes('goal.complete'), false);
+
+  const complete = () => ({});
+  const withService = new AttachServer({
+    ...base,
+    get(name) {
+      if (name === 'goals') return { get: () => undefined, complete };
+      return undefined;
+    },
+  }, {});
+  assert.equal(withService.hostInfo.capabilities.includes('goal.complete'), true);
+});
+
 test('serves goal activation and broadcasts activation changes', async () => {
   await withHost(async ({ client, listeners, state }) => {
     await client.request('session.open', { sessionId: 's1' });
@@ -353,6 +532,33 @@ test('serves goal activation and broadcasts activation changes', async () => {
     assert.equal(message.sessionId, 's1');
     assert.equal(message.goal.activation, 'armed');
     state.goal = { ...state.goal, activation: 'armed' };
+  });
+});
+
+test('completes the current goal through the goal service', async () => {
+  await withHost(async ({ client, state }) => {
+    assert.ok(client.host.capabilities.includes('goal.complete'));
+    await client.request('session.open', { sessionId: 's1' });
+    const value = await client.request('goal.complete');
+    assert.equal(value.completed, true);
+    assert.equal(value.goal.phase, 'complete');
+    assert.equal(value.goal.activation, 'disarmed');
+    assert.equal(value.goal.revision, 2);
+    assert.deepEqual(state.goalCompleteCalls.map((call) => call.ref), [{ id: 'g1', revision: 1 }]);
+    assert.equal(state.goalCompleteCalls[0].agent.id, 's1');
+  });
+});
+
+test('rejects goal completion when no goal is current', async () => {
+  await withHost(async ({ client, state }) => {
+    await client.request('session.open', { sessionId: 's1' });
+    state.goal = null;
+    await assert.rejects(client.request('goal.complete'), (error) => {
+      assert.equal(error.code, 'goal/not-found');
+      assert.match(error.message, /no goal is currently set/u);
+      return true;
+    });
+    assert.deepEqual(state.goalCompleteCalls, []);
   });
 });
 
@@ -662,9 +868,12 @@ test('serves the direct-child catalog to the subagent picker', async () => {
   const client = new AttachClient();
   try {
     await client.connect({ timeoutMs: 2000 });
+    assert.equal(client.host?.capabilities?.includes('subagent.continue'), true);
+    assert.equal(client.host?.capabilities?.includes('subagent.interrupt'), true);
     const value = await client.request('subagent.children', { sessionId: 's1' });
     assert.equal(value.supported, true);
     assert.equal(value.directOnly, false);
+    assert.deepEqual(value.control, { continue: true, interrupt: true });
     assert.deepEqual(value.items, [{
       id: 'child-1',
       parentId: 's1',
@@ -672,6 +881,9 @@ test('serves the direct-child catalog to the subagent picker', async () => {
       mode: 'continuable',
       activity: 'running',
       label: 'Reviewer',
+      parentActive: true,
+      canContinue: true,
+      canInterrupt: true,
     }]);
   } finally {
     client.close();
@@ -696,7 +908,200 @@ test('uses direct children without walking a large catalog', async () => {
     assert.equal(value.supported, true);
     assert.equal(value.directOnly, true);
     assert.equal(value.items.length, 33);
+    assert.deepEqual(value.control, { continue: true, interrupt: true });
+    assert.equal(value.items.every((item) => item.parentActive === true), true);
+    assert.equal(value.items.every((item) => item.canContinue === true), true);
+    assert.equal(value.items.every((item) => item.canInterrupt === false), true);
     assert.equal(host.state.subagentListCalls, 0);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('continues a continuable child through the addressed prompt route', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    const value = await client.request('subagent.continue', { childId: 'child-1', text: 'keep going' });
+    assert.deepEqual(value, { supported: true, accepted: true, messageId: 'message-1' });
+    assert.equal(host.state.subagentPromptCalls.length, 1);
+    const request = host.state.subagentPromptCalls[0];
+    assert.equal(request.parentSessionId, 's1');
+    assert.equal(request.childSessionId, 'child-1');
+    assert.equal(request.mode, 'continuable');
+    assert.equal(request.delivery, 'queue');
+    assert.deepEqual(request.content, [{ type: 'text', text: 'keep going' }]);
+    assert.equal(typeof request.requestId, 'string');
+    assert.equal(typeof request.clientTimeZone, 'string');
+
+    await client.request('subagent.continue', { childId: 'child-1', text: 'now', delivery: 'steer' });
+    assert.equal(host.state.subagentPromptCalls.at(-1).delivery, 'steer');
+
+    host.state.subagentPromptError = Object.assign(new Error('inbox closed'), {
+      code: 'subagent/delivery-unavailable',
+    });
+    await assert.rejects(
+      client.request('subagent.continue', { childId: 'child-1', text: 'later' }),
+      (error) => error.code === 'subagent/delivery-unavailable' && /cannot accept a message/.test(error.message),
+    );
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('falls back to the adjacent-Agent sendMessage primitive', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    const runtime = host.ctx.get('subagents');
+    runtime.prompt = undefined;
+    const value = await client.request('subagent.continue', { childId: 'child-1', text: 'legacy path' });
+    assert.deepEqual(value, { supported: true, accepted: true, messageId: 'message-legacy' });
+    assert.equal(host.state.subagentSendCalls.length, 1);
+    assert.equal(host.state.subagentSendCalls[0].sender.id, 's1');
+    assert.equal(host.state.subagentSendCalls[0].targetId, 'child-1');
+    assert.deepEqual(host.state.subagentSendCalls[0].content, [{ type: 'text', text: 'legacy path' }]);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('rejects continuation of a non-continuable or foreign subagent', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    host.state.subagentRows = [{
+      kind: 'child',
+      id: 'child-1',
+      parentId: 's1',
+      depth: 1,
+      mode: 'one-shot',
+      activity: 'inactive',
+      label: 'One shot',
+    }];
+    await assert.rejects(
+      client.request('subagent.continue', { childId: 'child-1', text: 'hello' }),
+      (error) => error.code === 'subagent/not-resumable' && /continuable/i.test(error.message),
+    );
+    await assert.rejects(
+      client.request('subagent.continue', { childId: 'other-child', text: 'hello' }),
+      (error) => error.code === 'attach/not-found',
+    );
+    await assert.rejects(
+      client.request('subagent.continue', { childId: 'child-1', text: '  ' }),
+      (error) => error.code === 'attach/bad-request',
+    );
+    await assert.rejects(
+      client.request('subagent.interrupt', { childId: 'other-child' }),
+      (error) => error.code === 'attach/not-found',
+    );
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('reports a missing parent for continuation and accepts interrupt', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    host.state.subagentRows = [{
+      kind: 'child',
+      id: 'child-1',
+      parentId: 'offline-parent',
+      depth: 1,
+      mode: 'continuable',
+      activity: 'running',
+      label: 'Reviewer',
+    }];
+    await assert.rejects(
+      client.request('subagent.continue', { childId: 'child-1', text: 'hello' }),
+      (error) => error.code === 'subagent/parent-unavailable',
+    );
+
+    const stopped = await client.request('subagent.interrupt', { childId: 'child-1' });
+    assert.deepEqual(stopped, { supported: true, accepted: true });
+    assert.deepEqual(host.state.subagentInterruptCalls, [{
+      childId: 'child-1',
+      parentId: 'offline-parent',
+      mode: 'continuable',
+    }]);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('interrupts the currently viewed subagent with its durable parent address', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 'child-1', parentSessionId: 's1', mode: 'continuable' });
+    const value = await client.request('subagent.interrupt', {
+      childId: 'child-1',
+      parentSessionId: 's1',
+    });
+    assert.deepEqual(value, { supported: true, accepted: true });
+    assert.deepEqual(host.state.subagentInterruptCalls, [{
+      childId: 'child-1',
+      parentId: 's1',
+      mode: 'continuable',
+    }]);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('reports unsupported subagent control when the runtime lacks the methods', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    const runtime = host.ctx.get('subagents');
+    runtime.prompt = undefined;
+    runtime.sendMessage = undefined;
+    runtime.interruptByParent = undefined;
+    runtime.interrupt = undefined;
+
+    const described = await client.request('host.describe');
+    assert.equal(described.host.capabilities.includes('subagent.continue'), false);
+    assert.equal(described.host.capabilities.includes('subagent.interrupt'), false);
+    const continued = await client.request('subagent.continue', { childId: 'child-1', text: 'hello' });
+    assert.equal(continued.supported, false);
+    assert.match(continued.reason, /continuation/i);
+    const stopped = await client.request('subagent.interrupt', { childId: 'child-1' });
+    assert.equal(stopped.supported, false);
+    assert.match(stopped.reason, /interruption/i);
+    const children = await client.request('subagent.children', { sessionId: 's1' });
+    assert.deepEqual(children.control, { continue: false, interrupt: false });
+    assert.equal(children.items[0].canContinue, false);
+    assert.equal(children.items[0].canInterrupt, false);
   } finally {
     client.close();
     await host.server.stop();
@@ -734,6 +1139,123 @@ test('honors the configured history snapshot limit', async () => {
     await client.request('session.open', { sessionId: 's1' });
     const follow = host.calls.find((call) => call[0] === 'follow');
     assert.equal(follow?.[1]?.maxMessages, 600);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('serves an older history page keyed by beforeSeq', async () => {
+  await withHost(async ({ client, calls, state }) => {
+    state.historyPage = () => ({
+      cursor: 20,
+      hasMore: true,
+      records: [
+        { type: 'event', event: { type: 'user/message', seq: 5, data: { content: [{ type: 'text', text: 'five' }], source: { kind: 'user' } } } },
+        { type: 'event', event: { type: 'assistant/message', seq: 6, data: { message: { content: [{ type: 'text', text: 'six' }] } } } },
+      ],
+    });
+    await client.request('session.open', { sessionId: 's1' });
+    const page = await client.request('history.events', { beforeSeq: 10 });
+    const call = calls.find((entry) => entry[0] === 'events');
+    assert.deepEqual(call[1], {
+      address: { kind: 'session', sessionId: 's1' },
+      beforeSeq: 10,
+      maxMessages: 300,
+    });
+    assert.deepEqual(page.records.map((record) => record.event.seq), [5, 6]);
+    assert.equal(page.hasMore, true);
+    assert.equal(page.cursor, 20);
+    assert.equal(page.oldestSeq, 5);
+    assert.equal(page.newestSeq, 6);
+    assert.equal(page.beforeSeq, 10);
+
+    const described = await client.request('host.describe');
+    assert.ok(described.host.capabilities.includes('history.pagination'));
+  });
+});
+
+test('uses the durable subagent address for older history', async () => {
+  await withHost(async ({ client, calls }) => {
+    await client.request('session.open', { sessionId: 'child', parentSessionId: 'parent', mode: 'continuable' });
+    await client.request('history.events', { beforeSeq: 8 });
+    const call = calls.find((entry) => entry[0] === 'events');
+    assert.deepEqual(call[1].address, {
+      kind: 'subagent',
+      parentSessionId: 'parent',
+      childSessionId: 'child',
+      mode: 'continuable',
+    });
+  });
+});
+
+test('rejects malformed history cursors and sessions without one', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await assert.rejects(
+      () => client.request('history.events', { beforeSeq: 1 }),
+      /no session is open/,
+    );
+    await client.request('session.open', { sessionId: 's1' });
+    for (const beforeSeq of [undefined, -1, 1.5, '3', null]) {
+      await assert.rejects(
+        () => client.request('history.events', { beforeSeq }),
+        /beforeSeq must be a non-negative safe integer/,
+      );
+    }
+    assert.equal(host.calls.some((entry) => entry[0] === 'events'), false, 'invalid cursors never reach DSH');
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('falls back to the deprecated page alias for older Host APIs', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  const controller = host.ctx.sessionController;
+  delete controller.events;
+  controller.page = async (request) => ({
+    cursor: request.beforeSeq - 1,
+    hasMore: false,
+    records: [{ type: 'event', event: { type: 'user/message', seq: 3, data: { content: [{ type: 'text', text: 'old' }], source: { kind: 'user' } } } }],
+  });
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    const described = await client.request('host.describe');
+    assert.ok(described.host.capabilities.includes('history.pagination'));
+    const page = await client.request('history.events', { beforeSeq: 4 });
+    assert.deepEqual(page.records.map((record) => record.event.seq), [3]);
+    assert.equal(page.oldestSeq, 3);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('reports hosts without a history pagination API', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  delete host.ctx.sessionController.events;
+  delete host.ctx.sessionController.page;
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    const described = await client.request('host.describe');
+    assert.equal(described.host.capabilities.includes('history.pagination'), false);
+    await assert.rejects(
+      () => client.request('history.events', { beforeSeq: 4 }),
+      /does not expose Session history pagination/,
+    );
   } finally {
     client.close();
     await host.server.stop();

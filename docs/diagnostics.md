@@ -150,9 +150,11 @@ With `DSH_ATTACH_PERF=1`:
 - `loop-lag` is logged when the event loop is blocked for more than 100 ms.
 
 The log also records `transcript-trim` events with the number of dropped and
-kept rows, and `subagents` / `subagents-error` events for refresh failures. Each
-session picker open logs a `session-picker` event with elapsed milliseconds, the
-session count, and whether workspace lookup fell back to `cwd` grouping.
+kept rows, `subagents` / `subagents-error` events for refresh failures, and
+`subagent-control` events with the action, child id, and success flag for
+follow-up and stop requests. Each session picker open logs a
+`session-picker` event with elapsed milliseconds, the session count, and whether
+workspace lookup fell back to `cwd` grouping.
 
 ### Host capabilities
 
@@ -160,5 +162,24 @@ session count, and whether workspace lookup fell back to `cwd` grouping.
   avoids sending the full session list to the client every few seconds.
 - Host plugin 0.13 and later include active subagent IDs in the summary, which
   the bottom peek uses.
+- Hosts that advertise `history.pagination` expose the `history.events` route,
+  which backs `Ctrl+R`/`/history`; clients show a warning when the capability is
+  absent.
+- Lifecycle capabilities are advertised only when the Host service exists:
+  `session.fork` (Session controller), `session.archive` (Workspace controller),
+  `session.pin` (Workspace controller), and `session.presets` (Agent-preset
+  registry). `/session` reports the missing capability instead of guessing.
+- `session.presets` is absent when the Agent-preset registry is not mounted;
+  new sessions then use the Host default.
+- DSH exposes no Session deletion. `session.archive` is the supported
+  lifecycle end state, and `/session delete` reports that limitation.
+- Hosts that expose `ctx.subagents.prompt`/`interruptByParent` advertise
+  `subagent.continue` and `subagent.interrupt` in the welcome; the picker shows
+  `c continue` / `x stop` only for those capabilities. A missing capability is
+  reported as an unsupported action, not a route failure.
+- Hosts that expose `GoalService.complete` advertise the `goal.complete`
+  capability; the local `/goal complete` action uses that route. Older bridges
+  report the action as unsupported, while pause/resume/edit/clear still go
+  through the Host command registry.
 - Older Hosts automatically fall back to `session.list`; counts still work, but
   refreshes are less frequent and cost more.

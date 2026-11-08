@@ -30,12 +30,17 @@ class FakeTui {
 class FakeClient extends EventEmitter {
   constructor() {
     super();
-    this.host = { capabilities: [], pluginVersion: '0.14.0' };
+    this.host = {
+      capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
+      pluginVersion: '0.14.0',
+    };
     this.closed = false;
     this.requests = [];
+    this.requestCalls = [];
   }
-  async request(method) {
+  async request(method, params) {
     this.requests.push(method);
+    this.requestCalls.push({ method, params });
     switch (method) {
       case 'session.list':
         return {
@@ -72,12 +77,72 @@ class FakeClient extends EventEmitter {
             output: { total: 0, earliest: 0 },
           }],
         };
+      case 'session.presets':
+        return {
+          supported: true,
+          defaultId: 'standard',
+          presets: [
+            { id: 'standard', name: 'Standard mode', description: 'General work', isDefault: true },
+            { id: 'minimal', name: 'Minimal mode', description: 'Minimal', isDefault: false },
+          ],
+        };
+      case 'session.create':
+        return { sessionId: 's3', agentPreset: params?.agentPreset ?? null };
+      case 'session.fork':
+        return { sessionId: 'fork-1' };
+      case 'session.archive':
+        return { archivedSessionIds: [params?.sessionId] };
+      case 'session.unarchive':
+        return { archivedSessionIds: [] };
+      case 'session.pin':
+        return { pinnedSessionIds: [params?.sessionId] };
+      case 'session.unpin':
+        return { pinnedSessionIds: [] };
       default:
         return {};
     }
   }
   async activity() {}
   close() { this.closed = true; }
+}
+
+class ControlClient extends FakeClient {
+  constructor() {
+    super();
+    this.host = {
+      capabilities: ['subagent.children', 'subagent.continue', 'subagent.interrupt'],
+      pluginVersion: '0.15.0',
+    };
+    this.control = [];
+  }
+  async request(method, params) {
+    if (method === 'subagent.children') {
+      return {
+        supported: true,
+        control: { continue: true, interrupt: true },
+        items: [{
+          id: 'child-1',
+          parentId: 's1',
+          depth: 1,
+          mode: 'continuable',
+          activity: 'running',
+          label: 'Reviewer',
+          parentActive: true,
+          canContinue: true,
+          canInterrupt: true,
+        }],
+      };
+    }
+    if (method === 'subagent.continue') {
+      this.control.push(['continue', params]);
+      return { supported: true, accepted: true, messageId: 'message-1' };
+    }
+    if (method === 'subagent.interrupt') {
+      this.control.push(['interrupt', params]);
+      return { supported: true, accepted: true };
+    }
+    return super.request(method, params);
+  }
 }
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -287,6 +352,61 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     assert.equal(app.editor.getText(), 'draft for s1', 'the original draft is restored');
     assert.equal(app.pendingImages[0]?.name, 's1.png', 'the original image is restored');
 
+    // Session-picker lifecycle actions.
+    client.requestCalls.length = 0;
+    app.editor.setText('/sessions');
+    app.editor.handleInput('\r');
+    await wait(50);
+    app.modals.get('picker').component.panel.handleInput('f');
+    await wait(80);
+    assert.ok(client.requestCalls.some((call) => call.method === 'session.fork'), 'f forks the selected session');
+    assert.equal(app.state.sessionId, 'fork-1');
+
+    client.requestCalls.length = 0;
+    app.editor.setText('/sessions');
+    app.editor.handleInput('\r');
+    await wait(50);
+    app.modals.get('picker').component.panel.handleInput('a');
+    await wait(80);
+    assert.ok(client.requestCalls.some((call) => call.method === 'session.archive'), 'a archives the selected session');
+
+    client.requestCalls.length = 0;
+    app.editor.setText('/sessions');
+    app.editor.handleInput('\r');
+    await wait(50);
+    app.modals.get('picker').component.panel.handleInput('p');
+    await wait(80);
+    assert.ok(client.requestCalls.some((call) => call.method === 'session.pin'), 'p pins the selected session');
+
+    // Preset disclosure and selection for new sessions.
+    app.editor.setText('/session presets');
+    app.editor.handleInput('\r');
+    await wait(50);
+    assert.equal(app.modals.has('info'), true, 'the preset roster opens the info panel');
+    app.modals.get('info').component.handleInput('\x1b');
+    await wait(20);
+
+    app.editor.setText('/session preset minimal');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.equal(app.newSessionPreset, 'minimal');
+
+    client.requestCalls.length = 0;
+    app.editor.setText('/session new /tmp/work');
+    app.editor.handleInput('\r');
+    await wait(80);
+    const createCall = client.requestCalls.find((call) => call.method === 'session.create');
+    assert.equal(createCall?.params?.agentPreset, 'minimal', 'new sessions use the chosen preset');
+
+    app.editor.setText('/sessions');
+    app.editor.handleInput('\r');
+    await wait(50);
+    const restoredPicker = app.modals.get('picker').component.panel;
+    const s1Restore = restoredPicker.list.items.find((item) => item.value === 's1');
+    restoredPicker.list.onSelect(s1Restore);
+    await wait(80);
+    assert.equal(app.state.sessionId, 's1', 'the picker reopens the original session');
+
     client.emit('interactive', {
       type: 'question',
       requestId: 'qq1',
@@ -384,6 +504,69 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
   assert.equal(process.listenerCount('unhandledRejection'), before.rejection);
   assert.equal(process.listenerCount('SIGTERM'), before.sigterm);
   assert.equal(process.stdin.listenerCount('end'), before.stdinEnd);
+});
+
+
+test('continues and stops a subagent through commands and the picker', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new ControlClient();
+  const app = new AttachApp(client, { session: 's1', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+
+    app.editor.setText('/subagent continue child-1 hello');
+    app.editor.handleInput('\r');
+    await wait(80);
+    assert.deepEqual(client.control.at(-1), ['continue', { childId: 'child-1', text: 'hello' }]);
+
+    app.editor.setText('/subagent list');
+    app.editor.handleInput('\r');
+    await wait(80);
+    assert.equal(app.modals.has('picker'), true, 'subagent picker opens');
+    const picker = app.modals.get('picker').component.panel;
+    picker.handleInput('c');
+    await wait(40);
+    assert.equal(app.modals.has('subagentContinue'), true, 'c opens the follow-up prompt');
+    const followUp = app.modals.get('subagentContinue').component;
+    followUp.input.setValue('more detail');
+    followUp.handleInput('\r');
+    await wait(80);
+    assert.deepEqual(client.control.at(-1), ['continue', { childId: 'child-1', text: 'more detail' }]);
+    assert.equal(app.modals.has('subagentContinue'), false);
+
+    app.editor.setText('/subagent list');
+    app.editor.handleInput('\r');
+    await wait(80);
+    app.modals.get('picker').component.panel.handleInput('x');
+    await wait(40);
+    assert.equal(app.modals.has('subagentConfirm'), true, 'x asks before stopping');
+    assert.equal(client.control.filter((entry) => entry[0] === 'interrupt').length, 0);
+    app.modals.get('subagentConfirm').component.handleInput('y');
+    await wait(80);
+    assert.deepEqual(client.control.at(-1), ['interrupt', { childId: 'child-1', parentSessionId: 's1' }]);
+    assert.equal(app.modals.has('subagentConfirm'), false);
+
+    app.editor.setText('/subagent stop child-1');
+    app.editor.handleInput('\r');
+    await wait(80);
+    assert.equal(app.modals.has('subagentConfirm'), true, 'command stop asks first');
+    app.modals.get('subagentConfirm').component.handleInput('n');
+    await wait(40);
+    assert.equal(app.modals.has('subagentConfirm'), false);
+    assert.equal(client.control.filter((entry) => entry[0] === 'interrupt').length, 1, 'declining sends nothing');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+  assert.equal(tui.stopped, true);
+  assert.equal(client.closed, true);
 });
 
 

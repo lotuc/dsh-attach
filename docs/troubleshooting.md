@@ -56,6 +56,10 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | `/subagents-preview` says it needs a Herdr pane | Run the parent `dsh-attach` inside Herdr, or use `/subagents` for an in-TUI list. |
 | `/subagents-preview` reports the Herdr plugin is not linked | Run `herdr plugin link --enabled <path-to-dsh-tui-attach>`. Use the repository path or the installed profile package path. |
 | `/subagents-preview` opens a pane that exits immediately | Make sure `node` is on `PATH` and relink the plugin after upgrading this package. Check `herdr plugin log list --plugin dsh-tui-attach`. |
+| `/subagent continue` says the parent is not live | Continuation is addressed through the child's direct parent Agent. Open that parent session (or resume it in the Web GUI) first; interrupt still works without a live parent. |
+| `/subagent continue` says only continuable subagents can be continued | One-shot and external children cannot accept follow-ups. Open their history to inspect the result instead. |
+| `/subagent interrupt` reports that control is unavailable | The Host predates the `subagent.continue` / `subagent.interrupt` routes. Restart DeepSeek Harness after upgrading the plugin; browsing and counts still work. |
+| `/subagent stop` says stop requested but the child keeps working | Interrupt acknowledges the cancel signal, not quiescence. A running turn may finish its current step; an already idle target is an accepted no-op. |
 | Prompt history disappears after restart | Prompt history is per client run and is not persisted. |
 | Old endpoint files remain after a Host restart | A shutdown normally removes its descriptor. A crashed Host may leave a stale descriptor; the client skips unreachable endpoints. Remove stale files only while no matching Host is running. |
 

@@ -47,10 +47,57 @@ The server pumps snapshots, events, and assistant-stream frames to the client.
 Re-opening a session on the same connection replaces the previous follow stream;
 closing the connection aborts the follow.
 
+Older history uses the supported controller read API rather than starting a
+second follow stream:
+
+```js
+sessionController.events({
+  address,
+  beforeSeq,          // exclusive: records with seq >= beforeSeq are not returned
+  maxMessages: 300,   // the configured historyMessages budget
+}, AbortSignal.timeout(30_000))
+// => { cursor, records, hasMore }
+```
+
+`records` is a chronological page. The client uses the smallest sequence still
+represented by a rendered row as the next `beforeSeq`; this also lets it refetch
+rows dropped by transcript trimming. `events` is the supported name (older Host
+builds expose the deprecated `page` alias). The Host advertises
+`history.pagination` only when one of those methods exists.
+
 The client projects a small set of user-visible events into transcript rows:
 user messages, assistant messages, tool calls/results, turn/step state, titles,
 model selection, permission and sandbox changes, todos, goals, retries, and
 compaction. Unknown events are ignored rather than dumped into the transcript.
+
+### Session lifecycle
+
+Lifecycle routes call the same Host services the Web UI uses, so policy,
+persistence, and running-work handling stay in the Host:
+
+- `session.fork` calls `sessionController.fork({ sessionId, atSeq? })`. An
+  omitted `atSeq` selects the latest completed turn; `allowMigration: false`
+  preserves the controller's migration preflight.
+- `session.archive` / `session.unarchive` call
+  `workspaceController.archiveSession` / `unarchiveSession`. A plain archive
+  refuses a Session with running work (`workspace/session-active`); passing
+  `stopActivity: true` stops that work first.
+- `session.pin` / `session.unpin` call `workspaceController.pinSession` /
+  `unpinSession`.
+- `session.presets` reads `agentPresets.remoteExportList()` (falling back to
+  `list()`) for the new-session picker. The roster includes activation
+  failures as `broken` instead of hiding them.
+
+Each route is advertised in `host.describe` capabilities only when its Host
+service is mounted. The client checks the capability before offering the
+action, while older Hosts simply omit the route. DSH exposes no Session
+deletion: sessions can be archived but never deleted, so `/session delete`
+reports that limitation instead of inventing a destructive route.
+
+The TUI surface is the existing `/session` group (`fork`, `archive`,
+`unarchive`, `pin`, `unpin`, `presets`, `preset`, and `new --preset <id>`)
+plus navigation-mode picker keys: `f` forks, `a` archives or restores, and `p`
+pins or unpins the selected row.
 
 ### Interactive routing
 
@@ -111,18 +158,26 @@ Server methods:
 | `host.describe` | Host and config summary. |
 | `session.list` | List sessions with summaries. |
 | `session.open` / `session.close` | Follow or stop following a session. |
+| `history.events` | Read one older page of the followed session's durable log (`beforeSeq` cursor). |
 | `session.prompt` | Submit text with `queue` or `steer` mode. |
 | `session.cancel` | Cancel the running turn. |
-| `session.create` / `session.rename` | Create or rename sessions. |
+| `session.create` / `session.rename` | Create or rename sessions. `session.create` accepts an optional `agentPreset`. |
+| `session.fork` | Fork a Session at its latest completed turn, or at an explicit `atSeq`; returns the child id. |
+| `session.archive` / `session.unarchive` | Archive or restore a Session through the Workspace registry. `session.archive` accepts `stopActivity` to stop running work first. |
+| `session.pin` / `session.unpin` | Pin or unpin a Session in Workspace navigation. |
+| `session.presets` | Read the Host Agent-preset roster for new-session selection. Returns `{ supported: false, presets: [] }` when no preset registry is mounted. |
 | `session.selectModel` | Switch provider/model (and optional reasoning effort). |
 | `model.catalog` | Provider and model groups. |
 | `commands.list` / `commands.execute` | Discover and execute Host slash commands. |
 | `skill.list` / `skill.get` | User-invocable skill summaries and full instructions for `/skill` and `/name` completion. |
 | `goal.get` | Read the live goal view including process-local `activation` (`armed`/`disarmed`). |
+| `goal.complete` | Complete the current goal through `GoalService.complete`; advertised as the `goal.complete` capability. Other goal mutations use the Host command registry. |
 | `workspace.list` | Workspace tree snapshot, with a `cwd` fallback on the client. |
 | `subagent.summary` | Counts plus the active window (IDs, titles, and short catalog labels). Newer Hosts include labels; the client fills missing labels from `subagent.list`. |
-| `subagent.children` | Fast direct-child catalog for `/subagent list`; falls back to recursive listing for small trees. |
+| `subagent.children` | Fast direct-child catalog for `/subagent list`; falls back to recursive listing for small trees. Each row carries `parentActive`, `canContinue`, and `canInterrupt`, and the response advertises the Host's `control` capabilities. |
 | `subagent.list` | Catalog descendants when the runtime supports it, including short labels. |
+| `subagent.continue` | Deliver a human follow-up to one continuable child through `ctx.subagents.prompt` (falling back to `sendMessage`), addressed by the catalog's durable direct parent. |
+| `subagent.interrupt` | Stop one running child's current turn through `interruptByParent` (falling back to `interrupt`), addressed by its durable direct parent; also accepts the currently followed subagent. |
 | `approval.respond` / `approval.cancel` | Answer or cancel an approval. |
 | `question.respond` / `question.cancel` | Answer or cancel a question batch. |
 | `interactive.ack` | Acknowledge that this terminal actually displayed a shared request; unacknowledged panels do not block the grace handoff. |
@@ -136,6 +191,7 @@ Limits:
 - inbound line cap 4 MiB, outbound line cap 64 MiB;
 - unauthenticated `hello` deadline 10 seconds;
 - session history snapshot capped at 300 messages;
+- older-history pages use the same `historyMessages` message budget and a 25,000-row client paging ceiling;
 - outbound writes wait for drain above a 4 MiB buffer;
 - client requests default to a 180 second timeout (`attach/timeout`), which
   bounds a request left unanswered by a live but unresponsive Host.
@@ -152,6 +208,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/host.js` | Cordis plugin entry, injection, Config schema, and optional Host hot reload. |
 | `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
 | `lib/host/subagents.js` | Pure subagent catalog row mapping and descendant counting. |
+| `lib/host/subagent-control.js` | Runtime capability detection, catalog lookup, and per-row control flags. |
 | `lib/host/shell-env.js` | Bounded `HERDR_*` env intake and shell-request merge for model commands. |
 | `lib/host.d.ts` | Type declarations for the plugin entry. |
 | `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow, `--hot`. |
@@ -166,8 +223,10 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/session-snapshot.js` | Pure projection of snapshot metadata onto visible session state. |
 | `lib/client/format.js` | Shared age and cwd formatting. |
 | `lib/client/layout.js` | Left/right line fitting shared by the header, footer, preview and picker rows. |
-| `lib/client/goal.js` | Goal projection normalization and blocked/status labels. |
-| `lib/client/subagent-picker.js` | Ordered `/subagent list` rows from the lightweight catalog or session summaries. |
+| `lib/client/goal.js` | Goal projection normalization, `/goal` grammar, Host command mapping, and blocked/status labels. |
+| `lib/client/plan.js` | `/plan` grammar, Host command mapping, and plan-mode status lines. |
+| `lib/client/subagent-picker.js` | Ordered `/subagent list` rows from the lightweight catalog or session summaries, including control availability. |
+| `lib/client/subagent-control.js` | Capability, availability, and error wording shared by the picker and `/subagent` commands. |
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
@@ -230,10 +289,13 @@ Coverage includes:
   attach;
 - subagent parent addresses, question cancellation, and Host command execution;
 - subagent catalog labels and peek name fallback;
+- subagent control routes (continue, interrupt, unsupported fallbacks), picker
+  availability flags, command dispatch, and stop confirmations;
 - approval details: full request/command content and scroll navigation;
 - approval context: target, proposed edit and session metadata;
 - interaction acknowledgement and notification policy;
 - completion catalogs, grouped local subcommands, picker filtering, and metadata layout;
+- `/goal` and `/plan` parsing, completion, status rendering, confirmation policy, and the Host `goal.complete` transition;
 - model reasoning-effort rows and permission presets;
 - pinned/archived session ordering;
 - modal-slot lifecycle and picker row refresh;
@@ -289,8 +351,9 @@ node bin/dsh-attach.js --hot -s <session-id>
 **Host:** enable `hotReload: true` in the profile patch, or start DSH with
 `DSH_ATTACH_HOT=1`. The bridge watches `lib/host/server.js` and stops/restarts
 itself through a cache-busted import; attached clients reconnect automatically.
-Changes to `lib/host.js`, `lib/host/subagents.js` or `lib/shared/*` still need a
-DSH restart. Enabling `hotReload` itself also needs one restart.
+Changes to `lib/host.js`, `lib/host/subagents.js`,
+`lib/host/subagent-control.js` or `lib/shared/*` still need a DSH restart.
+Enabling `hotReload` itself also needs one restart.
 
 Useful environment variables during development:
 
@@ -332,6 +395,7 @@ Release steps:
 | 0.10.0+ | Recommended baseline. Adds Host command execution and subagent history; the client warns when the Host is older. |
 | 0.11.7+ | `subagent.summary` returns lightweight counts. |
 | 0.13.0+ | `subagent.summary` includes active subagent IDs for the peek panel. |
+| Newer Hosts | Advertise `subagent.continue` / `subagent.interrupt`; without those capabilities the TUI reports control unavailable and keeps browsing read-only. |
 | Any | Without `workspaceController`, the picker groups by `cwd`; without `subagent.summary`, counts fall back to `session.list`. |
 
 ## License

@@ -48,6 +48,41 @@ reasoning row. Its collapsed preview follows the latest non-empty reasoning
 line and shows the live character count, like `tail -f`; `Ctrl+T` opens the full
 reasoning block.
 
+## Goals and plan mode
+
+The session goal and plan mode are rendered in the activity line and the
+`/status` panel, and both have first-class local commands.
+
+```text
+/goal                       show phase, rounds, activation, blocker and next actions
+/goal <objective>           create and arm a goal
+/goal create <objective>    create explicitly
+/goal edit [objective]      edit the objective; without text, opens an editor
+/goal pause                 pause and disarm continuation
+/goal resume                resume or rearm a stopped goal
+/goal complete              mark the goal complete (asks for confirmation)
+/goal clear                 clear the goal and keep its durable history (asks for confirmation)
+```
+
+`complete` and `clear` open a confirmation panel: press `y` to confirm, or
+`n`/`Enter`/`Esc` to cancel. Goal completion uses the Host's `goal.complete`
+capability; an older bridge reports that it is unsupported instead of guessing
+or sending the command to the model.
+
+```text
+/plan                       enter plan mode
+/plan <message>             enter plan mode and steer that instruction
+/plan enter [message]       explicit form of the two above
+/plan off, /plan exit       leave plan mode
+/plan status                show active/pending state and the plan-review hint
+```
+
+DSH has no separate plan-edit or plan-approve slash command. A plan is written
+by the model and presented through `exit_plan_mode`; the terminal renders that
+as the normal question panel with `Approve` and `Keep planning` options.
+`/plan approve` explains this and points at the open review instead of sending
+text to the model.
+
 ## Sessions
 
 ### Pick a session
@@ -72,10 +107,11 @@ the list.
 
 In the picker's navigation mode, press `n` to create a session in the client
 process's working directory. Start `dsh-attach -C <path>` to override that for
-the whole run. Blank sessions are hidden unless they are running or already
-have subagents; archived sessions are hidden until you press `Ctrl+A` to show
-them. Pinned sessions are marked with `◆` and sort immediately after the
-current session.
+the whole run. The same mode offers `f` to fork the selected session, `a` to
+archive it (or unarchive an archived row), and `p` to pin or unpin it. Blank
+sessions are hidden unless they are running or already have subagents;
+archived sessions are hidden until you press `Ctrl+A` to show them. Pinned
+sessions are marked with `◆` and sort immediately after the current session.
 
 ### Open a session directly
 
@@ -88,17 +124,47 @@ dsh-attach --reattach <session-id>
 client attaches to an existing Host and session; it does not resume a new agent
 process.
 
-### Create or rename
+### Create, fork, archive, and pin
 
 Inside the TUI:
 
 ```text
-/session new [cwd]        create a session in cwd, or in the client working directory
-/session rename <title>   rename the current session
+/session new [cwd] [--preset <id>]   create a session in cwd, or in the client working directory
+/session rename <title>              rename the current session
+/session fork [id]                   fork a session at its latest completed turn and open the child
+/session archive [id] [--stop]       archive a session, or stop its running work and archive it
+/session unarchive <id>              restore an archived session
+/session pin [id]                    pin a session
+/session unpin [id]                  unpin a session
 ```
+
+Commands that take `[id]` operate on the open session when the id is omitted.
+Forking uses the Host's latest-completed-turn boundary. Archive is the
+supported lifecycle end state: DSH does not expose Session deletion, so
+`/session delete` reports that limitation rather than attempting one. Archiving
+a Session with running work fails with the Host's activity description; retry
+with `--stop` to stop that work first. Archiving the open Session leaves it
+readable, but further turns are blocked until it is unarchived.
 
 From the command line, `--new` creates a session and `-C`/`--cwd` chooses its
 working directory.
+
+### Agent presets
+
+When the Host mounts the Agent-preset registry, the client can disclose and
+choose the preset used by *new* sessions:
+
+```text
+/session presets            show the roster, the Host default, and the next-session choice
+/session preset [id]        choose the next-session preset, or open a picker
+/session new --preset <id>  create one session with an explicit preset
+/session preset default     return to the Host default
+```
+
+The roster comes from the Host's `session.presets` route; a preset that failed
+to activate stays visible and is marked `unavailable`. Existing sessions keep
+the preset they started with. `/status` shows both the current session's
+`preset` and the `new preset` used by the next `/session new`.
 
 ## Prompts
 
@@ -145,10 +211,22 @@ File upload and `@` file indexing are not wired into the client.
 
 When a session opens, the Host follows it and sends a snapshot of recent
 history plus live frames. The snapshot is capped at the most recent **300
-messages** by default; earlier pages are not fetched yet. If the Host reports
-more history, or the client trims old rendered rows, the activity line and
-`/status` say so instead of silently pretending the visible transcript is
-complete.
+messages** by default. When the Host reports that older messages remain, the
+activity line says `earlier history not loaded · ctrl+r loads older`.
+
+Press `Ctrl+R` (or run `/history`, alias `/earlier`) to fetch one older page.
+Pages are read from DSH's durable Session log with an exclusive sequence cursor,
+so a page is chronological and never overlaps the rows already on screen. The
+view stays anchored: previously visible content keeps its place while the older
+rows are inserted above it, and auto-follow stays suspended until `Ctrl+L`,
+`Ctrl+End`, or sending a prompt returns to the live edge. Live events that
+arrived in the meantime are still appended normally.
+
+The activity line and `/status` report whether older history remains, how many
+older pages are loaded, and how many rows transcript trimming has dropped. If
+rows at the front were trimmed, the next page is fetched before the oldest
+**still rendered** event, so the trimmed span is restored instead of leaving a
+silent gap. Paging stops at a 25,000-row safety ceiling.
 
 Scrolling and navigation:
 
@@ -157,15 +235,18 @@ Scrolling and navigation:
 - `Ctrl+Home` jumps to the top of the loaded history; `Ctrl+End` jumps to the
   bottom.
 - `Ctrl+L` returns to the newest message and re-enables auto-follow.
+- `Ctrl+R` loads older history without moving the viewport.
 - The mouse wheel scrolls history. Scrolling up suspends auto-follow, so new
   streaming output does not pull the view back to the bottom.
 - `/find <text>` jumps to the first loaded match; `/find` opens an incremental
-  search over the loaded transcript. Collapsed groups are searched as they
-  render, so expand a group with `Ctrl+O`/`Ctrl+G` to search its children.
+  search over the loaded transcript, including pages loaded from history.
+  Collapsed groups are searched as they render, so expand a group with
+  `Ctrl+O`/`Ctrl+G` to search its children.
 
 While following, the transcript is bounded to **5,000 rendered rows**. Older
 rows are dropped as new ones arrive. Trimming is deferred while you are scrolled
-up, but a hard bound of 10,000 rows still prevents unbounded memory growth. The
+up, but a hard bound of 10,000 rows still prevents unbounded memory growth.
+Loading older pages may exceed those bounds up to the paging ceiling. The
 background-job roster keeps live jobs and the 200 most recent settled jobs.
 
 Prompt history is kept in the editor for the current run, up to **100**
@@ -183,7 +264,9 @@ the argument second is the safer workflow.
 
 Completion also covers:
 
-- `/session resume` session titles and IDs;
+- `/session resume`, `/session fork`, `/session archive`, `/session unarchive`,
+  `/session pin`, and `/session unpin` session titles and IDs;
+- `/session preset` and `/session new --preset` Host Agent-preset ids;
 - `/job output` and `/job kill` job IDs;
 - `/subagent preview` the preview count;
 - `/skill show` and `/skill run` user-invocable skill names;
@@ -309,23 +392,61 @@ While any are running, the badge shows running/total, for example
 listed first; within the same status, newer children come first. `/agents` and
 `/agents-preview` remain accepted as compatibility aliases. Indentation shows
 nesting depth; `Enter` opens a subagent, and `/subagent parent` returns to the direct
-parent. Subagent history is read-only and the footer is marked
-`subagent · read-only`.
+parent. The history view is read-only and the footer is marked
+`subagent · history read-only`; control actions are addressed from the picker or
+the `/subagent` commands instead of typing into the child transcript.
+
+### Subagent control
+
+The picker shows `c continue` and `x stop` on rows where the Host reports the
+action. The same operations are available as commands:
+
+```text
+/subagent continue <id> <message>   # deliver a follow-up (Queue by default)
+/subagent continue <id>             # open the follow-up editor
+/subagent interrupt [id]            # stop the current turn after confirmation
+/subagent stop [id]                 # alias for interrupt
+/subagent cancel [id]               # alias for interrupt
+```
+
+`/subagent continue` requires a **continuable** child whose direct parent is
+live. The Host accepts the message into the child's inbox; it does not wait for
+a reply. A running child receives it at its next step boundary through Steer,
+while an idle child starts a new turn. A one-shot or external child cannot be
+continued. The TUI sends text-only follow-ups; use the Web GUI for image
+content.
+
+`/subagent interrupt`, `stop`, and `cancel` are aliases for DSH's single
+user-facing stop primitive. They stop only the selected child's current work.
+A local activation keeps its inbox, descendants, and later follow-ups; an
+external execution stops permanently. The Host acknowledges the request, not
+quiescence. The selected child must be running; a settled target is an accepted
+no-op. The command asks for confirmation with an explicit `y`; `n`, `Enter`,
+and `Esc` cancel.
+`/cancel` and `Esc` `Esc` in a subagent history view use the same confirmation.
+
+If the selected row is a nested child, its direct parent must be a live Host
+Agent for continuation. If that parent is idle but resident, the follow-up
+still works; if the parent is not live, the TUI reports that it must be opened
+first. Interrupt is addressed through the durable parent and does not need the
+parent Agent to be live.
 
 Subagent counts come from the session list and are attributed to the top-level
 session through the parent chain, so they also work on Hosts without a catalog
 route. Opening subagent history requires a Host plugin that supports
 `session.open` with a subagent address (0.10.0 and later). Listing and counts
-work on older Hosts.
+work on older Hosts. Control requires a Host that advertises
+`subagent.continue` / `subagent.interrupt`; without those capabilities the
+picker and commands report that the Host exposes no control route.
 
 Not supported from the TUI:
 
 - dispatching a new subagent;
-- continuing or interrupting a continuable child;
+- releasing or deleting a child activation separately from `interrupt`
+  (DSH exposes no user-facing termination remote method);
 - routing a subagent's approval or question to the parent session's terminal.
 
 Use the main agent's delegation tools or the Web GUI for those operations.
-`/cancel` refuses to cancel when the current view is a subagent history.
 
 ### Subagent peek
 
