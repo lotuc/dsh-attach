@@ -12,7 +12,7 @@ falling back to a normal prompt.
 | `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. In a subagent history view this opens the stop confirmation for that subagent. |
 | `Ctrl+T` | Expand or collapse reasoning blocks. Collapsed previews follow the latest reasoning line. |
 | `Ctrl+O` | Expand or collapse individual tool arguments and output. |
-| `Ctrl+G` | Expand all step groups; by default running groups expand automatically. |
+| `Ctrl+G` | Expand or collapse turn-level work summaries and their step groups; running turns expand automatically. |
 | `Ctrl+L` | Return to the newest message and resume auto-follow. |
 | `Ctrl+R` | Load one older page of session history; the reader's scroll position stays anchored. |
 | `PgUp` | Scroll the transcript up one page. |

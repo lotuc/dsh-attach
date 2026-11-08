@@ -486,6 +486,21 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     assert.match(app.steps.group.render(100).join('\n'), /npm test/, 'Ctrl+G expands completed groups');
     app.showCommandGroups = false;
 
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: { type: 'event', event: { type: 'turn/end', time: Date.now(), data: { reason: { kind: 'complete' } } } },
+    });
+    const fold = [...app.turnFolds.values()].at(-1);
+    assert.ok(fold, 'tool work creates one turn-level fold');
+    assert.equal(fold.collapsed, true, 'completed work folds by default');
+    const folded = app.document.render(100).join('\n');
+    assert.match(folded, /Completed in/);
+    assert.doesNotMatch(folded, /npm test/, 'collapsed turn hides command rows');
+    fold.setCollapsed(false);
+    app.showCommandGroups = true;
+    const unfolded = app.document.render(100).join('\n');
+    assert.match(unfolded, /npm test/, 'expanded turn shows command rows');
+
     app.rejectionHandler(new Error('smoke rejection'));
     assert.equal(app.quitting, false, 'a rejected UI callback must not quit the app');
     assert.ok(

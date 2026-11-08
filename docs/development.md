@@ -230,6 +230,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/autocomplete-layout.js` | Pure screen placement for the floating completion list. |
 | `lib/client/editor.js` | Stable-height composer that renders completions as an overlay. |
 | `lib/client/transcript.js` | Transcript row components, step groups, render cache, sanitization, long-stream behavior. |
+| `lib/client/turn-fold.js` | Turn-level work-process summary, duration/tool-call counts, and hidden-row document filtering. |
 | `lib/client/transcript-search.js` | Search over the loaded transcript with row/line offsets. |
 | `lib/client/panels.js` | Approval, question, picker, job-output, and information panels. |
 | `lib/client/approval-context.js` | Target, proposed-edit and session context for approval details. |

@@ -35,15 +35,15 @@ has two levels:
   ✓ read README.md
 ```
 
-The running group expands automatically and shows child tools and thinking in
-compact form. `Ctrl+O` expands tool arguments/output, and `Ctrl+T` expands
-thinking; neither key opens or closes the group itself. A finished group
-collapses to a summary such as
-`▸ ✓ Ran commands and edited files`, and `Ctrl+G` expands all groups for manual
-inspection. Failures add a `failed` count.
+The running turn's work expands automatically and shows its step groups and
+child tools in compact form. `Ctrl+O` expands tool arguments/output, and
+`Ctrl+T` expands thinking. A finished turn collapses to one summary such as
+`▸ ✓ Completed in 2m 13s · 42 tool calls`; `Ctrl+G` expands or collapses every
+turn summary and its step groups for manual inspection. Failures add a
+`failed` count.
 
-The group label reflects the tools in the step: `commands`, `edited files`,
-`read files`, or a combination. Thinking-only activity remains a standalone
+Inside an expanded turn, each step group carries its own label such as
+`Ran commands and edited files`. Thinking-only activity remains a standalone
 reasoning row. Its collapsed preview follows the latest non-empty reasoning
 line and shows the live character count, like `tail -f`; `Ctrl+T` opens the full
 reasoning block.
@@ -240,8 +240,8 @@ Scrolling and navigation:
   streaming output does not pull the view back to the bottom.
 - `/find <text>` jumps to the first loaded match; `/find` opens an incremental
   search over the loaded transcript, including pages loaded from history.
-  Collapsed groups are searched as they render, so expand a group with
-  `Ctrl+O`/`Ctrl+G` to search its children.
+  Folded work stays searchable; expand it with `Ctrl+G` to inspect the matched
+  command rows.
 
 While following, the transcript is bounded to **5,000 rendered rows**. Older
 rows are dropped as new ones arrive. Trimming is deferred while you are scrolled
