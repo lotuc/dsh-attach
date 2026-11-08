@@ -213,6 +213,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/cli.js` | Argument parsing, help, `--list`, theme validation, entry flow, `--hot`. |
 | `lib/client/hot-reload.js` | Development supervisor that restarts the TUI child on source changes. |
 | `lib/client/connection.js` | Descriptor discovery, socket connection/reconnect, request/response, notifications. |
+| `lib/client/history-pagination.js` | Cursor ordering, dedupe, scroll anchoring, and status helpers for older-history pages. |
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
 | `lib/client/step-activity.js` | Turn/step lifecycle, tool grouping, and reasoning attachment. |
 | `lib/client/clipboard-image.js` | Clipboard image intake for macOS, Linux and Windows. |
@@ -374,6 +375,11 @@ must be kept in sync in:
   client handshake);
 - `herdr-plugin.toml` (Herdr plugin manifest `version`);
 - the tarball and descriptor examples in `README.md` and `docs/`.
+
+Coverage gates: `pnpm test:coverage` requires at least 70% lines, 65% branches,
+and 65% functions. Raise these thresholds only after the baseline improves.
+`pnpm check` runs lint, syntax, docs, and the regular test suite; CI still runs
+the coverage variant separately.
 
 Release steps:
 
