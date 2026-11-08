@@ -80,7 +80,8 @@ only by the current user.
   in-progress, and completed markers; the activity line carries the active
   count.
 - **Turn-level detail**: completed turn work folds into one timestamped
-  duration/tool-call summary; `Ctrl+G` cycles `compact`, `standard`, and `verbose`, and `/detail`
+  duration/tool-call summary with live activity labels such as
+  `Running commands · npm test`; `Ctrl+G` cycles `compact`, `standard`, and `verbose`, and `/detail`
   sets a level directly.
 - **Skill catalog**: `/skill list|show|run` lists user-invocable skills,
   inspects instructions, and invokes them; user skill names also complete in the
@@ -124,7 +125,7 @@ inside DeepSeek Harness.
 
    ```sh
    pnpm pack
-   dsh plugin --profile desktop add ./dsh-attach-2026.1108.2341.tgz
+   dsh plugin --profile desktop add ./dsh-attach-2026.1108.2346.tgz
    ```
 
 2. Put `dsh-attach` on `PATH`. The installed binary lives under the profile:

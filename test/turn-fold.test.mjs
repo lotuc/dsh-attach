@@ -18,7 +18,8 @@ test('summarizes one turn and hides its process rows when collapsed', () => {
   fold.addTool();
   fold.processRows.add(first);
   fold.processRows.add(second);
-  assert.match(fold.render(100).join('\n'), /Working · 2 tool calls/);
+  fold.setActivity('commands', 'npm test');
+  assert.match(fold.render(100).join('\n'), /Running commands · npm test/);
   assert.equal(fold.collapsed, false);
 
   fold.finish({ endedAt: 66_000 });

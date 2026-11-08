@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1108.2341',
+      pluginVersion: '2026.1108.2346',
     };
     this.closed = false;
     this.requests = [];
@@ -434,6 +434,7 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     });
     assert.ok(app.steps.group, 'tool calls start a step group');
     assert.equal(app.steps.rowFor('c1').status, 'running');
+    assert.equal(app.currentTurnFold?.activityLabel, 'Running commands · npm test');
     assert.match(app.steps.group.render(100).join('\n'), /Running commands/);
     assert.doesNotMatch(app.steps.group.render(100).join('\n'), /\{"command"/, 'child details stay collapsed under Ctrl+O');
     client.emit('frame', {
