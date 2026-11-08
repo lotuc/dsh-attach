@@ -14,6 +14,8 @@ test('collapsed reasoning previews the live tail, not the first line', () => {
   assert.match(text(row), /latest streamed line/);
   assert.doesNotMatch(text(row), /first stable line/);
   assert.match(text(row), /chars/);
+  assert.match(text(row, 60), /chars$/);
   row.setText('first stable line\nlatest streamed line\nnewest line');
   assert.match(text(row), /newest line/);
+  assert.match(text(row, 60), /chars$/);
 });

@@ -45,7 +45,7 @@ turn summary and its step groups for manual inspection. Failures add a
 Inside an expanded turn, each step group carries its own label such as
 `Ran commands and edited files`. Thinking-only activity remains a standalone
 reasoning row. Its collapsed preview follows the latest non-empty reasoning
-line and shows the live character count, like `tail -f`; `Ctrl+T` opens the full
+line and shows a compact, right-aligned character count, like `tail -f`; `Ctrl+T` opens the full
 reasoning block.
 
 ## Goals and plan mode
