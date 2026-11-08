@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 import { hotChildArgs, isHotSource, runHotReload } from '../lib/client/hot-reload.js';
@@ -19,10 +20,24 @@ test('hot reload watches JavaScript sources only', () => {
   assert.equal(isHotSource(undefined), false);
 });
 
-test('query-string imports create a fresh Host server module', async () => {
-  const first = await import('../lib/host/server.js');
-  const second = await import('../lib/host/server.js?hot=test');
-  assert.notEqual(first.AttachServer, second.AttachServer);
+test('query-string imports create a fresh Host server module', () => {
+  // Import the real Host module in a child process. The coverage collector
+  // reports the query-string URL under the same filename as the plain module,
+  // so importing both in this process would replace the real route coverage
+  // with top-level-only coverage for `lib/host/server.js`.
+  const serverUrl = new URL('../lib/host/server.js', import.meta.url).href;
+  const probe = `
+    const first = await import(${JSON.stringify(serverUrl)});
+    const second = await import(${JSON.stringify(serverUrl)} + '?hot=test');
+    process.stdout.write(first.AttachServer === second.AttachServer ? 'same' : 'fresh');
+  `;
+  const env = { ...process.env, NODE_V8_COVERAGE: '' };
+  const child = spawnSync(process.execPath, ['--input-type=module', '--eval', probe], {
+    encoding: 'utf8',
+    env,
+  });
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(child.stdout, 'fresh');
 });
 
 test('hot supervisor restarts the child and exits when it quits normally', async () => {
