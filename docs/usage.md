@@ -36,16 +36,20 @@ has two levels:
 ```
 
 The running turn's work expands automatically and shows its step groups and
-child tools in compact form. `Ctrl+O` expands tool arguments/output, and
-`Ctrl+T` expands thinking. A finished turn collapses to one summary such as
-`▸ ✓ Completed in 2m 13s · 42 tool calls`; `Ctrl+G` expands or collapses every
-turn summary and its step groups for manual inspection. Failures add a
-`failed` count.
+child tools in compact form. A finished turn collapses to one summary such as
+`▸ ✓ Completed in 2m 13s · 42 tool calls`. Failures add a `failed` count.
 
-Inside an expanded turn, each step group carries its own label such as
+There is one detail control instead of separate thinking/tool/group toggles:
+
+- `compact`: fold running and completed turn work;
+- `standard` (default): keep the running turn open and fold completed turns;
+- `verbose`: expand turn work, tools, and reasoning.
+
+`Ctrl+G` cycles these levels; `/detail compact|standard|verbose` sets one
+directly. Inside an expanded turn, each step group carries its own label such as
 `Ran commands and edited files`. Thinking-only activity remains a standalone
 reasoning row. Its collapsed preview follows the latest non-empty reasoning
-line and shows a compact, right-aligned character count, like `tail -f`; `Ctrl+T` opens the full
+line and shows a compact, right-aligned character count, like `tail -f`.
 reasoning block.
 
 ## Goals and plan mode
@@ -240,8 +244,8 @@ Scrolling and navigation:
   streaming output does not pull the view back to the bottom.
 - `/find <text>` jumps to the first loaded match; `/find` opens an incremental
   search over the loaded transcript, including pages loaded from history.
-  Folded work stays searchable; expand it with `Ctrl+G` to inspect the matched
-  command rows.
+  Folded work stays searchable; use `/detail verbose` or cycle with `Ctrl+G`
+  to inspect matched command rows.
 
 While following, the transcript is bounded to **5,000 rendered rows**. Older
 rows are dropped as new ones arrive. Trimming is deferred while you are scrolled

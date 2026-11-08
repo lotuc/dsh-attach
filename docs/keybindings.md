@@ -10,9 +10,8 @@ falling back to a normal prompt.
 |---|---|
 | `Ctrl+C` | Quit immediately when idle with no panel open. While a turn is running or a panel is open, press twice within two seconds. Running Host work is not stopped; `/quit` always exits immediately. |
 | `Esc` `Esc` | Interrupt the running turn (two presses within 750 ms). The first press shows `esc again to interrupt`. In a subagent history view this opens the stop confirmation for that subagent. |
-| `Ctrl+T` | Expand or collapse reasoning blocks. Collapsed previews follow the latest reasoning line. |
-| `Ctrl+O` | Expand or collapse individual tool arguments and output. |
-| `Ctrl+G` | Expand or collapse turn-level work summaries and their step groups; running turns expand automatically. |
+| `Ctrl+G` | Cycle transcript detail: `compact` → `standard` → `verbose`. |
+| `/detail [level]` | Set `compact`, `standard`, or `verbose` directly; no argument cycles. |
 | `Ctrl+L` | Return to the newest message and resume auto-follow. |
 | `Ctrl+R` | Load one older page of session history; the reader's scroll position stays anchored. |
 | `PgUp` | Scroll the transcript up one page. |
@@ -266,6 +265,7 @@ non-consuming observer cursor, so it never steals output from the model's
 | `/history` | Load the next older page of session history. Alias: `/earlier`. |
 | `/model [provider model]` | Open the model picker, or switch directly. |
 | `/permission [mode]` | Open the sandbox-preset picker, or apply `read-only`, `workspace-write`, `danger-full-access`, or `auto` directly. |
+| `/detail [compact|standard|verbose]` | Set the single transcript detail level; no argument cycles. |
 | `/status` | Show session, model, preset, sandbox, context, token, queued-message count, todo, goal, host, theme, and socket details. |
 | `/quit`, `/exit` | Exit the client without stopping Host work. |
 

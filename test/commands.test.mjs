@@ -71,7 +71,7 @@ function fakeClient() {
 
 test('local commands expose grouped navigation', () => {
   const items = localCommandItems(fakeClient());
-  for (const name of ['session', 'subagent', 'image', 'job', 'skill', 'todo', 'history', 'goal', 'plan']) {
+  for (const name of ['session', 'subagent', 'image', 'job', 'skill', 'todo', 'detail', 'history', 'goal', 'plan']) {
     assert.ok(items.some((item) => item.name === name), name);
   }
   assert.equal(items.some((item) => item.name === 'job-output'), false, 'legacy aliases stay out of completion');
@@ -129,6 +129,8 @@ test('local command items expose grouped, resume and model argument completion',
   ]);
   assert.deepEqual((await image.getArgumentCompletions('')).map((entry) => entry.value), ['paste', 'list', 'clear']);
   assert.deepEqual((await skill.getArgumentCompletions('')).map((entry) => entry.value), ['list', 'show ', 'run ']);
+  const detail = items.find((item) => item.name === 'detail');
+  assert.deepEqual((await detail.getArgumentCompletions('')).map((entry) => entry.value), ['compact', 'standard', 'verbose']);
   assert.deepEqual(await skill.getArgumentCompletions('show clo'), [
     { value: 'show clojure-eval', label: 'show clojure-eval', description: 'Evaluate Clojure code via nREPL' },
   ]);

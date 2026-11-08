@@ -214,6 +214,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/hot-reload.js` | Development supervisor that restarts the TUI child on source changes. |
 | `lib/client/connection.js` | Descriptor discovery, socket connection/reconnect, request/response, notifications. |
 | `lib/client/history-pagination.js` | Cursor ordering, dedupe, scroll anchoring, and status helpers for older-history pages. |
+| `lib/client/detail-level.js` | Single compact/standard/verbose transcript detail model. |
 | `lib/client/app.js` | TUI layout, event projection, commands, status, completion overlay, Herdr reports. |
 | `lib/client/step-activity.js` | Turn/step lifecycle, tool grouping, and reasoning attachment. |
 | `lib/client/clipboard-image.js` | Clipboard image intake for macOS, Linux and Windows. |
@@ -330,7 +331,7 @@ node bin/dsh-attach.js --help
 
 # pack and install into a profile
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1108.2309.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1108.2336.tgz
 ```
 
 ### Hot reload (development)
@@ -368,7 +369,7 @@ DSH_ATTACH_HOT=1 dsh-attach -s <session-id>    # client hot supervisor
 ## Versioning and release checklist
 
 Versions are time-based: `YYYY.MMDD.HHmm` using the local release time, for
-example `2026.1108.2309`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
+example `2026.1108.2336`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
 must be kept in sync in:
 
 - `package.json` (`version`, the release source of truth);

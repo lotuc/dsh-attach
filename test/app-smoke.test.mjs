@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1108.2309',
+      pluginVersion: '2026.1108.2336',
     };
     this.closed = false;
     this.requests = [];
@@ -500,6 +500,21 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     app.showCommandGroups = true;
     const unfolded = app.document.render(100).join('\n');
     assert.match(unfolded, /npm test/, 'expanded turn shows command rows');
+
+    app.editor.setText('/detail compact');
+    app.editor.handleInput('\r');
+    await wait(40);
+    assert.equal(app.detailLevel, 'compact');
+    assert.equal(fold.collapsed, true);
+    app.editor.setText('/detail verbose');
+    app.editor.handleInput('\r');
+    await wait(40);
+    assert.equal(app.detailLevel, 'verbose');
+    assert.equal(fold.collapsed, false);
+    assert.match(app.document.render(100).join('\n'), /npm test/);
+    tui.inputListeners[0]('\x07');
+    await wait(20);
+    assert.equal(app.detailLevel, 'compact', 'Ctrl+G cycles the same detail levels');
 
     app.rejectionHandler(new Error('smoke rejection'));
     assert.equal(app.quitting, false, 'a rejected UI callback must not quit the app');
