@@ -120,10 +120,8 @@ The Host writes two descriptors with mode `0600`:
 - `$DSH_HOME/dsh-attach/<profile>-<pid>.json`
 
 Writes are atomic (`write` to a temporary file, then `rename`). The client scans
-`$DSH_HOME/dsh-attach/` first and the legacy `$DSH_HOME/tui-attach/` directory
-second, for upgrade compatibility. Within each directory it tries the primary
-descriptor first and then newest-first siblings, and filters by `--profile` when
-requested. A descriptor is accepted only when its `protocol` matches
+`$DSH_HOME/dsh-attach/`. It tries the primary descriptor first and then
+newest-first siblings, and filters by `--profile` when requested. A descriptor is accepted only when its `protocol` matches
 `PROTOCOL_VERSION` and it contains both `socketPath` and `token`.
 
 ## Wire protocol
@@ -330,7 +328,7 @@ node bin/dsh-attach.js --help
 
 # pack and install into a profile
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-0.14.0.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1108.2153.tgz
 ```
 
 ### Hot reload (development)

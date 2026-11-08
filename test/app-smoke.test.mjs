@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '0.14.0',
+      pluginVersion: '2026.1108.2153',
     };
     this.closed = false;
     this.requests = [];

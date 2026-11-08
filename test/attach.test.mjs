@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { once } from 'node:events';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,7 +7,7 @@ import test from 'node:test';
 
 import { AttachClient } from '../lib/client/connection.js';
 import { AttachServer } from '../lib/host/server.js';
-import { ENDPOINT_DIR, ENDPOINT_FILE, LEGACY_ENDPOINT_DIR } from '../lib/shared/protocol.js';
+import { ENDPOINT_DIR, ENDPOINT_FILE } from '../lib/shared/protocol.js';
 
 const snapshot = {
   type: 'snapshot',
@@ -272,7 +272,6 @@ async function makeServerWithFixture(home, fixture, overrides = {}) {
   });
   await server.start();
   const descriptor = JSON.parse(await readFile(join(home, ENDPOINT_DIR, ENDPOINT_FILE), 'utf8'));
-  await assert.rejects(access(join(home, LEGACY_ENDPOINT_DIR)), { code: 'ENOENT' });
   return { ...fixture, server, descriptor };
 }
 
