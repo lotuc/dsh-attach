@@ -79,8 +79,8 @@ only by the current user.
 - **Todo list**: `/todo` shows the model's current plan with pending,
   in-progress, and completed markers; the activity line carries the active
   count.
-- **Turn-level detail**: completed turn work folds into one duration/tool-call
-  summary; `Ctrl+G` cycles `compact`, `standard`, and `verbose`, and `/detail`
+- **Turn-level detail**: completed turn work folds into one timestamped
+  duration/tool-call summary; `Ctrl+G` cycles `compact`, `standard`, and `verbose`, and `/detail`
   sets a level directly.
 - **Skill catalog**: `/skill list|show|run` lists user-invocable skills,
   inspects instructions, and invokes them; user skill names also complete in the
@@ -124,7 +124,7 @@ inside DeepSeek Harness.
 
    ```sh
    pnpm pack
-   dsh plugin --profile desktop add ./dsh-attach-2026.1108.2336.tgz
+   dsh plugin --profile desktop add ./dsh-attach-2026.1108.2341.tgz
    ```
 
 2. Put `dsh-attach` on `PATH`. The installed binary lives under the profile:

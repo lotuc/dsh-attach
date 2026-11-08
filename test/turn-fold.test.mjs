@@ -25,7 +25,7 @@ test('summarizes one turn and hides its process rows when collapsed', () => {
   assert.equal(fold.collapsed, true);
   assert.equal(first.hiddenByTurn, true);
   assert.equal(second.hiddenByTurn, true);
-  assert.match(fold.render(100).join('\n'), /Completed in 1m 5s · 2 tool calls/);
+  assert.match(fold.render(100).join('\n'), /Completed at .* · 1m 5s · 2 tool calls/);
 
   fold.setCollapsed(false);
   assert.equal(first.hiddenByTurn, false);
@@ -37,11 +37,11 @@ test('marks failed turns and thought-only turns', () => {
   failed.addTool();
   failed.addFailure();
   failed.finish({ endedAt: 3_000, failed: true });
-  assert.match(failed.render(100).join('\n'), /Failed in 3s · 1 tool call/);
+  assert.match(failed.render(100).join('\n'), /Failed at .* · 3s · 1 tool call/);
 
   const thought = new TurnFoldRow({ turn: 2, startedAt: 0 });
   thought.finish({ endedAt: 4_000 });
-  assert.match(thought.render(100).join('\n'), /Thought for a while/);
+  assert.match(thought.render(100).join('\n'), /Thought for a while at /);
 });
 
 test('TranscriptDocument omits hidden rows while preserving visible order', () => {

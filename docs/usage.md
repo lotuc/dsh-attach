@@ -37,7 +37,10 @@ has two levels:
 
 The running turn's work expands automatically and shows its step groups and
 child tools in compact form. A finished turn collapses to one summary such as
-`▸ ✓ Completed in 2m 13s · 42 tool calls`. Failures add a `failed` count.
+`▸ ✓ Completed at 23:44:23 · 2m 13s · 42 tool calls`. The running header
+shows `started 23:42:10 · 2m 13s`; the activity line also shows the start time
+and live elapsed time, and after completion shows `last completed 23:44:23`.
+Failures add a `failed` count.
 
 There is one detail control instead of separate thinking/tool/group toggles:
 

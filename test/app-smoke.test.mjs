@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1108.2336',
+      pluginVersion: '2026.1108.2341',
     };
     this.closed = false;
     this.requests = [];
@@ -494,7 +494,8 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     assert.ok(fold, 'tool work creates one turn-level fold');
     assert.equal(fold.collapsed, true, 'completed work folds by default');
     const folded = app.document.render(100).join('\n');
-    assert.match(folded, /Completed in/);
+    assert.match(folded, /Completed at/);
+    assert.match(app.activity.render(200).join('\n'), /last completed/);
     assert.doesNotMatch(folded, /npm test/, 'collapsed turn hides command rows');
     fold.setCollapsed(false);
     app.showCommandGroups = true;
