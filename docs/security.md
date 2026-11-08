@@ -34,7 +34,7 @@ Descriptor example, with the token abbreviated:
 {
   "protocol": 1,
   "plugin": "dsh-attach",
-  "pluginVersion": "2026.1108.2218",
+  "pluginVersion": "2026.1108.2237",
   "pid": 12345,
   "socketPath": "/Users/me/.dsh/dsh-attach/attach-12345.sock",
   "token": "<redacted>",
