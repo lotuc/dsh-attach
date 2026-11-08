@@ -365,7 +365,9 @@ DSH_ATTACH_HOT=1 dsh-attach -s <session-id>    # client hot supervisor
 
 ## Versioning and release checklist
 
-The version appears in several places and must be kept in sync:
+Versions are time-based: `YYYY.MMDD.HHmm` using the local release time, for
+example `2026.1108.2153`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
+must be kept in sync in:
 
 - `package.json` (`version`, the release source of truth);
 - `lib/shared/version.js` (`VERSION`, consumed by the Host bridge, CLI and
@@ -376,8 +378,9 @@ The version appears in several places and must be kept in sync:
 Release steps:
 
 1. Run `pnpm test`.
-2. Update `package.json`, `lib/shared/version.js`, the Herdr manifest and the
-   tarball example together; `pnpm test` checks they agree.
+2. Generate the time version and update `package.json`, `lib/shared/version.js`,
+   the Herdr manifest and the tarball example together; `pnpm test` checks they
+   agree.
 3. If the wire format changed, bump `PROTOCOL_VERSION` in
    `lib/shared/protocol.js` and verify old/new compatibility behavior.
 4. Run `pnpm pack`.
