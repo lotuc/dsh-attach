@@ -67,7 +67,6 @@ test('builds report-agent arguments with a resume command', () => {
 
 test('builds pane metadata arguments for the session title', () => {
   const args = herdrReportMetadataArgs(herdrContext(ENV), {
-    seq: 8,
     title: 'Fix the tests',
     displayAgent: 'Fix the tests',
   });
@@ -79,8 +78,6 @@ test('builds pane metadata arguments for the session title', () => {
     'dsh-attach',
     '--agent',
     'dsh',
-    '--seq',
-    '8',
     '--title',
     'Fix the tests',
     '--display-agent',
