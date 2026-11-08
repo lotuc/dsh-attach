@@ -385,3 +385,30 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
   assert.equal(process.listenerCount('SIGTERM'), before.sigterm);
   assert.equal(process.stdin.listenerCount('end'), before.stdinEnd);
 });
+
+
+test('retries reconnect after a failed attempt', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  let attempts = 0;
+  client.reconnect = async () => {
+    attempts += 1;
+    throw new Error('host still down');
+  };
+  const app = new AttachApp(client, { session: 's1', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    client.emit('close');
+    await wait(1_700);
+    assert.ok(attempts >= 2, `expected retries after the first failure, saw ${attempts}`);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
