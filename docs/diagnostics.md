@@ -3,11 +3,11 @@
 ## Lifecycle log
 
 The client writes an append-only lifecycle log to
-`$DSH_HOME/tui-attach/client.log` by default. The directory is `0700` and the
+`$DSH_HOME/dsh-attach/client.log` by default. The directory is `0700` and the
 file is `0600`. When the file exceeds 2 MB it is rotated to `client.log.1`.
 
 ```sh
-tail -f "${DSH_HOME:-$HOME/.dsh}/tui-attach/client.log"
+tail -f "${DSH_HOME:-$HOME/.dsh}/dsh-attach/client.log"
 ```
 
 Controls:
@@ -74,7 +74,7 @@ A shell wrapper can capture the status around the client:
 while :; do
   dsh-attach -s <session-id>
   code=$?
-  printf '%s exit=%s\n' "$(date '+%F %T')" "$code" | tee -a ~/.dsh/tui-attach/exit.log
+  printf '%s exit=%s\n' "$(date '+%F %T')" "$code" | tee -a ~/.dsh/dsh-attach/exit.log
   [ "$code" -eq 0 ] && break
   sleep 1
 done

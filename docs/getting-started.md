@@ -16,11 +16,11 @@
 From a checkout of this repository:
 
 ```sh
-dsh plugin --profile desktop add ./dsh-tui-attach
+dsh plugin --profile desktop add ./dsh-attach
 ```
 
 `dsh plugin` adds the package to the profile's `dsh.profile.bundles`, installs
-its dependencies, and mounts the `tui-attach` entry declared in
+its dependencies, and mounts the `dsh-attach` entry declared in
 `cordis.patch.yml`.
 
 If `dsh` is not on `PATH` (for example when using the desktop app), call the
@@ -28,21 +28,21 @@ launcher bundled with the app directly on macOS:
 
 ```sh
 "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
-  plugin --profile desktop add ./dsh-tui-attach
+  plugin --profile desktop add ./dsh-attach
 ```
 
 To install from a packed tarball:
 
 ```sh
 pnpm pack
-dsh plugin --profile desktop add ./dsh-tui-attach-0.14.0.tgz
+dsh plugin --profile desktop add ./dsh-attach-0.14.0.tgz
 ```
 
 For the Web profile, use the same command with `--profile web`, then restart
 `dsh web`:
 
 ```sh
-dsh plugin --profile web add ./dsh-tui-attach
+dsh plugin --profile web add ./dsh-attach
 ```
 
 **Restart DeepSeek Harness after installing or upgrading.** The bridge is
@@ -54,7 +54,7 @@ the new bundle.
 After the restart, the Host writes an endpoint descriptor:
 
 ```sh
-ls -l "${DSH_HOME:-$HOME/.dsh}/tui-attach/"
+ls -l "${DSH_HOME:-$HOME/.dsh}/dsh-attach/"
 ```
 
 You should see `endpoint.json` plus a per-profile descriptor. If the directory
@@ -116,7 +116,7 @@ The TUI requires a TTY. Use `--list` for scripts and non-interactive output.
 | `-C`, `--cwd <path>` | Working directory for a new session. |
 | `--list` | Print sessions in a table and exit. |
 | `--all` | Include subagent sessions in `--list`. |
-| `--endpoint <file>` | Read a specific endpoint descriptor instead of `$DSH_HOME/tui-attach/endpoint.json`. |
+| `--endpoint <file>` | Read a specific endpoint descriptor instead of `$DSH_HOME/dsh-attach/endpoint.json`. |
 | `--socket <path>` | Connect directly to this Unix socket. Requires `--token`. |
 | `--token <token>` | Token for `--socket`. |
 | `--profile <name>` | Only consider endpoints written by this profile. |
@@ -128,7 +128,7 @@ The TUI requires a TTY. Use `--list` for scripts and non-interactive output.
 
 ### Direct connection
 
-Normally the client discovers descriptors under `$DSH_HOME/tui-attach/` and
+Normally the client discovers descriptors under `$DSH_HOME/dsh-attach/` and
 tries the newest endpoints in order. For a custom setup, point it at the
 descriptor or at a socket and token directly:
 
@@ -165,13 +165,19 @@ browse the lineage of the current session.
 
 The symlink does not need to be recreated when the profile path stays the same.
 
+The client from this release also scans the previous `$DSH_HOME/tui-attach/`
+directory, so it can attach to a Host that still runs the old plugin while you
+upgrade. The new Host writes only `$DSH_HOME/dsh-attach/`. If a profile overrides
+the old `tui-attach` bundle entry in `cordis.patch.yml`, rename that override to
+`dsh-attach`.
+
 ## Removal
 
-Remove the `tui-attach` bundle from the profile using your normal DSH plugin
+Remove the `dsh-attach` bundle from the profile using your normal DSH plugin
 workflow, delete the client symlink if you created one, and restart the Host.
 Removing the package stops new sockets from being served. Descriptor files are
 cleaned up on a normal Host shutdown; remove any stale leftovers from
-`$DSH_HOME/tui-attach/` only while no matching Host process is running.
+`$DSH_HOME/dsh-attach/` only while no matching Host process is running.
 
 ## Next steps
 

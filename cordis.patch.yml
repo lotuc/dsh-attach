@@ -1,5 +1,5 @@
-# dsh-tui-attach bundle patch: mount the attach bridge into a profile.
+# dsh-attach bundle patch: mount the attach bridge into a profile.
 # The bridge serves one Unix-domain socket owned by the current DSH host.
 - insert:
-    - id: tui-attach
-      name: 'dsh-tui-attach'
+    - id: dsh-attach
+      name: 'dsh-attach'

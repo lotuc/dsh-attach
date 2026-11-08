@@ -1,5 +1,5 @@
-id = "dsh-tui-attach"
-name = "DSH TUI Attach"
+id = "dsh-attach"
+name = "DSH Attach"
 version = "0.14.0"
 min_herdr_version = "0.9.0"
 description = "Read-only DeepSeek Harness subagent previews in managed Herdr panes."

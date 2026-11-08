@@ -9,7 +9,7 @@ import { ClientLog, resolveLogPath } from '../lib/client/log.js';
 test('resolves the default and opt-out log paths', () => {
   assert.equal(resolveLogPath({ DSH_ATTACH_LOG: 'off' }), null);
   assert.equal(resolveLogPath({ DSH_ATTACH_LOG: '/tmp/x.log' }), '/tmp/x.log');
-  assert.match(resolveLogPath({ DSH_HOME: '/tmp/dsh-home' }), /\/tmp\/dsh-home\/tui-attach\/client\.log$/);
+  assert.match(resolveLogPath({ DSH_HOME: '/tmp/dsh-home' }), /\/tmp\/dsh-home\/dsh-attach\/client\.log$/);
 });
 
 test('throttles noisy focus events and records the suppressed count', async () => {

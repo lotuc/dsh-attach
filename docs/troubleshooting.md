@@ -9,8 +9,8 @@
 3. Check the endpoint and the lifecycle log:
 
    ```sh
-   ls -l "${DSH_HOME:-$HOME/.dsh}/tui-attach/"
-   tail -n 50 "${DSH_HOME:-$HOME/.dsh}/tui-attach/client.log"
+   ls -l "${DSH_HOME:-$HOME/.dsh}/dsh-attach/"
+   tail -n 50 "${DSH_HOME:-$HOME/.dsh}/dsh-attach/client.log"
    ```
 
 4. Test authentication and discovery without the TUI:
@@ -25,7 +25,7 @@ You can inspect a descriptor without printing its token:
 
 ```sh
 jq '{pid, profile, socketPath, pluginVersion, protocol}' \
-  "${DSH_HOME:-$HOME/.dsh}/tui-attach/endpoint.json"
+  "${DSH_HOME:-$HOME/.dsh}/dsh-attach/endpoint.json"
 ```
 
 ## Common problems
@@ -54,8 +54,8 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | A Herdr preview pane closes while the session keeps running | Managed preview panes auto-close only when `DSH_ATTACH_PREVIEW_EXIT_AFTER` is positive; the default is `0` (stay open). The main session TUI never uses the preview auto-close path. |
 | `/jobs` reports background jobs are unavailable | Restart DeepSeek Harness after upgrading the plugin so the Host loads the job routes. The Host composition must also include its job registry (`dsh-jobs-local` / `dsh-tool-jobs`). |
 | `/subagents-preview` says it needs a Herdr pane | Run the parent `dsh-attach` inside Herdr, or use `/subagents` for an in-TUI list. |
-| `/subagents-preview` reports the Herdr plugin is not linked | Run `herdr plugin link --enabled <path-to-dsh-tui-attach>`. Use the repository path or the installed profile package path. |
-| `/subagents-preview` opens a pane that exits immediately | Make sure `node` is on `PATH` and relink the plugin after upgrading this package. Check `herdr plugin log list --plugin dsh-tui-attach`. |
+| `/subagents-preview` reports the Herdr plugin is not linked | Run `herdr plugin link --enabled <path-to-dsh-attach>`. Use the repository path or the installed profile package path. |
+| `/subagents-preview` opens a pane that exits immediately | Make sure `node` is on `PATH` and relink the plugin after upgrading this package. Check `herdr plugin log list --plugin dsh-attach`. |
 | `/subagent continue` says the parent is not live | Continuation is addressed through the child's direct parent Agent. Open that parent session (or resume it in the Web GUI) first; interrupt still works without a live parent. |
 | `/subagent continue` says only continuable subagents can be continued | One-shot and external children cannot accept follow-ups. Open their history to inspect the result instead. |
 | `/subagent interrupt` reports that control is unavailable | The Host predates the `subagent.continue` / `subagent.interrupt` routes. Restart DeepSeek Harness after upgrading the plugin; browsing and counts still work. |

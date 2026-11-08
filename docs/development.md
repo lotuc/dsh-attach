@@ -116,14 +116,15 @@ other TUI panels.
 
 The Host writes two descriptors with mode `0600`:
 
-- `$DSH_HOME/tui-attach/endpoint.json`
-- `$DSH_HOME/tui-attach/<profile>-<pid>.json`
+- `$DSH_HOME/dsh-attach/endpoint.json`
+- `$DSH_HOME/dsh-attach/<profile>-<pid>.json`
 
-Writes are atomic (`write` to a temporary file, then `rename`). The client reads
-all descriptors in the directory, tries the primary descriptor first and then
-newest-first, and filters by `--profile` when requested. A descriptor is accepted
-only when its `protocol` matches `PROTOCOL_VERSION` and it contains both
-`socketPath` and `token`.
+Writes are atomic (`write` to a temporary file, then `rename`). The client scans
+`$DSH_HOME/dsh-attach/` first and the legacy `$DSH_HOME/tui-attach/` directory
+second, for upgrade compatibility. Within each directory it tries the primary
+descriptor first and then newest-first siblings, and filters by `--profile` when
+requested. A descriptor is accepted only when its `protocol` matches
+`PROTOCOL_VERSION` and it contains both `socketPath` and `token`.
 
 ## Wire protocol
 
@@ -258,7 +259,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/shared/paths.js` | Shared `$DSH_HOME` resolution for the bridge and client. |
 | `lib/shared/approval.js` | Localized approval-reason fallback shared by the bridge and panel. |
 | `lib/shared/version.js` | Release version consumed by the bridge, CLI and client handshake. |
-| `cordis.patch.yml` | Bundle patch that inserts the `tui-attach` entry. |
+| `cordis.patch.yml` | Bundle patch that inserts the `dsh-attach` entry. |
 | `herdr-plugin.toml` | Herdr plugin manifest with the `preview` pane entrypoint. |
 | `test/*.test.mjs` | Node test runner suites. |
 
@@ -329,7 +330,7 @@ node bin/dsh-attach.js --help
 
 # pack and install into a profile
 pnpm pack
-dsh plugin --profile desktop add ./dsh-tui-attach-0.14.0.tgz
+dsh plugin --profile desktop add ./dsh-attach-0.14.0.tgz
 ```
 
 ### Hot reload (development)
@@ -385,7 +386,7 @@ Release steps:
 5. Install the tarball into a profile, restart the Host, and smoke-test attach,
    prompt, approval, question, and a subagent preview.
 6. Relink the Herdr plugin when its manifest or wrapper changed:
-   `herdr plugin link --enabled <path-to-dsh-tui-attach>`.
+   `herdr plugin link --enabled <path-to-dsh-attach>`.
 
 ## Host compatibility notes
 

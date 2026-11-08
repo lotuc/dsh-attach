@@ -16,7 +16,7 @@ test('builds managed plugin pane arguments with connection and lifecycle env', (
     exitAfterSeconds: 15,
   });
 
-  assert.deepEqual(args.slice(0, 6), ['plugin', 'pane', 'open', '--plugin', 'dsh-tui-attach', '--entrypoint']);
+  assert.deepEqual(args.slice(0, 6), ['plugin', 'pane', 'open', '--plugin', 'dsh-attach', '--entrypoint']);
   assert.equal(args[6], 'preview');
   assert.ok(args.includes('--placement'));
   assert.ok(args.includes('split'));

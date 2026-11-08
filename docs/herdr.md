@@ -7,7 +7,7 @@ need a one-time Herdr plugin link.
 ## Agent status reporting
 
 Inside a Herdr pane, the client reports a `dsh` agent with source
-`dsh-tui-attach` and one of three states:
+`dsh-attach` and one of three states:
 
 | State | Meaning |
 |---|---|
@@ -91,9 +91,9 @@ one extra Unix socket per peek, not a new process, and keeps at most two peeks.
 repository, or its installed copy in the DSH profile, once:
 
 ```sh
-herdr plugin link --enabled /path/to/dsh-tui-attach
+herdr plugin link --enabled /path/to/dsh-attach
 # or, when installed in the desktop profile:
-herdr plugin link --enabled ~/.dsh/profiles/desktop/node_modules/dsh-tui-attach
+herdr plugin link --enabled ~/.dsh/profiles/desktop/node_modules/dsh-attach
 ```
 
 The plugin manifest is [herdr-plugin.toml](../herdr-plugin.toml). It defines the

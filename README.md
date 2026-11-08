@@ -1,8 +1,8 @@
-# dsh-tui-attach
+# dsh-attach
 
 Attach a terminal UI to an **already running** DeepSeek Harness host.
 
-`dsh-tui-attach` does not start a second harness. A Host plugin exposes the
+`dsh-attach` does not start a second harness. A Host plugin exposes the
 live `sessionController` over a local Unix socket, and the `dsh-attach` client
 connects to it. You see the same sessions, the same running agent, and the same
 approval and question flow. Prompts sent from the TUI go directly into the
@@ -17,7 +17,7 @@ running Host and are visible in the Web GUI as part of the same turn.
 ```
 
 There is no TCP listener, no extra port, and no separate account or login flow.
-The socket and its descriptor live in `$DSH_HOME/tui-attach/` and are readable
+The socket and its descriptor live in `$DSH_HOME/dsh-attach/` and are readable
 only by the current user.
 
 ## Features
@@ -114,14 +114,14 @@ inside DeepSeek Harness.
 1. Install the Host plugin into the profile and restart DeepSeek Harness:
 
    ```sh
-   dsh plugin --profile desktop add ./dsh-tui-attach
+   dsh plugin --profile desktop add ./dsh-attach
    ```
 
    To install from a packed tarball instead:
 
    ```sh
    pnpm pack
-   dsh plugin --profile desktop add ./dsh-tui-attach-0.14.0.tgz
+   dsh plugin --profile desktop add ./dsh-attach-0.14.0.tgz
    ```
 
 2. Put `dsh-attach` on `PATH`. The installed binary lives under the profile:
@@ -140,7 +140,7 @@ inside DeepSeek Harness.
    dsh-attach --theme dark     # dark terminal palette
    ```
 
-For the Web profile, install with `dsh plugin --profile web add ./dsh-tui-attach`
+For the Web profile, install with `dsh plugin --profile web add ./dsh-attach`
 and restart `dsh web`.
 
 See [Getting started](docs/getting-started.md) for the complete installation and
@@ -162,7 +162,7 @@ CLI reference.
 
 ## Security at a glance
 
-- The bridge listens on a Unix socket under `$DSH_HOME/tui-attach/` only.
+- The bridge listens on a Unix socket under `$DSH_HOME/dsh-attach/` only.
   The directory is `0700`; the socket and descriptor are `0600`.
 - Clients must present the 32-byte random token from the descriptor. The Host
   compares a SHA-256 hash with `timingSafeEqual`.

@@ -1,6 +1,6 @@
 # Security model
 
-`dsh-tui-attach` is a local control surface for a running DeepSeek Harness. It is
+`dsh-attach` is a local control surface for a running DeepSeek Harness. It is
 not a remote-access server, and it does not add a new authorization layer on top
 of the Host. Its security boundary is the operating-system user account.
 
@@ -19,7 +19,7 @@ not run the client from an untrusted account or share the token.
 
 - The bridge listens on a Unix-domain socket only. There is no TCP listener and
   no extra port.
-- The default socket is `$DSH_HOME/tui-attach/attach-<pid>.sock`, or a
+- The default socket is `$DSH_HOME/dsh-attach/attach-<pid>.sock`, or a
   temporary-directory path when the default would exceed the platform limit.
 - The endpoint directory is created with mode `0700`. The socket is `chmod`ed
   to `0600`.
@@ -33,10 +33,10 @@ Descriptor example, with the token abbreviated:
 ```json
 {
   "protocol": 1,
-  "plugin": "dsh-tui-attach",
+  "plugin": "dsh-attach",
   "pluginVersion": "0.14.0",
   "pid": 12345,
-  "socketPath": "/Users/me/.dsh/tui-attach/attach-12345.sock",
+  "socketPath": "/Users/me/.dsh/dsh-attach/attach-12345.sock",
   "token": "<redacted>",
   "profile": "desktop",
   "home": "/Users/me/.dsh",

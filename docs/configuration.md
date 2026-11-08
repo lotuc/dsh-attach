@@ -5,11 +5,11 @@ read by the terminal client.
 
 ## Host plugin configuration
 
-Override the `tui-attach` entry in the profile's `cordis.patch.yml`, using the
+Override the `dsh-attach` entry in the profile's `cordis.patch.yml`, using the
 entry ID from the bundle patch:
 
 ```yaml
-- id: tui-attach
+- id: dsh-attach
   config:
     enabled: true
     # socketPath: /custom/path.sock
@@ -28,7 +28,7 @@ at process start and advertises the active modes in its handshake.
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `enabled` | boolean | `true` | Start the socket bridge. `false` keeps the plugin mounted but serves no endpoint. |
-| `socketPath` | string | `""` | Override the socket path. Empty uses `$DSH_HOME/tui-attach/attach-<pid>.sock`. |
+| `socketPath` | string | `""` | Override the socket path. Empty uses `$DSH_HOME/dsh-attach/attach-<pid>.sock`. |
 | `approvals` | `auto`, `tui`, `web`, `off` | `tui` | Who answers approval requests. |
 | `questions` | `auto`, `tui`, `web`, `off` | `tui` | Who answers `ask_user_question` batches. |
 | `activeWindowMinutes` | number | `10` | Activity window used by `auto` routing. |
@@ -137,7 +137,7 @@ A custom `socketPath` is useful when the default path is too long or when
 managing multiple Hosts:
 
 ```yaml
-- id: tui-attach
+- id: dsh-attach
   config:
     enabled: true
     socketPath: /run/user/1000/dsh-attach.sock

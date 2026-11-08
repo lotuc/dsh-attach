@@ -264,9 +264,9 @@ test('renders the selected session path in the footer preview', () => {
       titleWidth: 26,
       value: 'a',
       label: 'A',
-      path: '/Users/lotuc/Workspace/repos/lotuc/dsh-tui-attach',
+      path: '/Users/lotuc/Workspace/repos/lotuc/dsh-attach',
       columns: [
-        { text: '…/lotuc/dsh-tui-attach', width: 30, align: 'left', flex: true },
+        { text: '…/lotuc/dsh-attach', width: 30, align: 'left', flex: true },
         { text: '2m ago', width: 8, align: 'right' },
         { text: '1/2', width: 10, align: 'right' },
       ],
@@ -277,7 +277,7 @@ test('renders the selected session path in the footer preview', () => {
     preview: (item) => `path ${item.path}`,
   });
   const text = stripTerminalSequences(panel.render(92).join('\n'));
-  assert.match(text, /path \/Users\/lotuc\/Workspace\/repos\/lotuc\/dsh-tui-attach/);
+  assert.match(text, /path \/Users\/lotuc\/Workspace\/repos\/lotuc\/dsh-attach/);
 });
 
 test('mouse wheel moves the picker selection', () => {
