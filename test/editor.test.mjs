@@ -112,3 +112,21 @@ test('does not mistake a dashed input line padded with spaces for the border', (
   assert.deepEqual(split.editor, ['────', ' --  ', '────']);
   assert.deepEqual(split.autocomplete, ['  → help ']);
 });
+
+test('opens argument completion when a space is typed after a command', async () => {
+  const editor = makeEditor();
+  editor.setAutocompleteProvider({
+    async getSuggestions(lines, line, col) {
+      const text = (lines[line] ?? '').slice(0, col);
+      if (text === '/skill ') return { items: [{ value: 'list', label: 'list' }], prefix: 'skill ' };
+      return null;
+    },
+    applyCompletion(lines, line, col) {
+      return { lines, cursorLine: line, cursorCol: col };
+    },
+  });
+  editor.setText('/skill');
+  editor.handleInput(' ');
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(editor.isShowingAutocomplete(), true);
+});

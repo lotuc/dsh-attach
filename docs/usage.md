@@ -267,9 +267,11 @@ text.
 
 A `/` at the start of a line opens the command list. Continue typing to filter;
 `Tab` completes into the editor without executing, and `Enter` completes a
-slash command and executes it. Path completions accept with `Enter` without
-submitting the prompt. For commands with arguments, completing first and typing
-the argument second is the safer workflow.
+slash command and executes it. Space or `Tab` after a command opens its
+argument suggestions immediately; a bare space after a command is not required
+to type the whole subcommand first. Path completions accept with `Enter`
+without submitting the prompt. For commands with arguments, completing first
+and typing the argument second is the safer workflow.
 
 Completion also covers:
 

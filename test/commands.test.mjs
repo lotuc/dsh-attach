@@ -49,6 +49,15 @@ function fakeClient() {
           ],
         };
       }
+      if (method === 'subagent.list') {
+        return {
+          supported: true,
+          items: [
+            { kind: 'child', id: 'child-a', label: 'Reviewer', mode: 'continuable', activity: 'running' },
+            { kind: 'child', id: 'child-b', label: 'Tester', mode: 'one-shot', activity: 'idle' },
+          ],
+        };
+      }
       if (method === 'skill.list') {
         return {
           skills: [
@@ -79,7 +88,7 @@ test('local commands expose grouped navigation', () => {
 
 test('local command items expose grouped, resume and model argument completion', async () => {
   const client = fakeClient();
-  const items = localCommandItems(client);
+  const items = localCommandItems(client, { sessionId: 's1' });
   const session = items.find((item) => item.name === 'session');
   const subagent = items.find((item) => item.name === 'subagent');
   const image = items.find((item) => item.name === 'image');
@@ -131,6 +140,10 @@ test('local command items expose grouped, resume and model argument completion',
   assert.deepEqual((await skill.getArgumentCompletions('')).map((entry) => entry.value), ['list', 'show ', 'run ']);
   const detail = items.find((item) => item.name === 'detail');
   assert.deepEqual((await detail.getArgumentCompletions('')).map((entry) => entry.value), ['compact', 'standard', 'verbose']);
+  assert.deepEqual(await subagent.getArgumentCompletions('continue chi'), [
+    { value: 'continue child-a', label: 'continue Reviewer', description: 'continuable · running' },
+    { value: 'continue child-b', label: 'continue Tester', description: 'one-shot · idle' },
+  ]);
   assert.deepEqual(await skill.getArgumentCompletions('show clo'), [
     { value: 'show clojure-eval', label: 'show clojure-eval', description: 'Evaluate Clojure code via nREPL' },
   ]);

@@ -59,7 +59,9 @@ only by the current user.
 - **Command completion**: local commands and Host-registered commands appear
   from `/`; grouped commands such as `/session resume`, `/session fork`,
   `/session preset`, and `/job output` complete their arguments, as does
-  `/model`; relative file paths complete from the session working directory.
+  `/subagent continue`, `/subagent interrupt`, and the other subagent control
+  targets; `/model`; relative file paths complete from the session working
+  directory. Space or `Tab` after a command opens argument suggestions.
 - **Floating completion panel**: completions render above the composer without
   changing its height or pushing the input around.
 - **Emacs-style editing**: `Ctrl+N/P` move through the editor, completions,
@@ -125,7 +127,7 @@ inside DeepSeek Harness.
 
    ```sh
    pnpm pack
-   dsh plugin --profile desktop add ./dsh-attach-2026.1109.1246.tgz
+   dsh plugin --profile desktop add ./dsh-attach-2026.1109.1259.tgz
    ```
 
 2. Put `dsh-attach` on `PATH`. The installed binary lives under the profile:
