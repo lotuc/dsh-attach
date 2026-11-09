@@ -400,7 +400,8 @@ While any are running, the badge shows running/total, for example
 `/subagent list` lists the lineage under the current session. Active subagents are
 listed first; within the same status, newer children come first. `/agents` and
 `/agents-preview` remain accepted as compatibility aliases. Indentation shows
-nesting depth; `Enter` opens a subagent, and `/subagent parent` returns to the direct
+nesting depth; `Enter` opens a subagent. While viewing a subagent, `Backspace`
+with an empty composer or `Alt+Left` returns to the direct
 parent. The history view is read-only and the footer is marked
 `subagent · history read-only`; control actions are addressed from the picker or
 the `/subagent` commands instead of typing into the child transcript.

@@ -128,6 +128,16 @@ and `x stop` when at least one row supports them.
 | `Enter` | Open the selected subagent history. |
 | `c` | Open the follow-up editor for a continuable child with a live parent. |
 | `x` | Ask to stop the selected running subagent. |
+
+While viewing a subagent's read-only history, go back without typing a command:
+
+| Key | Action |
+|---|---|
+| `Backspace` | Return to the parent when the composer is empty. |
+| `Alt+Left` | Return to the parent from any editor state. |
+| `Esc` | Return to the parent when the subagent is idle; while it is running, keep `Esc` `Esc` for interrupt. |
+
+The same actions are available as `/parent` (alias `/subagent parent`).
 | `y` (confirmation) | Confirm the stop request. |
 | `n`, `Enter`, `Esc` (confirmation) | Cancel the stop request. |
 | `/` or any printable character | Enter incremental search; `c` and `x` are ordinary search characters there. |
