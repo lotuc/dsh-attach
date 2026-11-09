@@ -261,7 +261,8 @@ non-consuming observer cursor, so it never steals output from the model's
 | `/help` | Show the built-in help. |
 | `/session [list|new [cwd] [--preset <id>]|resume [id]|rename <title>|fork [id]|archive [id] [--stop]|unarchive <id>|pin [id]|unpin [id]|presets|preset [id]|delete [id]]` | Session picker, creation (with an optional Agent preset), resume, rename, fork, archive/unarchive, pin/unpin, preset roster/selection, or an explicit "deletion is unavailable" notice. Aliases: `/sessions`, `/new`, `/resume`, `/rename`. |
 | `/reconnect` | Force a fresh Host connection and reopen the current session. |
-| `/subagent [list|continue [id] [text]|interrupt [id]|stop [id]|cancel [id]|preview [count]|parent|peek]` | Subagent picker, follow-up delivery, confirmed stop, Herdr preview, parent navigation, or peek toggle. Aliases: `/subagents`, `/subagents-preview`, `/parent`, `/peek`. |
+| `/subagent [list|continue [id] [text]|interrupt [id]|stop [id]|cancel [id]|preview [count]|parent|peek]` | Subagent picker, follow-up delivery, confirmed stop, Herdr preview, parent navigation, or peek toggle. Aliases: `/subagents`, `/subagents-preview`, `/peek`. |
+| `/parent` | Return to the parent session from a subagent history view. |
 | `/image [paste|list|clear]` | Paste a clipboard image, list attached images, or clear them. Aliases: `/paste-image`, `/images`. |
 | `/job [list|output <id>|kill <id>]` | List jobs, open live output, or stop a job. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
 | `/skill [list|show <name>|run <name>]` | List user-invocable skills, show a skill's instructions, or invoke it as a prompt. |

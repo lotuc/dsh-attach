@@ -332,7 +332,7 @@ node bin/dsh-attach.js --help
 
 # pack and install into a profile
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1109.1259.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1109.1310.tgz
 ```
 
 ### Hot reload (development)
@@ -370,7 +370,7 @@ DSH_ATTACH_HOT=1 dsh-attach -s <session-id>    # client hot supervisor
 ## Versioning and release checklist
 
 Versions are time-based: `YYYY.MMDD.HHmm` using the local release time, for
-example `2026.1109.1259`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
+example `2026.1109.1310`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
 must be kept in sync in:
 
 - `package.json` (`version`, the release source of truth);
