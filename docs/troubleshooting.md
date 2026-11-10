@@ -2,26 +2,20 @@
 
 ## First checks
 
-1. Confirm that the Host plugin was installed into the profile that is actually
-   running, and that DeepSeek Harness was restarted afterward.
-2. Confirm that the client and Host use the same `DSH_HOME` and run as the same
-   OS user.
-3. Check the endpoint and the lifecycle log:
+```sh
+ls -l "${DSH_HOME:-$HOME/.dsh}/dsh-attach/"
+tail -n 50 "${DSH_HOME:-$HOME/.dsh}/dsh-attach/client.log"
+dsh-attach --list
+```
 
-   ```sh
-   ls -l "${DSH_HOME:-$HOME/.dsh}/dsh-attach/"
-   tail -n 50 "${DSH_HOME:-$HOME/.dsh}/dsh-attach/client.log"
-   ```
+Confirm:
 
-4. Test authentication and discovery without the TUI:
+- the plugin is installed in the running profile;
+- Host and client use the same `DSH_HOME` and OS user;
+- `endpoint.json` exists;
+- `--list` can connect.
 
-   ```sh
-   dsh-attach --list
-   ```
-
-   A successful listing means the descriptor, socket, and token are usable.
-
-You can inspect a descriptor without printing its token:
+Inspect a descriptor without exposing the token:
 
 ```sh
 jq '{pid, profile, socketPath, pluginVersion, protocol}' \
@@ -30,79 +24,63 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 
 ## Common problems
 
-| Symptom | Cause and fix |
+| Symptom | Fix |
 |---|---|
-| `no attach endpoint under ...` | The plugin is not installed or not mounted, or the Host has not been restarted. Install the plugin, restart the Host, and confirm that `endpoint.json` appears. |
-| `cannot reach the attach bridge (...)` | The descriptor points at an old or dead process. The client automatically tries other descriptors in the same directory. If all fail, restart the Host. |
-| `unknown attach method: ...` | The running Host still has an older bridge build. Restart DeepSeek Harness to load the current plugin. |
-| Host connection lost | The client retries with backoff and reopens the session when the endpoint returns, including after a desktop-app restart. Use `/reconnect` to force a retry. If you used `--socket` with a fixed token, restart `dsh-attach` after the Host because the token changes. |
-| Approvals or questions appear in the Web GUI instead of the TUI | Check whether `approvals` / `questions` is `auto` or `web`, or whether the grace period expired before you answered. Set them to `tui` and restart the Host. |
-| Approved in the TUI but the Web popup remains | The Web answerer had already started before the TUI took ownership (late attach, or a Host running the older grace behavior). Current bridges do not start Web while a terminal is watching and hand the request to Web only after terminal disconnect. Restart the Host after upgrading; dismiss the already-started Web popup. |
-| A question stays pending after `Esc` | `Esc` closes the TUI panel and releases the request from this client. Another client or the question timeout may still resolve it. Use `s` to skip the batch immediately. |
-| Composer does not respond | Press `Esc` to close a leftover panel, or press `Ctrl+C` twice while a panel is open (or run `/quit`) and restart the client. If it only happens after focus changes, try `DSH_ATTACH_NO_MOUSE=1`. |
-| `Host plugin ... is older than 0.10.0` | Restart the Host to load the newer bridge. Host command execution and subagent history require 0.10.0; pending approvals and questions are replayed from 0.8.0. |
-| Host commands are missing from completion | The Host bridge needs one restart to expose `commands.list`. Local commands already work. |
-| Subagent history cannot open | Opening subagent history requires Host plugin 0.10.0 or later. The subagent list and counts work on older Hosts. |
-| No sessions in the picker | Blank sessions are hidden unless they are running or have subagents. Use `/sessions` after the Host creates a session, or `dsh-attach --list --all` to inspect the raw list. |
-| `dsh-attach: command not found` | The symlink or `PATH` is missing. Use the profile's `node_modules/.bin/dsh-attach` path directly and recreate the symlink. |
-| `Permission denied` on the socket | The client and Host are running as different users, or `DSH_HOME` differs. Run the client as the Host user with the same `DSH_HOME`. |
-| `the interactive UI needs a TTY` | Start the client from an interactive terminal. Scripts should use `--list`. |
-| `--preview needs a TTY` | Run the preview from an interactive terminal. |
-| `--theme must be "light" or "dark"` | Use one of the two supported theme names. |
-| Herdr resume cannot connect after restoring a pane | The resume command only restarts the TUI. Start the DSH Host first; the resume does not start it. |
-| Herdr still shows `dsh-attach ...` instead of the session title | Update Herdr to 0.6.4 or later and restart the TUI. If your sidebar rows explicitly use `terminal_title`, switch them to `agent` or `pane`; metadata titles do not overwrite the terminal's OSC title. |
-| A Herdr preview pane closes while the session keeps running | Managed preview panes auto-close only when `DSH_ATTACH_PREVIEW_EXIT_AFTER` is positive; the default is `0` (stay open). The main session TUI never uses the preview auto-close path. |
-| `/jobs` reports background jobs are unavailable | Restart DeepSeek Harness after upgrading the plugin so the Host loads the job routes. The Host composition must also include its job registry (`dsh-jobs-local` / `dsh-tool-jobs`). |
-| `/subagents-preview` says it needs a Herdr pane | Run the parent `dsh-attach` inside Herdr, or use `/subagents` for an in-TUI list. |
-| `/subagents-preview` reports the Herdr plugin is not linked | Run `herdr plugin link --enabled <path-to-dsh-attach>`. Use the repository path or the installed profile package path. |
-| `/subagents-preview` opens a pane that exits immediately | Make sure `node` is on `PATH` and relink the plugin after upgrading this package. Check `herdr plugin log list --plugin dsh-attach`. |
-| `/subagent continue` says the parent is not live | Continuation is addressed through the child's direct parent Agent. Open that parent session (or resume it in the Web GUI) first; interrupt still works without a live parent. |
-| `/subagent continue` says only continuable subagents can be continued | One-shot and external children cannot accept follow-ups. Open their history to inspect the result instead. |
-| `/subagent interrupt` reports that control is unavailable | The Host predates the `subagent.continue` / `subagent.interrupt` routes. Restart DeepSeek Harness after upgrading the plugin; browsing and counts still work. |
-| `/subagent stop` says stop requested but the child keeps working | Interrupt acknowledges the cancel signal, not quiescence. A running turn may finish its current step; an already idle target is an accepted no-op. |
-| Prompt history disappears after restart | Prompt history is per client run and is not persisted. |
-| Old endpoint files remain after a Host restart | A shutdown normally removes its descriptor. A crashed Host may leave a stale descriptor; the client skips unreachable endpoints. Remove stale files only while no matching Host is running. |
+| `no attach endpoint` | Install/mount the plugin, then reload DSH. |
+| `cannot reach the attach bridge` | Stale/dead endpoint; try `/reconnect` or restart the Host. With `--socket`, restart the client because the token rotates. |
+| `unknown attach method` | Host runs an older bridge; apply a recomposition/restart. |
+| Host connection lost | Client retries and reopens; `/reconnect` forces it. |
+| Approvals in Web instead of TUI | Set `approvals`/`questions` to `tui`; check grace periods. |
+| TUI approval but Web popup remains | Late/old ownership; restart Host and dismiss the Web popup. |
+| Question stays after `Esc` | Another client may answer it; use `s` to skip. |
+| Composer unresponsive | Close panel with `Esc`; try `/quit`; test `DSH_ATTACH_NO_MOUSE=1`. |
+| `Host plugin ... older than 0.10.0` | Reload the updated Host plugin. |
+| Missing Host commands | Host route needs reload; local commands work. |
+| Subagent history fails | Requires Host plugin 0.10.0+. |
+| No sessions in picker | Blank sessions are hidden; use `--list --all`. |
+| `command not found` | Add profile `.bin` to `PATH` or call the shim directly. |
+| `Permission denied` | Same user and `DSH_HOME` required. |
+| `needs a TTY` | Run from an interactive terminal; use `--list` for scripts. |
+| Herdr resume cannot connect | Start the DSH Host first. |
+| Herdr title not updated | Update Herdr and restart TUI; use `agent`/`pane` row source. |
+| Preview pane closes | `DSH_ATTACH_PREVIEW_EXIT_AFTER` is positive; set `0` to keep open. |
+| Jobs unavailable | Reload Host with job registry. |
+| Preview needs Herdr | Run the parent TUI inside Herdr. |
+| Preview plugin not linked | `herdr plugin link --enabled <path-to-dsh-attach>`. |
+| Preview exits immediately | Ensure `node` is on `PATH`; relink after upgrade. |
+| Continue says parent not live | Open/resume the direct parent first. |
+| Continue says not continuable | One-shot/external child cannot continue. |
+| Interrupt unavailable | Reload Host with subagent control routes. |
+| Stop requested but child runs | Interrupt acknowledges cancellation; current step may finish. |
+| Prompt history lost | History is per client run. |
+| Stale endpoint files | Client skips unreachable endpoints; remove only when no Host is running. |
 
-## Approvals after a late attach
+## Late attach
 
-If a terminal attaches to a session while an approval or question is still
-pending, the Host replays it, provided the Host has the in-memory pending
-support (0.8.0 and later). If the Web GUI already answered the request, there
-is nothing to replay and the panel will not appear.
+A terminal attaching while an approval/question is pending receives a replay on
+Host plugin 0.8.0+. If Web already answered, no panel appears. Multiple TUIs
+receive the request; the first answer wins.
 
-If multiple TUI windows watch the same session, all receive the request. The
-first answer wins, and the other panels close.
+## Focus and mouse
 
-## Focus and mouse problems
+- Focus events are consumed; they must not act like `Esc`.
+- `DSH_ATTACH_NO_MOUSE=1` disables mouse/focus reporting.
+- `DSH_ATTACH_KEYS=1` logs raw keys, including prompt text; use temporarily.
+- `Esc` on the initial picker does not exit. Use `Ctrl+C` twice or `/quit`.
 
-- `focus {"state":"out"}` / `focus {"state":"in"}` in the log means the terminal
-  is sending focus events. They are consumed by the viewport and should not act
-  like `Esc`.
-- `DSH_ATTACH_NO_MOUSE=1 dsh-attach ...` disables mouse and focus reporting. If
-  the problem disappears, it is in that reporting path.
-- `DSH_ATTACH_KEYS=1` logs raw keys, including possible prompt text. Use it only
-  for temporary diagnosis.
-- Compare the same session in tmux, in iTerm2 directly, and in a Herdr pane to
-  identify which layer sends the problematic sequence.
-- Pressing `Esc` on the initial picker no longer exits the client. Press `Ctrl+C`
-  twice (or run `/quit`) to exit.
-
-See [Diagnostics](diagnostics.md) for log fields and performance instrumentation.
+See [Diagnostics](diagnostics.md).
 
 ## Windows
 
-Windows uses a named pipe under `\\.\pipe\dsh-attach-<pid>`; the endpoint
-descriptor still lives under `%USERPROFILE%\.dsh\dsh-attach` (or `DSH_HOME`).
-Run both the Host and `dsh-attach` as the same user in Windows Terminal (or
-another ConPTY terminal). WSL is not required.
+Bridge: `\\.\pipe\dsh-attach-<pid>`. Descriptor:
+`%USERPROFILE%\.dsh\dsh-attach` (or `DSH_HOME`). Run Host and client as the same
+user in Windows Terminal/ConPTY; WSL is not required.
 
-If the client says it cannot reach the bridge:
+Check:
 
-- Confirm `Get-ChildItem "$env:USERPROFILE\.dsh\dsh-attach"` contains
-  `endpoint.json`.
-- Check that the Host process is still running and that `DSH_HOME` is the same
-  for both processes.
-- Try `dsh-attach --list`; a successful listing proves the named pipe and token
-  are usable.
-- Herdr integration is Unix-only; on Windows `/subagent preview` and pane
-  reporting are unavailable, while normal subagent control still works.
+```powershell
+Get-ChildItem "$env:USERPROFILE\.dsh\dsh-attach"
+dsh-attach --list
+```
+
+Herdr integration is Unix-only. Normal subagent control still works.

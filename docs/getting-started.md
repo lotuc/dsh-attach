@@ -2,197 +2,135 @@
 
 ## Requirements
 
-- DeepSeek Harness with a Desktop or Web host that provides the
-  `sessionController` domain. Current Desktop and Web profiles both do.
-- The terminal client must run as the **same OS user** as the Host.
-- Linux/macOS use an owner-only Unix-domain socket; Windows uses a named pipe.
-  On Windows, run the client in Windows Terminal or another ConPTY terminal.
-- Node.js `^22.19.0 || >=24.0.0` for the `dsh-attach` client. The Host plugin
-  runs inside DeepSeek Harness.
+- DSH Desktop or Web host with `sessionController`.
+- Same OS user as the Host.
+- Node.js `^22.19.0 || >=24.0.0` for the client.
+- Unix socket on Linux/macOS; named pipe on Windows. Windows TUI needs a
+  ConPTY terminal such as Windows Terminal.
 
-## Install the Host plugin
-
-From a checkout of this repository:
+## Install Host plugin
 
 ```sh
 dsh plugin --profile desktop add ./dsh-attach
+# or from a tarball
+pnpm pack
+dsh plugin --profile desktop add ./dsh-attach-2026.1110.1345.tgz
 ```
 
-`dsh plugin` adds the package to the profile's `dsh.profile.bundles`, installs
-its dependencies, and mounts the `dsh-attach` entry declared in
-`cordis.patch.yml`.
-
-If `dsh` is not on `PATH` (for example when using the desktop app), call the
-launcher bundled with the app directly on macOS:
+If `dsh` is not on `PATH` on macOS:
 
 ```sh
 "/Applications/DeepSeek Harness.app/Contents/Resources/runtime/cli/bin/dsh" \
   plugin --profile desktop add ./dsh-attach
 ```
 
-To install from a packed tarball:
+The first install requires DSH to load the bundle. Later upgrades can use
+Plugin Manager/profile recomposition or HMR; a manual `pnpm install` alone does
+not notify DSH.
 
-```sh
-pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1110.1345.tgz
-```
-
-For the Web profile, use the same command with `--profile web`, then restart
-`dsh web`:
+Web profile:
 
 ```sh
 dsh plugin --profile web add ./dsh-attach
 ```
 
-The first install needs DeepSeek Harness to load the new bundle. After that,
-DSH's profile HMR/Plugin Manager can recompose the plugin without a full app
-restart. A manual `pnpm install` does not notify HMR; trigger a Plugin Manager
-operation or update the profile patch to cause a recomposition.
-
-### Check the endpoint
-
-After the Host has loaded the bundle, it writes an endpoint descriptor:
+## Check endpoint
 
 ```sh
 ls -l "${DSH_HOME:-$HOME/.dsh}/dsh-attach/"
 ```
 
-PowerShell:
-
 ```powershell
 Get-ChildItem "$env:USERPROFILE\.dsh\dsh-attach"
 ```
 
-You should see `endpoint.json` plus a per-profile descriptor. If the directory
-does not exist or stays empty after a restart, see
-[Troubleshooting](troubleshooting.md).
+Expected: `endpoint.json` plus a per-profile descriptor.
 
-## Put `dsh-attach` on `PATH`
+## Add client to PATH
 
-The client binary is installed in the profile's `node_modules/.bin` directory:
+Unix:
 
 ```sh
-~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach --help
-```
-
-On Unix, create a symlink somewhere already on `PATH`:
-
-```sh
-mkdir -p ~/.local/bin
 ln -sf ~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach ~/.local/bin/dsh-attach
 ```
 
-On Windows, use the generated shim:
+Windows:
 
 ```powershell
 & "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\.bin\dsh-attach.cmd" --help
 ```
 
-Add that `.bin` directory to `PATH`, or create a `dsh-attach.cmd` shim in a
-directory already on `PATH`. Adjust the profile path for the Web profile or a
-custom `DSH_HOME`.
+Add the `.bin` directory to `PATH`, or create a `dsh-attach.cmd` shim.
 
-## First run
-
-With no arguments, `dsh-attach` opens the session picker:
+## Run
 
 ```sh
-dsh-attach
+dsh-attach                  # interactive picker
+dsh-attach -s <session-id>  # open a session
+dsh-attach --new -p "run the tests"
+dsh-attach --new -C ~/src/project
+dsh-attach --list           # non-interactive
 ```
 
-The picker groups sessions by Workspace (or by `cwd` when Workspace data is
-unavailable), expands the current and running groups, and filters titles,
-working directories, and descriptions as you type. Press `Enter` to open a
-session.
+The TUI needs a TTY; use `--list` in scripts.
 
-Common first commands:
-
-```sh
-dsh-attach -s <session-id>              # open an existing session
-dsh-attach --new -p "run the tests"     # create a session and submit a prompt
-dsh-attach --new -C ~/src/project       # create a session in a directory
-dsh-attach --list                       # non-interactive session list
-```
-
-The TUI requires a TTY. Use `--list` for scripts and non-interactive output.
-
-## CLI reference
+## CLI
 
 | Option | Description |
 |---|---|
-| `-s`, `--session <id>` | Open a persisted session directly. |
-| `--reattach <id>` | Attach to a session again; alias for `--session`. |
-| `--preview <id>` | Run a read-only live preview of one session, with no editor. |
-| `--parent <id>` | Durable parent session for a subagent preview. |
-| `--preview-exit-after <seconds>` | Exit a preview after this much idle time; `0` keeps it open. |
-| `-n`, `--new` | Create a new session and open it. |
-| `-p`, `--prompt <text>` | Submit this prompt after opening. |
+| `-s`, `--session <id>` | Open a persisted session. |
+| `--reattach <id>` | Alias for `--session`. |
+| `--preview <id>` | Read-only live preview. |
+| `--parent <id>` | Parent session for a subagent preview. |
+| `--preview-exit-after <seconds>` | Preview idle timeout; `0` keeps open. |
+| `-n`, `--new` | Create and open a session. |
+| `-p`, `--prompt <text>` | Submit a prompt after opening. |
 | `-C`, `--cwd <path>` | Working directory for a new session. |
-| `--list` | Print sessions in a table and exit. |
+| `--list` | Print sessions and exit. |
 | `--all` | Include subagent sessions in `--list`. |
-| `--endpoint <file>` | Read a specific endpoint descriptor instead of `$DSH_HOME/dsh-attach/endpoint.json`. |
-| `--socket <path>` | Connect directly to this Unix socket or Windows named pipe. Requires `--token`. |
+| `--endpoint <file>` | Use a specific endpoint descriptor. |
+| `--socket <path>` | Connect to a socket or named pipe; needs `--token`. |
 | `--token <token>` | Token for `--socket`. |
-| `--profile <name>` | Only consider endpoints written by this profile. |
-| `--theme <name>` | Palette: `light` (default) or `dark`. |
-| `--log <file>` | Lifecycle log path. `off` disables it. |
-| `--hot` | Development only: restart the TUI child when client/shared sources change. |
-| `-h`, `--help` | Show help. |
-| `-V`, `--version` | Print the client version. |
+| `--profile <name>` | Filter descriptors by profile. |
+| `--theme <name>` | `light` (default) or `dark`. |
+| `--log <file>` | Lifecycle log; `off` disables. |
+| `--hot` | Dev: restart TUI child on source changes. |
+| `-h`, `--help` | Help. |
+| `-V`, `--version` | Print version. |
 
-### Direct connection
-
-Normally the client discovers descriptors under `$DSH_HOME/dsh-attach/` and
-tries the newest endpoints in order. For a custom setup, point it at the
-descriptor or at a socket and token directly:
+Direct connection:
 
 ```sh
 dsh-attach --endpoint /path/to/endpoint.json
-# Unix
 dsh-attach --socket /path/to/attach.sock --token '<token>'
-# Windows
-# dsh-attach --socket \\.\pipe\dsh-attach-<pid> --token '<token>'
+# Windows: --socket \\.\pipe\dsh-attach-<pid>
 ```
 
-`--socket` without `--token` is not sufficient; the client falls back to normal
-descriptor discovery in that case.
+`--socket` without `--token` falls back to descriptor discovery.
 
-## Non-interactive listing
+## Listing
 
-`--list` prints one row per top-level session with `ID`, `AGE`, `STATE`, `CWD`,
-and `TITLE`:
-
-```sh
-dsh-attach --list
-dsh-attach --list --all
-```
-
-Subagent sessions are excluded unless `--all` is supplied. The interactive
-session picker also excludes subagent sessions; use `/subagents` inside the TUI to
-browse the lineage of the current session.
+`--list` prints `ID`, `AGE`, `STATE`, `CWD`, and `TITLE`. Subagent sessions are
+hidden unless `--all` is used. The interactive picker also hides subagents; use
+`/subagent list` inside a session.
 
 ## Upgrade
 
-1. Install the new package into the same profile, either from the checkout or
-   from a new tarball.
-2. Restart DeepSeek Harness so the Host loads the new plugin build.
-3. Restart any running `dsh-attach` client. The client and Host share protocol
-   version 1; a descriptor written by an incompatible protocol is rejected with
-   an explicit error.
+1. Install the new package into the same profile.
+2. Trigger a DSH profile recomposition or restart DSH.
+3. Restart running `dsh-attach` clients.
 
-The symlink does not need to be recreated when the profile path stays the same.
-
+Protocol mismatches are rejected with an explicit error. Keep the client symlink
+if the profile path is unchanged.
 
 ## Removal
 
-Remove the `dsh-attach` bundle from the profile using your normal DSH plugin
-workflow, delete the client symlink if you created one, and restart the Host.
-Removing the package stops new sockets from being served. Descriptor files are
-cleaned up on a normal Host shutdown; remove any stale leftovers from
-`$DSH_HOME/dsh-attach/` only while no matching Host process is running.
+Remove the bundle from the profile and restart the Host. Delete the client
+symlink if created. Stale descriptors can be removed from
+`$DSH_HOME/dsh-attach/` when no matching Host is running.
 
-## Next steps
+## Next
 
-- [Usage](usage.md) for prompts, approvals, questions, and subagents.
-- [Keys and commands](keybindings.md) for the full reference.
-- [Configuration](configuration.md) for routing and theme options.
+- [Usage](usage.md)
+- [Keys and commands](keybindings.md)
+- [Configuration](configuration.md)
