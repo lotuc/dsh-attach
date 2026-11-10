@@ -21,8 +21,9 @@ test('only listens to signals supported by the platform', () => {
   assert.deepEqual(signalSpecs('linux').map((entry) => entry.signal), ['SIGHUP', 'SIGTERM', 'SIGINT', 'SIGQUIT']);
 });
 
-test('expands a tilde with both path separators', () => {
-  assert.equal(expandHomePath('~/src', '/home/me'), '/home/me/src');
+test('expands a tilde with the target platform separators', () => {
+  assert.equal(expandHomePath('~/src', '/home/me', 'linux'), '/home/me/src');
+  assert.equal(expandHomePath('~\\src', 'C:\\Users\\me', 'win32'), 'C:\\Users\\me\\src');
   assert.equal(expandHomePath('~', '/home/me'), '/home/me');
   assert.equal(expandHomePath('src', '/home/me'), 'src');
 });

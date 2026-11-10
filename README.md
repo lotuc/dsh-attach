@@ -130,7 +130,7 @@ inside DeepSeek Harness.
 
    ```sh
    pnpm pack
-   dsh plugin --profile desktop add ./dsh-attach-2026.1110.1342.tgz
+   dsh plugin --profile desktop add ./dsh-attach-2026.1110.1345.tgz
    ```
 
 2. Put `dsh-attach` on `PATH`. The installed binary lives under the profile:
