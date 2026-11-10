@@ -51,7 +51,7 @@ operation or update the profile patch to cause a recomposition.
 
 ### Check the endpoint
 
-After the restart, the Host writes an endpoint descriptor:
+After the Host has loaded the bundle, it writes an endpoint descriptor:
 
 ```sh
 ls -l "${DSH_HOME:-$HOME/.dsh}/dsh-attach/"

@@ -22,8 +22,9 @@ entry ID from the bundle patch:
     hotReload: false
 ```
 
-Restart DeepSeek Harness after changing Host configuration; the bridge is built
-at process start and advertises the active modes in its handshake.
+Apply a DSH profile recomposition (Plugin Manager or a profile patch change)
+after changing Host configuration; a full app restart also loads it. The bridge
+advertises the active modes in its handshake.
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|

@@ -261,6 +261,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `lib/client/theme.js` | Light and dark palettes and theme helpers. |
 | `lib/client/subagent-labels.js` | Merges short catalog labels into active subagent rows. |
 | `lib/shared/protocol.js` | Protocol version, limits, endpoint names, JSONL helpers. |
+| `lib/shared/platform.js` | Unix socket vs Windows named-pipe selection, home expansion, supported signals. |
 | `lib/shared/paths.js` | Shared `$DSH_HOME` resolution for the bridge and client. |
 | `lib/shared/approval.js` | Localized approval-reason fallback shared by the bridge and panel. |
 | `lib/shared/version.js` | Release version consumed by the bridge, CLI and client handshake. |
