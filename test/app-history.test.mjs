@@ -30,7 +30,7 @@ class FakeTui {
 class FakeClient extends EventEmitter {
   constructor({ capabilities = ['history.pagination'] } = {}) {
     super();
-    this.host = { capabilities, pluginVersion: '2026.1110.1345' };
+    this.host = { capabilities, pluginVersion: '2026.1110.1406' };
     this.closed = false;
     this.requests = [];
     this.historyPages = [];
