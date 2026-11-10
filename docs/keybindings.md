@@ -277,7 +277,7 @@ non-consuming observer cursor, so it never steals output from the model's
 | `/model [provider model]` | Open the model picker, or switch directly. |
 | `/permission [mode]` | Open the sandbox-preset picker, or apply `read-only`, `workspace-write`, `danger-full-access`, or `auto` directly. |
 | `/detail [compact|standard|verbose]` | Set the single transcript detail level; no argument cycles. |
-| `/btw <question>` | Ask a side question in an overlay without interrupting the turn. Bare `/btw` reopens the latest answer. |
+| `/btw <question>` | Ask a side question in an overlay without interrupting the turn. Bare `/btw` reopens the latest answer; `f` forks it with tools. |
 | `/status` | Show session, model, preset, sandbox, context, token, queued-message count, todo, goal, host, theme, and socket details. |
 | `/quit`, `/exit` | Exit the client without stopping Host work. |
 

@@ -274,7 +274,9 @@ provider/model, but it does not enter the prompt queue, interrupt the running
 turn, or add a message to the conversation. The answer is a separate overlay,
 not a transcript row. It has no tools. Use `Esc` to close the overlay; bare
 `/btw` reopens the most recent aside. The last 20 asides are kept in memory for
-the current terminal session.
+the current terminal session. When an answer is complete, press `f` to fork the
+session and continue the question with full tool access; `Esc` closes the
+overlay.
 
 `/btw` is intentionally single-flight: wait for the current answer before
 asking another. It is not available when the Host has no mounted LLM service.

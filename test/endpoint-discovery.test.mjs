@@ -44,7 +44,7 @@ async function writeDescriptor(home, dir, socketPath) {
   await writeFile(join(target, ENDPOINT_FILE), `${JSON.stringify({
     protocol: PROTOCOL_VERSION,
     plugin: 'dsh-attach',
-    pluginVersion: '2026.1110.1203',
+    pluginVersion: '2026.1110.1324',
     pid: process.pid,
     socketPath,
     token: 'test-token',
