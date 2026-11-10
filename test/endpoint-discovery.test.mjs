@@ -14,7 +14,9 @@ import {
 } from '../lib/shared/protocol.js';
 
 async function startBridge(dir, name) {
-  const socketPath = join(dir, name);
+  const socketPath = process.platform === 'win32'
+    ? `\\\\.\\pipe\\dsh-attach-test-${process.pid}-${name}`
+    : join(dir, name);
   const sockets = new Set();
   const server = net.createServer((socket) => {
     sockets.add(socket);
@@ -44,7 +46,7 @@ async function writeDescriptor(home, dir, socketPath) {
   await writeFile(join(target, ENDPOINT_FILE), `${JSON.stringify({
     protocol: PROTOCOL_VERSION,
     plugin: 'dsh-attach',
-    pluginVersion: '2026.1110.1331',
+    pluginVersion: '2026.1110.1342',
     pid: process.pid,
     socketPath,
     token: 'test-token',

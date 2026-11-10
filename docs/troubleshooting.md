@@ -91,6 +91,18 @@ See [Diagnostics](diagnostics.md) for log fields and performance instrumentation
 
 ## Windows
 
-The transport assumes Unix-domain sockets. Windows is not tested, and named-pipe
-support is not implemented. Use WSL with a Linux Host, or run the client on the
-same Unix-like machine as the Host.
+Windows uses a named pipe under `\\.\pipe\dsh-attach-<pid>`; the endpoint
+descriptor still lives under `%USERPROFILE%\.dsh\dsh-attach` (or `DSH_HOME`).
+Run both the Host and `dsh-attach` as the same user in Windows Terminal (or
+another ConPTY terminal). WSL is not required.
+
+If the client says it cannot reach the bridge:
+
+- Confirm `Get-ChildItem "$env:USERPROFILE\.dsh\dsh-attach"` contains
+  `endpoint.json`.
+- Check that the Host process is still running and that `DSH_HOME` is the same
+  for both processes.
+- Try `dsh-attach --list`; a successful listing proves the named pipe and token
+  are usable.
+- Herdr integration is Unix-only; on Windows `/subagent preview` and pane
+  reporting are unavailable, while normal subagent control still works.

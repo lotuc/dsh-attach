@@ -17,14 +17,16 @@ not run the client from an untrusted account or share the token.
 
 ## Transport
 
-- The bridge listens on a Unix-domain socket only. There is no TCP listener and
-  no extra port.
-- The default socket is `$DSH_HOME/dsh-attach/attach-<pid>.sock`, or a
+- The bridge listens only on a local transport: a Unix-domain socket on
+  Linux/macOS, or a Windows named pipe (`\\.\pipe\dsh-attach-<pid>`). There is
+  no TCP listener and no extra port.
+- The default Unix socket is `$DSH_HOME/dsh-attach/attach-<pid>.sock`, or a
   temporary-directory path when the default would exceed the platform limit.
-- The endpoint directory is created with mode `0700`. The socket is `chmod`ed
-  to `0600`.
+- On Unix the endpoint directory is created with mode `0700` and the socket is
+  `chmod`ed to `0600`. Windows named-pipe access is protected by the random
+  token and the profile directory ACL; no Unix mode bit is claimed there.
 - The Host writes `endpoint.json` and a per-profile descriptor
-  (`<profile>-<pid>.json`) with mode `0600`. A descriptor contains the protocol
+  (`<profile>-<pid>.json`) with owner-only permissions on Unix. A descriptor contains the protocol
   version, plugin version, Host PID, socket path, profile, `DSH_HOME`, start
   time, and the random token.
 
@@ -34,7 +36,7 @@ Descriptor example, with the token abbreviated:
 {
   "protocol": 1,
   "plugin": "dsh-attach",
-  "pluginVersion": "2026.1110.1331",
+  "pluginVersion": "2026.1110.1342",
   "pid": 12345,
   "socketPath": "/Users/me/.dsh/dsh-attach/attach-12345.sock",
   "token": "<redacted>",
@@ -141,8 +143,10 @@ The design does not defend against:
   input, which may include prompt text.
 - Use the default `tui` routing only when you want the terminal to own approvals
   while it is watching a session. Use `web` or `off` otherwise.
-- Restart the Host after upgrading the plugin so the new socket code is active.
-- Windows is not supported; do not rely on named-pipe permission semantics.
+- Trigger a DSH profile recomposition after upgrading the plugin (Plugin Manager
+  or a profile patch change); a manual install needs that recomposition.
+- On Windows, protect the profile directory with normal user ACLs; the bridge
+  authenticates with the same per-process token and never opens a TCP port.
 
 
 ## Herdr environment forwarding

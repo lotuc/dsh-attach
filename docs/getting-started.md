@@ -4,10 +4,9 @@
 
 - DeepSeek Harness with a Desktop or Web host that provides the
   `sessionController` domain. Current Desktop and Web profiles both do.
-- The terminal client must run as the **same OS user** as the Host, because the
-  transport is an owner-only Unix socket.
-- Linux or macOS with Unix-domain socket support. Windows is not tested and
-  named-pipe support is not implemented.
+- The terminal client must run as the **same OS user** as the Host.
+- Linux/macOS use an owner-only Unix-domain socket; Windows uses a named pipe.
+  On Windows, run the client in Windows Terminal or another ConPTY terminal.
 - Node.js `^22.19.0 || >=24.0.0` for the `dsh-attach` client. The Host plugin
   runs inside DeepSeek Harness.
 
@@ -35,7 +34,7 @@ To install from a packed tarball:
 
 ```sh
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1110.1331.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1110.1342.tgz
 ```
 
 For the Web profile, use the same command with `--profile web`, then restart
@@ -45,9 +44,10 @@ For the Web profile, use the same command with `--profile web`, then restart
 dsh plugin --profile web add ./dsh-attach
 ```
 
-**Restart DeepSeek Harness after installing or upgrading.** The bridge is
-mounted when the Host process starts; an already-running process will not see
-the new bundle.
+The first install needs DeepSeek Harness to load the new bundle. After that,
+DSH's profile HMR/Plugin Manager can recompose the plugin without a full app
+restart. A manual `pnpm install` does not notify HMR; trigger a Plugin Manager
+operation or update the profile patch to cause a recomposition.
 
 ### Check the endpoint
 
@@ -55,6 +55,12 @@ After the restart, the Host writes an endpoint descriptor:
 
 ```sh
 ls -l "${DSH_HOME:-$HOME/.dsh}/dsh-attach/"
+```
+
+PowerShell:
+
+```powershell
+Get-ChildItem "$env:USERPROFILE\.dsh\dsh-attach"
 ```
 
 You should see `endpoint.json` plus a per-profile descriptor. If the directory
@@ -69,14 +75,22 @@ The client binary is installed in the profile's `node_modules/.bin` directory:
 ~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach --help
 ```
 
-Create a symlink somewhere already on `PATH`, for example:
+On Unix, create a symlink somewhere already on `PATH`:
 
 ```sh
 mkdir -p ~/.local/bin
 ln -sf ~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach ~/.local/bin/dsh-attach
 ```
 
-Adjust the profile path if you use the Web profile or a custom `DSH_HOME`.
+On Windows, use the generated shim:
+
+```powershell
+& "$env:USERPROFILE\.dsh\profiles\desktop\node_modules\.bin\dsh-attach.cmd" --help
+```
+
+Add that `.bin` directory to `PATH`, or create a `dsh-attach.cmd` shim in a
+directory already on `PATH`. Adjust the profile path for the Web profile or a
+custom `DSH_HOME`.
 
 ## First run
 
@@ -117,7 +131,7 @@ The TUI requires a TTY. Use `--list` for scripts and non-interactive output.
 | `--list` | Print sessions in a table and exit. |
 | `--all` | Include subagent sessions in `--list`. |
 | `--endpoint <file>` | Read a specific endpoint descriptor instead of `$DSH_HOME/dsh-attach/endpoint.json`. |
-| `--socket <path>` | Connect directly to this Unix socket. Requires `--token`. |
+| `--socket <path>` | Connect directly to this Unix socket or Windows named pipe. Requires `--token`. |
 | `--token <token>` | Token for `--socket`. |
 | `--profile <name>` | Only consider endpoints written by this profile. |
 | `--theme <name>` | Palette: `light` (default) or `dark`. |
@@ -134,7 +148,10 @@ descriptor or at a socket and token directly:
 
 ```sh
 dsh-attach --endpoint /path/to/endpoint.json
+# Unix
 dsh-attach --socket /path/to/attach.sock --token '<token>'
+# Windows
+# dsh-attach --socket \\.\pipe\dsh-attach-<pid> --token '<token>'
 ```
 
 `--socket` without `--token` is not sufficient; the client falls back to normal

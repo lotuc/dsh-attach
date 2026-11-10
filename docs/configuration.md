@@ -28,7 +28,7 @@ at process start and advertises the active modes in its handshake.
 | Option | Type | Default | Meaning |
 |---|---|---|---|
 | `enabled` | boolean | `true` | Start the socket bridge. `false` keeps the plugin mounted but serves no endpoint. |
-| `socketPath` | string | `""` | Override the socket path. Empty uses `$DSH_HOME/dsh-attach/attach-<pid>.sock`. |
+| `socketPath` | string | `""` | Override the bridge address. Empty uses `$DSH_HOME/dsh-attach/attach-<pid>.sock` on Unix or `\\.\pipe\dsh-attach-<pid>` on Windows. |
 | `approvals` | `auto`, `tui`, `web`, `off` | `tui` | Who answers approval requests. |
 | `questions` | `auto`, `tui`, `web`, `off` | `tui` | Who answers `ask_user_question` batches. |
 | `activeWindowMinutes` | number | `10` | Activity window used by `auto` routing. |
@@ -37,10 +37,11 @@ at process start and advertises the active modes in its handshake.
 | `historyMessages` | number | `300` | Maximum messages in one follow snapshot and in one older-history page, clamped to `1..5000`. Larger values load more at attach and per `Ctrl+R`/`/history` page; paging does not require raising it. |
 | `hotReload` | boolean | `false` | Development only: watch `lib/host/server.js` and restart the bridge in-process when it changes. Requires a restart once to enable. |
 
-The socket directory is created with mode `0700`; the socket and descriptor
-files use `0600`. If the default socket path would exceed the platform limit
-(about 100 bytes), the Host places the socket in the system temporary directory
-instead.
+On Unix the socket directory is created with mode `0700`; the socket and
+descriptor files use `0600`. If the default path would exceed the platform
+limit (about 100 bytes), the Host places the socket in the system temporary
+directory instead. On Windows the bridge uses a named pipe and no Unix mode
+bits apply.
 
 ### Routing modes
 
@@ -148,7 +149,10 @@ The client normally discovers endpoint descriptors automatically. To connect
 without descriptor discovery, use:
 
 ```sh
+# Unix
 dsh-attach --socket /run/user/1000/dsh-attach.sock --token '<token>'
+# Windows
+dsh-attach --socket \\.\pipe\dsh-attach-<pid> --token '<token>'
 ```
 
 The token is generated per Host process and is stored in the descriptor. Treat

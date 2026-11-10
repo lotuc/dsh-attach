@@ -7,8 +7,8 @@ The project has two halves that share a small wire protocol:
 1. **Host plugin** (`lib/host.js`). Cordis injects `sessionController`; the
    plugin mounts `AttachServer` for the lifetime of the plugin fiber and stops it
    on disposal.
-2. **Attach server** (`lib/host/server.js`). It creates the Unix socket and
-   endpoint descriptors, authenticates clients, follows sessions through the
+2. **Attach server** (`lib/host/server.js`). It creates the Unix socket or
+   Windows named pipe and endpoint descriptors, authenticates clients, follows sessions through the
    real `sessionController`, and routes approvals and questions.
 3. **Terminal client** (`lib/client/`). It discovers the descriptor, connects,
    sends requests, projects session frames into the pi-tui layout, and turns
@@ -126,7 +126,8 @@ newest-first siblings, and filters by `--profile` when requested. A descriptor i
 
 ## Wire protocol
 
-Transport is newline-delimited UTF-8 JSON over a Unix socket.
+Transport is newline-delimited UTF-8 JSON over a Unix socket or Windows
+named pipe.
 
 ```text
 client                                  host
@@ -206,7 +207,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `bin/dsh-attach.js` | Executable entry point; delegates to the client CLI. |
 | `bin/herdr-preview.js` | Herdr plugin pane entrypoint; reconstructs the preview client invocation from pane env. |
 | `lib/host.js` | Cordis plugin entry, injection, Config schema, and optional Host hot reload. |
-| `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
+| `lib/host/server.js` | Unix socket or Windows named pipe, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
 | `lib/host/btw.js` | Detached side-question route: route inheritance, bounded transcript, no-tool LLM call. |
 | `lib/host/subagents.js` | Pure subagent catalog row mapping and descendant counting. |
 | `lib/host/subagent-control.js` | Runtime capability detection, catalog lookup, and per-row control flags. |
@@ -334,7 +335,7 @@ node bin/dsh-attach.js --help
 
 # pack and install into a profile
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1110.1331.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1110.1342.tgz
 ```
 
 ### Hot reload (development)
@@ -372,7 +373,7 @@ DSH_ATTACH_HOT=1 dsh-attach -s <session-id>    # client hot supervisor
 ## Versioning and release checklist
 
 Versions are time-based: `YYYY.MMDD.HHmm` using the local release time, for
-example `2026.1110.1331`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
+example `2026.1110.1342`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
 must be kept in sync in:
 
 - `package.json` (`version`, the release source of truth);

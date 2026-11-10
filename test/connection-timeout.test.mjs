@@ -10,7 +10,9 @@ import { encodeLine } from '../lib/shared/protocol.js';
 
 async function silentBridge() {
   const dir = await mkdtemp(join(tmpdir(), 'dsh-attach-timeout-'));
-  const socketPath = join(dir, 'attach.sock');
+  const socketPath = process.platform === 'win32'
+    ? `\\\\.\\pipe\\dsh-attach-timeout-${process.pid}`
+    : join(dir, 'attach.sock');
   const sockets = new Set();
   const server = net.createServer((socket) => {
     sockets.add(socket);

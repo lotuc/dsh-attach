@@ -16,6 +16,7 @@ test('shortens cwd with home and tail ellipsis', () => {
   assert.equal(shortCwd('/Users/me/work', 80, '/Users/me'), '~/work');
   assert.equal(shortCwd('/Users/me/work', 5, '/Users/me'), '…work');
   assert.equal(shortCwd('', 20, '/Users/me'), '');
+  assert.equal(shortCwd('C:\\Users\\me\\work', 80, 'C:\\Users\\me'), '~\\work');
 });
 
 test('formats elapsed durations and wall-clock timestamps', () => {

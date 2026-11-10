@@ -75,7 +75,8 @@ test('logging failures never break start or the bridge', async () => {
   const fixture = createHostFixture();
   fixture.state.loggerThrows = true;
   const host = await startAttachHost({ fixture });
-  assert.match(host.server.socketPath, /\.sock$/u);
+  if (process.platform === 'win32') assert.match(host.server.socketPath, /^\\\\\.\\pipe\\dsh-attach-/u);
+  else assert.match(host.server.socketPath, /\.sock$/u);
   assert.equal(host.descriptor.protocol, 1);
   await host.cleanup();
 });
@@ -91,7 +92,7 @@ test('start is idempotent and stop tolerates a replaced descriptor', async () =>
   await host.cleanup();
 });
 
-test('uses a short socket path when the default path is too long', async () => {
+test('uses a short socket path when the default path is too long', { skip: process.platform === 'win32' }, async () => {
   const home = await mkdtemp(join(tmpdir(), `dsh-attach-${'x'.repeat(80)}-`));
   const fixture = createHostFixture();
   let host;

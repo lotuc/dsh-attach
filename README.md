@@ -3,13 +3,13 @@
 Attach a terminal UI to an **already running** DeepSeek Harness host.
 
 `dsh-attach` does not start a second harness. A Host plugin exposes the
-live `sessionController` over a local Unix socket, and the `dsh-attach` client
+live `sessionController` over a local socket/named pipe, and the `dsh-attach` client
 connects to it. You see the same sessions, the same running agent, and the same
 approval and question flow. Prompts sent from the TUI go directly into the
 running Host and are visible in the Web GUI as part of the same turn.
 
 ```text
-┌───────────────────────────────┐        Unix socket (0600)        ┌───────────────────────┐
+┌───────────────────────────────┐     local socket / named pipe    ┌───────────────────────┐
 │ DeepSeek Harness Host process │◀────────────────────────────────▶│ dsh-attach (terminal) │
 │  sessionController            │   JSONL: request / response      │  pi-tui alternate UI  │
 │  approval / user questions    │   session frames / interactive   │  keys / commands      │
@@ -110,14 +110,14 @@ only by the current user.
   resume command when running inside a Herdr pane, shows the session title in
   pane lists, opens managed subagent preview panes that can auto-close after an
   opt-in idle timeout, and forwards `HERDR_*` facts to model shell commands.
-- **Local-only security**: owner-only Unix socket, a per-process random token,
-  constant-time token comparison, and terminal control-sequence sanitization.
+- **Local-only security**: owner-only Unix socket or Windows named pipe, a
+  per-process random token, constant-time token comparison, and terminal control-sequence sanitization.
 
 ## Quick start
 
 Requirements: a running DeepSeek Harness Desktop or Web host, the same OS user
-as that host, and Unix-domain socket support (Linux or macOS). The
-`dsh-attach` client requires Node.js `^22.19.0 || >=24.0.0`; the Host plugin runs
+as that host. The transport uses Unix-domain sockets on Linux/macOS and named
+pipes on Windows. The `dsh-attach` client requires Node.js `^22.19.0 || >=24.0.0`; the Host plugin runs
 inside DeepSeek Harness.
 
 1. Install the Host plugin into the profile and restart DeepSeek Harness:
@@ -130,13 +130,15 @@ inside DeepSeek Harness.
 
    ```sh
    pnpm pack
-   dsh plugin --profile desktop add ./dsh-attach-2026.1110.1331.tgz
+   dsh plugin --profile desktop add ./dsh-attach-2026.1110.1342.tgz
    ```
 
 2. Put `dsh-attach` on `PATH`. The installed binary lives under the profile:
 
    ```sh
    ln -sf ~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach ~/.local/bin/dsh-attach
+   # Windows (PowerShell): use the generated shim directly:
+   # %USERPROFILE%\.dsh\profiles\desktop\node_modules\.bin\dsh-attach.cmd
    ```
 
 3. Start the client:
@@ -171,8 +173,10 @@ CLI reference.
 
 ## Security at a glance
 
-- The bridge listens on a Unix socket under `$DSH_HOME/dsh-attach/` only.
-  The directory is `0700`; the socket and descriptor are `0600`.
+- The bridge listens only on a local Unix socket or Windows named pipe; there
+  is no TCP listener. On Unix the directory is `0700` and the socket and
+  descriptor are `0600`. On Windows the descriptor lives under
+  `$DSH_HOME/dsh-attach/` and the named pipe is protected by the random token.
 - Clients must present the 32-byte random token from the descriptor. The Host
   compares a SHA-256 hash with `timingSafeEqual`.
 - Model output, tool output, question text, and titles are stripped of CSI/OSC
@@ -196,7 +200,8 @@ Read [Security](docs/security.md) for the full model.
   read-only; control covers text follow-up messages and interrupting the current
   turn. The TUI cannot dispatch a new subagent, release a child activation, or
   route a subagent approval/question to the parent terminal.
-- Windows is untested; the transport assumes Unix-domain sockets.
+- Windows uses a named pipe instead of a Unix-domain socket; run `dsh-attach`
+  from Windows Terminal (or another ConPTY terminal) so the TUI gets a TTY.
 - The client loads the most recent 300 messages by default (configurable with
   the Host's `historyMessages`); `Ctrl+R`/`/history` pages further back through
   the durable Session log.

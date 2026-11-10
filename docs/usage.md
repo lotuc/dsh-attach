@@ -496,7 +496,7 @@ the activity line:
   is available.
 - Each peek keeps only the latest **2 lines**; it does not render the full
   transcript or Markdown.
-- Each peek uses an **additional Unix socket connection**, not a new process.
+- Each peek uses an **additional local bridge connection**, not a new process.
   At most two are open.
 - Text updates are throttled to about 10 per second; the parent UI repaints at
   about 3 per second.

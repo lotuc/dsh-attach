@@ -83,7 +83,7 @@ changed by metadata.
 
 The compact subagent peek described in [Usage](usage.md#subagent-peek) is
 enabled by default in any terminal, including Herdr. `/peek` toggles it. It uses
-one extra Unix socket per peek, not a new process, and keeps at most two peeks.
+one extra local bridge connection per peek, not a new process, and keeps at most two peeks.
 
 ## Managed preview pane setup
 
