@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { askBtw, buildBtwTranscript, resolveBtwRoute } from '../lib/host/btw.js';
+import { askBtw, buildBtwTranscript, resolveBtwRoute, sessionEventMessages, sideQuestionMessages } from '../lib/host/btw.js';
 
 test('flattens completed conversation and labels tool results', () => {
   const transcript = buildBtwTranscript([
@@ -74,4 +74,26 @@ test('asks the same route without tools and returns answer and reasoning', async
   assert.equal(request.tools, undefined);
   assert.match(request.system, /SIDE_QUESTION_POLICY/);
   assert.equal(request.messages.at(-1).content[0].text, 'why?');
+});
+
+test('reconstructs the full conversation from raw session events', () => {
+  const events = [
+    { type: 'user/message', data: { content: [{ type: 'text', text: 'old task' }] } },
+    { type: 'assistant/message', data: { message: { role: 'assistant', content: [{ type: 'text', text: 'old answer' }] } } },
+    { type: 'tool/result', data: { message: { role: 'tool', toolCallId: 'c1', content: [{ type: 'text', text: 'tool text' }] } } },
+    { type: 'command/run', data: { command: '/btw' } },
+  ];
+  const messages = sessionEventMessages(events);
+  assert.equal(messages.length, 3);
+  assert.equal(messages[0].role, 'user');
+  assert.equal(messages[1].role, 'assistant');
+  assert.equal(messages[2].role, 'tool');
+});
+
+test('prefers the raw log over compacted derived history', () => {
+  const session = {
+    snapshotEvents: () => [{ type: 'user/message', data: { content: [{ type: 'text', text: 'raw' }] } }],
+    deriveMessages: () => [{ role: 'user', content: [{ type: 'text', text: 'summary' }] }],
+  };
+  assert.equal(sideQuestionMessages(session)[0].content[0].text, 'raw');
 });
