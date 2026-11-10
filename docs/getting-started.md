@@ -35,7 +35,7 @@ To install from a packed tarball:
 
 ```sh
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1109.1310.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1110.1156.tgz
 ```
 
 For the Web profile, use the same command with `--profile web`, then restart

@@ -81,6 +81,9 @@ only by the current user.
 - **Todo list**: `/todo` shows the model's current plan with pending,
   in-progress, and completed markers; the activity line carries the active
   count.
+- **Side questions**: `/btw <question>` asks the session's model a side
+  question in an overlay without queueing a prompt, interrupting the turn, or
+  touching the conversation; bare `/btw` reopens the latest answer.
 - **Turn-level detail**: completed turn work folds into one timestamped
   duration/tool-call summary with live activity labels such as
   `Running commands · npm test`; `Ctrl+G` cycles `compact`, `standard`, and `verbose`, and `/detail`
@@ -127,7 +130,7 @@ inside DeepSeek Harness.
 
    ```sh
    pnpm pack
-   dsh plugin --profile desktop add ./dsh-attach-2026.1109.1310.tgz
+   dsh plugin --profile desktop add ./dsh-attach-2026.1110.1156.tgz
    ```
 
 2. Put `dsh-attach` on `PATH`. The installed binary lives under the profile:

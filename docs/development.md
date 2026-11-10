@@ -168,6 +168,7 @@ Server methods:
 | `session.selectModel` | Switch provider/model (and optional reasoning effort). |
 | `model.catalog` | Provider and model groups. |
 | `commands.list` / `commands.execute` | Discover and execute Host slash commands. |
+| `btw.ask` | Answer one side question outside the turn; inherited route, bounded context, no tools, no session write. |
 | `skill.list` / `skill.get` | User-invocable skill summaries and full instructions for `/skill` and `/name` completion. |
 | `goal.get` | Read the live goal view including process-local `activation` (`armed`/`disarmed`). |
 | `goal.complete` | Complete the current goal through `GoalService.complete`; advertised as the `goal.complete` capability. Other goal mutations use the Host command registry. |
@@ -206,6 +207,7 @@ together. A protocol mismatch is rejected during descriptor discovery.
 | `bin/herdr-preview.js` | Herdr plugin pane entrypoint; reconstructs the preview client invocation from pane env. |
 | `lib/host.js` | Cordis plugin entry, injection, Config schema, and optional Host hot reload. |
 | `lib/host/server.js` | Unix socket, authentication, JSONL protocol, follow pump, interactive routing, job bridge, descriptors. |
+| `lib/host/btw.js` | Detached side-question route: route inheritance, bounded transcript, no-tool LLM call. |
 | `lib/host/subagents.js` | Pure subagent catalog row mapping and descendant counting. |
 | `lib/host/subagent-control.js` | Runtime capability detection, catalog lookup, and per-row control flags. |
 | `lib/host/shell-env.js` | Bounded `HERDR_*` env intake and shell-request merge for model commands. |
@@ -332,7 +334,7 @@ node bin/dsh-attach.js --help
 
 # pack and install into a profile
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1109.1310.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1110.1156.tgz
 ```
 
 ### Hot reload (development)
@@ -370,7 +372,7 @@ DSH_ATTACH_HOT=1 dsh-attach -s <session-id>    # client hot supervisor
 ## Versioning and release checklist
 
 Versions are time-based: `YYYY.MMDD.HHmm` using the local release time, for
-example `2026.1109.1310`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
+example `2026.1110.1156`. Generate it with `date '+%Y.%m%d.%H%M'`. The value
 must be kept in sync in:
 
 - `package.json` (`version`, the release source of truth);

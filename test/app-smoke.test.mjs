@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1109.1310',
+      pluginVersion: '2026.1110.1156',
     };
     this.closed = false;
     this.requests = [];
@@ -66,6 +66,8 @@ class FakeClient extends EventEmitter {
         return { commands: [] };
       case 'subagent.list':
         return { supported: false, items: [] };
+      case 'btw.ask':
+        return { answer: 'side answer', reasoning: 'brief thinking', provider: 'deepseek', model: 'flash' };
       case 'job.list':
         return {
           jobs: [{
@@ -517,6 +519,22 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     tui.inputListeners[0]('\x07');
     await wait(20);
     assert.equal(app.detailLevel, 'compact', 'Ctrl+G cycles the same detail levels');
+
+    app.editor.setText('/btw where is the retry loop?');
+    app.editor.handleInput('\r');
+    await wait(80);
+    assert.equal(app.modals.has('btw'), true, 'btw opens an overlay');
+    const btw = app.modals.get('btw').component;
+    assert.match(btw.render(100).join('\n'), /side answer/);
+    assert.doesNotMatch(app.document.render(100).join('\n'), /side answer/, 'btw stays outside the transcript');
+    btw.handleInput('\x1b');
+    await wait(20);
+    assert.equal(app.modals.has('btw'), false);
+    app.editor.setText('/btw');
+    app.editor.handleInput('\r');
+    await wait(20);
+    assert.equal(app.modals.has('btw'), true, 'bare /btw reopens the latest aside');
+    app.modals.get('btw').component.handleInput('\x1b');
 
     app.rejectionHandler(new Error('smoke rejection'));
     assert.equal(app.quitting, false, 'a rejected UI callback must not quit the app');

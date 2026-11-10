@@ -263,6 +263,22 @@ entries. It is not persisted across client restarts. The composer stores a
 draft separately, so browsing history and returning to the draft does not lose
 text.
 
+## Side questions with `/btw`
+
+```text
+/btw where is the retry loop?
+```
+
+`/btw` answers from the completed conversation, using the session's current
+provider/model, but it does not enter the prompt queue, interrupt the running
+turn, or add a message to the conversation. The answer is a separate overlay,
+not a transcript row. It has no tools. Use `Esc` to close the overlay; bare
+`/btw` reopens the most recent aside. The last 20 asides are kept in memory for
+the current terminal session.
+
+`/btw` is intentionally single-flight: wait for the current answer before
+asking another. It is not available when the Host has no mounted LLM service.
+
 ## Commands and completion
 
 A `/` at the start of a line opens the command list. Continue typing to filter;
