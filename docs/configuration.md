@@ -137,15 +137,15 @@ decisions are logged as `auto-approval-*` in `client.log`.
 Runtime commands:
 
 ```text
-/auto                  status
-/auto on|off|toggle    enable or disable
-/auto reload           reread auto-approve.json (also polled every 2s)
-/auto mode rules|review
-/auto policy <text>    set global review policy
-/auto full on|off      allow/forbid danger-full-access auto-review
-/auto add <json>       append a rule
-/auto remove <id>      remove a rule
-/auto suggest          LLM suggests a rule for the last approval; requires y to add
+/approvals             status
+/approvals on|off|toggle    enable or disable
+/approvals reload           reread auto-approve.json (also polled every 2s)
+/approvals mode rules|review
+/approvals policy <text>    set global review policy
+/approvals full on|off      allow/forbid danger-full-access auto-review
+/approvals add <json>       append a rule
+/approvals remove <id>      remove a rule
+/approvals suggest          LLM suggests a rule for the last approval; requires y to add
 ```
 
 ## Themes

@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1111.2215',
+      pluginVersion: '2026.1111.2221',
     };
     this.closed = false;
     this.requests = [];
@@ -694,7 +694,7 @@ test('auto-approval allows a whitelisted call and asks for an unlisted one', asy
     assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
     assert.equal(app.modals.has('interactive'), false);
 
-    app.editor.setText('/auto suggest');
+    app.editor.setText('/approvals suggest');
     app.editor.handleInput('\r');
     await wait(80);
     assert.equal(app.modals.has('confirm'), true, 'suggestion requires confirmation');
@@ -794,19 +794,19 @@ test('auto-approval config commands toggle and add rules', async () => {
   const running = app.run();
   try {
     for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
-    app.editor.setText('/auto on');
+    app.editor.setText('/approvals on');
     app.editor.handleInput('\r');
     await wait(20);
     assert.equal(app.autoApproval.enabled, true);
-    app.editor.setText('/auto add {"id":"tests","tool":"bash","command":"^npm test"}');
+    app.editor.setText('/approvals add {"id":"tests","tool":"bash","command":"^npm test"}');
     app.editor.handleInput('\r');
     await wait(20);
     assert.equal(app.autoApproval.rules.some((rule) => rule.id === 'tests'), true);
-    app.editor.setText('/auto remove tests');
+    app.editor.setText('/approvals remove tests');
     app.editor.handleInput('\r');
     await wait(20);
     assert.equal(app.autoApproval.rules.some((rule) => rule.id === 'tests'), false);
-    app.editor.setText('/auto off');
+    app.editor.setText('/approvals off');
     app.editor.handleInput('\r');
     await wait(20);
     assert.equal(app.autoApproval.enabled, false);

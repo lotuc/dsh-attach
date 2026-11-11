@@ -135,7 +135,18 @@ complete as `/name` unless shadowed.
 
 Details are scrollable; `Esc`/`q` returns. Routing modes (`tui`, `auto`, `web`,
 `off`), grace periods, and optional whitelist + LLM auto-approval are in
-[Configuration](configuration.md). Late attach replays pending requests on
+[Configuration](configuration.md).
+
+```text
+/approvals status|on|off|toggle|reload
+/approvals mode rules|review
+/approvals policy <text>
+/approvals add <json> | /approvals remove <id>
+/approvals suggest
+```
+
+`/approvals suggest` asks the model for a rule based on the last approval; it is
+saved only after `y` confirmation. Late attach replays pending requests on
 Host 0.8.0+.
 
 ## Questions

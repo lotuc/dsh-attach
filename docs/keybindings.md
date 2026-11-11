@@ -159,7 +159,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/permission [mode]` | Picker or `read-only`/`workspace-write`/`danger-full-access`/`auto`. |
 | `/detail [compact|standard|verbose]` | Detail level. |
 | `/btw <question>` | Side question; `f` forks with tools. |
-| `/auto [status|on|off|toggle|reload|mode|policy|full|add|remove|suggest]` | Inspect or edit auto-approval; `suggest` asks the model for a rule based on the last approval. |
+| `/approvals [status|on|off|toggle|reload|mode|policy|full|add|remove|suggest]` | Inspect or edit auto-approval; `suggest` asks the model for a rule based on the last approval. |
 | `/status` | Session/status details. |
 | `/quit`, `/exit` | Exit without stopping Host work. |
 
