@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1111.2144',
+      pluginVersion: '2026.1111.2205',
     };
     this.closed = false;
     this.requests = [];
@@ -710,6 +710,54 @@ test('auto-approval allows a whitelisted call and asks for an unlisted one', asy
     await wait(50);
     assert.equal(app.modals.has('interactive'), true, 'unlisted call falls back to the human panel');
     assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+
+test('review mode auto-approves without an exact rule match', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: {
+      enabled: true,
+      mode: 'review',
+      policy: 'allow commands that run tests or builds',
+      maxAutoApprovals: 5,
+    },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: { type: 'tool/call', data: { callId: 'c1', name: 'bash', arguments: '{"command":"make test"}' } },
+      },
+    });
+    client.emit('interactive', {
+      type: 'approval',
+      requestId: 'r-review',
+      toolName: 'bash',
+      callId: 'c1',
+      reason: 'run tests',
+      displayReason: { zh: '允许运行测试' },
+    });
+    await wait(100);
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+    assert.equal(app.modals.has('interactive'), false);
   } finally {
     app.quit('test');
     await running;

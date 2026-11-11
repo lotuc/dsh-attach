@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  autoApprovalBlocked,
   buildReviewPayload,
   findAutoApprovalRule,
   normalizeAutoApprovalConfig,
@@ -64,4 +65,31 @@ test('builds an isolated review payload and fail-closes verdicts', () => {
   assert.deepEqual(parseReview('```json\n{"verdict":"allow","reason":"scope matches"}\n```'), { verdict: 'allow', reason: 'scope matches' });
   assert.deepEqual(parseReview('garbage'), { verdict: 'ask', reason: 'reviewer returned no JSON' });
   assert.deepEqual(parseReview('{"verdict":"deny"}'), { verdict: 'ask', reason: '' });
+});
+
+test('review mode reviews any request under a global policy', () => {
+  const review = normalizeAutoApprovalConfig({
+    enabled: true,
+    mode: 'review',
+    policy: 'Allow tests and builds; ask for deletes and credentials.',
+    humanOnly: ['plugin_manager'],
+    humanOnlyPatterns: ['rm -rf /', '\\.ssh'],
+    allowFullAccess: false,
+  });
+  assert.equal(review.mode, 'review');
+  assert.equal(review.enabled, true);
+  assert.equal(findAutoApprovalRule(review, context()), null);
+  assert.equal(autoApprovalBlocked(review, context()), false);
+  assert.equal(autoApprovalBlocked(review, context({ toolName: 'plugin_manager' })), true);
+  assert.equal(autoApprovalBlocked(review, context({ arguments: { command: 'rm -rf /' } })), true);
+  assert.equal(autoApprovalBlocked(review, context({ arguments: { command: 'jolt test' }, requestedSandbox: 'danger-full-access' })), true);
+});
+
+test('review payload can omit the rule and carries the global policy', () => {
+  const review = normalizeAutoApprovalConfig({ enabled: true, mode: 'review', policy: 'allow tests', allowFullAccess: true });
+  const payload = buildReviewPayload(context(), null, review);
+  assert.equal(payload.mode, 'review');
+  assert.equal(payload.policy, 'allow tests');
+  assert.equal(payload.rule, undefined);
+  assert.equal(payload.allowFullAccess, true);
 });

@@ -73,47 +73,66 @@ Herdr facts (`HERDR_*`) are read only when launched by Herdr. See
 
 ## Auto-approval
 
-Disabled by default. Put rules in
-`$DSH_HOME/dsh-attach/auto-approve.json`, or set
-`DSH_ATTACH_AUTO_APPROVE` to another path (`off` disables).
+Disabled by default. Config file:
+`$DSH_HOME/dsh-attach/auto-approve.json`; override with
+`DSH_ATTACH_AUTO_APPROVE` (`off` disables). Client restart required.
+
+Two modes:
+
+| Mode | Behavior |
+|---|---|
+| `rules` (default) | A deterministic rule must match, then the reviewer confirms. |
+| `review` | Every approval with tool arguments goes to the reviewer under a global policy; no exact rule is required. |
+
+Global review example:
 
 ```json
 {
   "enabled": true,
-  "timeoutMs": 10000,
+  "mode": "review",
+  "policy": "Allow reads, tests, builds, and dependency installs. Ask for deletes, credentials, host configuration, and anything outside the workspace.",
+  "humanOnly": ["plugin_manager"],
+  "humanOnlyPatterns": ["rm -rf /", "\\.ssh"],
+  "allowFullAccess": false,
+  "maxAutoApprovals": 20,
+  "timeoutMs": 10000
+}
+```
+
+Rules mode example:
+
+```json
+{
+  "enabled": true,
+  "mode": "rules",
   "rules": [
-    {
-      "id": "tests",
-      "tool": "bash",
-      "command": "^npm test\\b",
-      "sandbox": "workspace-write",
-      "description": "Run the project test suite"
-    },
-    {
-      "id": "jolt-full",
-      "tool": "bash",
-      "command": "^cd .* && timeout 300 jolt test",
-      "sandbox": "danger-full-access",
-      "allowFullAccess": true,
-      "description": "Allow the jolt cache update with full access"
-    }
+    { "id": "tests", "tool": "bash", "command": "^npm test\\b", "sandbox": "workspace-write" },
+    { "id": "jolt-full", "tool": "bash", "command": "^cd .*jolt test", "sandbox": "danger-full-access", "allowFullAccess": true }
   ]
 }
 ```
 
-Rules match the tool name, optional `command` regex, optional `path` regex
-(file tools), and optional sandbox mode. A matching rule is sent to the Host
-reviewer model with the exact tool arguments. Auto-approval happens only if the
-reviewer returns `allow`; timeout, parse failure, missing LLM, or ambiguity
-falls back to the human approval panel.
+Rules match `tool` (or `*`), optional `command` regex (bash), optional `path`
+regex (file tools), and optional `sandbox`. First match wins.
 
-`danger-full-access` is never implicit. It requires both
-`sandbox: "danger-full-access"` and `allowFullAccess: true`, and it still grants
-the entire user-accessible filesystem, not just a path mentioned in the reason.
+Hard gates run before the reviewer:
 
-The reviewer is advisory, not a security boundary. Invalid config is ignored;
-use `/status` to see whether auto-approval is on and how many rules loaded.
-Auto-approved requests are logged as `auto-approval-*` events in `client.log`.
+- `humanOnly` tools always ask.
+- `humanOnlyPatterns` (also accepts `denyPatterns`) matching command/path ask.
+- `danger-full-access` requires `allowFullAccess: true` and a matching rule in
+  `rules` mode. It grants the entire user-accessible filesystem, not a path
+  named in the reason.
+- `maxAutoApprovals` caps auto-approvals per session (`0` = unlimited).
+
+The reviewer gets the tool name, parsed arguments, reason, sandbox modes,
+policy, and matched rule only. It returns `allow` or `ask`. Timeout, invalid
+JSON, missing LLM, missing tool arguments, or changed session falls back to the
+human panel. The reviewer uses the session model.
+
+Auto-approval is advisory, not a security boundary: arguments and reasons are
+untrusted and can attempt prompt injection. Keep the config outside the
+workspace and review it as executable policy. `/status` shows mode/rules;
+decisions are logged as `auto-approval-*` in `client.log`.
 
 ## Themes
 
