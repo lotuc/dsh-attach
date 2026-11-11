@@ -32,11 +32,12 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1111.1607',
+      pluginVersion: '2026.1111.2144',
     };
     this.closed = false;
     this.requests = [];
     this.requestCalls = [];
+    this.approvalOutcomes = [];
   }
   async request(method, params) {
     this.requests.push(method);
@@ -68,6 +69,11 @@ class FakeClient extends EventEmitter {
         return { supported: false, items: [] };
       case 'btw.ask':
         return { answer: 'side answer', reasoning: 'brief thinking', provider: 'deepseek', model: 'flash' };
+      case 'approval.review':
+        return { verdict: 'allow', reason: 'within the test whitelist' };
+      case 'approval.respond':
+        this.approvalOutcomes.push(params?.outcome);
+        return { accepted: true };
       case 'job.list':
         return {
           jobs: [{
@@ -638,6 +644,72 @@ test('retries reconnect after a failed attempt', async () => {
     client.emit('close');
     await wait(1_700);
     assert.ok(attempts >= 2, `expected retries after the first failure, saw ${attempts}`);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+
+test('auto-approval allows a whitelisted call and asks for an unlisted one', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: {
+      enabled: true,
+      rules: [{ id: 'tests', tool: 'bash', command: '^npm test\\b' }],
+    },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: { type: 'tool/call', data: { callId: 'c1', name: 'bash', arguments: '{"command":"npm test"}' } },
+      },
+    });
+    client.emit('interactive', {
+      type: 'approval',
+      requestId: 'r1',
+      toolName: 'bash',
+      callId: 'c1',
+      reason: 'run tests',
+      displayReason: { zh: '允许运行测试' },
+    });
+    await wait(100);
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+    assert.equal(app.modals.has('interactive'), false);
+
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: { type: 'tool/call', data: { callId: 'c2', name: 'bash', arguments: '{"command":"rm -rf build"}' } },
+      },
+    });
+    client.emit('interactive', {
+      type: 'approval',
+      requestId: 'r2',
+      toolName: 'bash',
+      callId: 'c2',
+      reason: 'delete build',
+      displayReason: { zh: '允许删除构建目录' },
+    });
+    await wait(50);
+    assert.equal(app.modals.has('interactive'), true, 'unlisted call falls back to the human panel');
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
   } finally {
     app.quit('test');
     await running;

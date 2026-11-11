@@ -134,8 +134,9 @@ complete as `/name` unless shadowed.
 | `Esc` | Detach; another client/timeout may answer. |
 
 Details are scrollable; `Esc`/`q` returns. Routing modes (`tui`, `auto`, `web`,
-`off`) and grace periods are in [Configuration](configuration.md). Late attach
-replays pending requests on Host 0.8.0+.
+`off`), grace periods, and optional whitelist + LLM auto-approval are in
+[Configuration](configuration.md). Late attach replays pending requests on
+Host 0.8.0+.
 
 ## Questions
 

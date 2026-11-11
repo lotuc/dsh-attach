@@ -71,6 +71,50 @@ Late terminals receive pending interactions from the Host.
 Herdr facts (`HERDR_*`) are read only when launched by Herdr. See
 [Herdr](herdr.md).
 
+## Auto-approval
+
+Disabled by default. Put rules in
+`$DSH_HOME/dsh-attach/auto-approve.json`, or set
+`DSH_ATTACH_AUTO_APPROVE` to another path (`off` disables).
+
+```json
+{
+  "enabled": true,
+  "timeoutMs": 10000,
+  "rules": [
+    {
+      "id": "tests",
+      "tool": "bash",
+      "command": "^npm test\\b",
+      "sandbox": "workspace-write",
+      "description": "Run the project test suite"
+    },
+    {
+      "id": "jolt-full",
+      "tool": "bash",
+      "command": "^cd .* && timeout 300 jolt test",
+      "sandbox": "danger-full-access",
+      "allowFullAccess": true,
+      "description": "Allow the jolt cache update with full access"
+    }
+  ]
+}
+```
+
+Rules match the tool name, optional `command` regex, optional `path` regex
+(file tools), and optional sandbox mode. A matching rule is sent to the Host
+reviewer model with the exact tool arguments. Auto-approval happens only if the
+reviewer returns `allow`; timeout, parse failure, missing LLM, or ambiguity
+falls back to the human approval panel.
+
+`danger-full-access` is never implicit. It requires both
+`sandbox: "danger-full-access"` and `allowFullAccess: true`, and it still grants
+the entire user-accessible filesystem, not just a path mentioned in the reason.
+
+The reviewer is advisory, not a security boundary. Invalid config is ignored;
+use `/status` to see whether auto-approval is on and how many rules loaded.
+Auto-approved requests are logged as `auto-approval-*` events in `client.log`.
+
 ## Themes
 
 ```sh

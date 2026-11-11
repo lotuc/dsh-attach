@@ -43,6 +43,14 @@ prevents model output from controlling the terminal.
 No network listener, relay, or cloud service. Unix socket/Named pipe and
 descriptor files are the entire transport.
 
+## Auto-approval
+
+Auto-approval is opt-in and uses a deterministic whitelist plus an isolated
+LLM reviewer; failures fall back to a human. It is **not** a security boundary:
+the reviewer can be fooled by prompt injection. `danger-full-access` rules must
+opt in explicitly and still grant all user-accessible paths. Keep the whitelist
+file outside the workspace and review it like executable policy.
+
 ## Out of scope
 
 - Malicious same-user processes (they can read the descriptor/token).

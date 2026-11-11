@@ -36,7 +36,8 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
 - **Sessions**: list, resume, create, fork, archive/unarchive, pin/unpin, presets.
 - **Live view**: streaming text/reasoning/tools, turn folding, timestamps,
   activity labels, token/context/permission status.
-- **Interaction**: approvals, questions, goals, plan mode, todo list, queue.
+- **Interaction**: approvals, questions, optional whitelist + LLM auto-approval,
+  goals, plan mode, todo list, queue.
 - **Search and history**: `/find`, `Ctrl+R`/`/history`, durable older pages.
 - **Subagents**: lineage, read-only history, continue/interrupt, parent navigation.
 - **Commands**: `/` completion for local/Host commands and arguments; Host
