@@ -32,7 +32,7 @@ class FakeClient extends EventEmitter {
     super();
     this.host = {
       capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
-      pluginVersion: '2026.1111.2205',
+      pluginVersion: '2026.1111.2215',
     };
     this.closed = false;
     this.requests = [];
@@ -71,6 +71,8 @@ class FakeClient extends EventEmitter {
         return { answer: 'side answer', reasoning: 'brief thinking', provider: 'deepseek', model: 'flash' };
       case 'approval.review':
         return { verdict: 'allow', reason: 'within the test whitelist' };
+      case 'approval.suggest':
+        return { rule: { id: 'suggested-tests', tool: 'bash', command: '^make test' }, reason: 'narrow' };
       case 'approval.respond':
         this.approvalOutcomes.push(params?.outcome);
         return { accepted: true };
@@ -692,6 +694,15 @@ test('auto-approval allows a whitelisted call and asks for an unlisted one', asy
     assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
     assert.equal(app.modals.has('interactive'), false);
 
+    app.editor.setText('/auto suggest');
+    app.editor.handleInput('\r');
+    await wait(80);
+    assert.equal(app.modals.has('confirm'), true, 'suggestion requires confirmation');
+    assert.match(app.modals.get('confirm').component.render(80).join('\n'), /suggested-tests/);
+    app.modals.get('confirm').component.handleInput('y');
+    await wait(20);
+    assert.equal(app.autoApproval.rules.some((rule) => rule.id === 'suggested-tests'), true);
+
     client.emit('frame', {
       sessionId: 's1',
       frame: {
@@ -758,6 +769,47 @@ test('review mode auto-approves without an exact rule match', async () => {
     await wait(100);
     assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
     assert.equal(app.modals.has('interactive'), false);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+
+test('auto-approval config commands toggle and add rules', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    app.editor.setText('/auto on');
+    app.editor.handleInput('\r');
+    await wait(20);
+    assert.equal(app.autoApproval.enabled, true);
+    app.editor.setText('/auto add {"id":"tests","tool":"bash","command":"^npm test"}');
+    app.editor.handleInput('\r');
+    await wait(20);
+    assert.equal(app.autoApproval.rules.some((rule) => rule.id === 'tests'), true);
+    app.editor.setText('/auto remove tests');
+    app.editor.handleInput('\r');
+    await wait(20);
+    assert.equal(app.autoApproval.rules.some((rule) => rule.id === 'tests'), false);
+    app.editor.setText('/auto off');
+    app.editor.handleInput('\r');
+    await wait(20);
+    assert.equal(app.autoApproval.enabled, false);
   } finally {
     app.quit('test');
     await running;

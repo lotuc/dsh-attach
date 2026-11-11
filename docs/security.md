@@ -45,11 +45,12 @@ descriptor files are the entire transport.
 
 ## Auto-approval
 
-Auto-approval is opt-in and uses a deterministic whitelist plus an isolated
-LLM reviewer; failures fall back to a human. It is **not** a security boundary:
-the reviewer can be fooled by prompt injection. `danger-full-access` rules must
-opt in explicitly and still grant all user-accessible paths. Keep the whitelist
-file outside the workspace and review it like executable policy.
+Auto-approval is opt-in. `rules` mode uses a deterministic whitelist plus an
+isolated LLM reviewer; `review` mode applies a global policy to every approval.
+Failures fall back to a human. It is **not** a security boundary: the reviewer
+can be fooled by prompt injection. `danger-full-access` requires explicit opt-in
+and still grants all user-accessible paths. Keep the config outside the
+workspace and review it like executable policy.
 
 ## Out of scope
 

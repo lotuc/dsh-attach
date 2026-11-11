@@ -134,6 +134,20 @@ untrusted and can attempt prompt injection. Keep the config outside the
 workspace and review it as executable policy. `/status` shows mode/rules;
 decisions are logged as `auto-approval-*` in `client.log`.
 
+Runtime commands:
+
+```text
+/auto                  status
+/auto on|off|toggle    enable or disable
+/auto reload           reread auto-approve.json (also polled every 2s)
+/auto mode rules|review
+/auto policy <text>    set global review policy
+/auto full on|off      allow/forbid danger-full-access auto-review
+/auto add <json>       append a rule
+/auto remove <id>      remove a rule
+/auto suggest          LLM suggests a rule for the last approval; requires y to add
+```
+
 ## Themes
 
 ```sh

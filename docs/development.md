@@ -83,7 +83,8 @@ Client notifications: `frame`, `session.error`, `approval`, `question`,
 | `workspace.list` | Workspace tree or `cwd` fallback. |
 | `subagent.summary` / `children` / `list` | Counts, direct children, descendants. |
 | `subagent.continue` / `interrupt` | Follow-up or stop. |
-| `approval.review` | Isolated LLM review of a whitelist-matched approval. |
+| `approval.review` | Isolated LLM review of an approval. |
+| `approval.suggest` | LLM-proposed auto-approval rule for the last approval. |
 | `approval.respond` / `cancel` | Approval outcome. |
 | `question.respond` / `cancel` | Question answers. |
 | `interactive.ack` / `detach` | Shared-request acknowledgement/detach. |
@@ -104,7 +105,7 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/host.js` | Plugin entry/config/hot reload. |
 | `lib/host/server.js` | Transport, auth, protocol, follow, interactive/job routes. |
 | `lib/host/btw.js` | Side-question route and bounded context. |
-| `lib/host/approval-review.js` | Isolated approval reviewer prompt and JSON verdict. |
+| `lib/host/approval-review.js` | Isolated approval reviewer prompt, JSON verdict, rule suggestion. |
 | `lib/host/subagents.js` | Catalog mapping/counts. |
 | `lib/host/subagent-control.js` | Control capability detection. |
 | `lib/host/shell-env.js` | Bounded `HERDR_*` merge. |
@@ -159,7 +160,7 @@ Coverage gates: 70% lines, 65% branches/functions.
 ```sh
 node bin/dsh-attach.js --help
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1111.2205.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1111.2215.tgz
 ```
 
 Client `--hot` (or `DSH_ATTACH_HOT=1`) restarts the TUI on `bin/`,

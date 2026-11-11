@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseReview, reviewApproval } from '../lib/host/approval-review.js';
+import { parseReview, parseSuggestion, reviewApproval } from '../lib/host/approval-review.js';
 
 const payload = {
   toolName: 'bash',
@@ -42,4 +42,13 @@ test('reviews with the session route and no tools', async () => {
   assert.equal(request.provider, 'p');
   assert.match(request.system, /APPROVAL_REVIEW_POLICY/);
   assert.match(request.messages[0].content[0].text, /"rule"/);
+});
+
+test('parses a suggested narrow rule and rejects malformed suggestions', () => {
+  assert.deepEqual(parseSuggestion('{"rule":{"id":"tests","tool":"bash","command":"^npm test","description":"tests"},"reason":"narrow"}'), {
+    rule: { id: 'tests', tool: 'bash', command: '^npm test', description: 'tests' },
+    reason: 'narrow',
+  });
+  assert.throws(() => parseSuggestion('{"rule":{}}'), /no tool/u);
+  assert.throws(() => parseSuggestion('nope'), /no suggestion JSON/u);
 });
