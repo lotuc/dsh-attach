@@ -78,6 +78,15 @@ test('job output panel renders text and routes kill/scroll keys', () => {
   assert.equal(closed, 1);
 });
 
+test('job output header shows every command line', () => {
+  const panel = new JobOutputPanel('Job bash-a', {});
+  const command = ['export A=1', 'export B=2', 'export C=3', 'export D=4'].join('\n');
+  panel.setCommand(command, 'bash');
+  const text = panel.render(80).join('\n');
+  for (const line of command.split('\n')) assert.match(text, new RegExp(line));
+  assert.doesNotMatch(text, /more command line/);
+});
+
 test('folds registration and settlement into a roster', () => {
   let roster = mergeJobEvent(new Map(), 'job/registered', {
     jobId: 'bash-a', kind: 'bash', label: 'build', owner: 's1', startedAt: 100,
