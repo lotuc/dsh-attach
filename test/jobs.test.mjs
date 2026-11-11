@@ -30,8 +30,8 @@ test('builds full job details without truncating the command', () => {
     output: { total: 2048, earliest: 12, lossy: true },
   }, 10_000);
 
-  assert.deepEqual(sections.map((section) => section.label), ['Job', 'Command', 'Timing', 'Progress', 'Output']);
-  assert.equal(sections[1].text, command);
+  assert.deepEqual(sections.map((section) => section.label), ['Command', 'Job', 'Timing', 'Progress', 'Output']);
+  assert.equal(sections[0].text, command);
   assert.match(sections[2].text, /^started: 1970-01-01T00:00:01\.000Z$/m);
   assert.match(sections[2].text, /^elapsed: 5s$/m);
   assert.match(sections[3].text, /exit code: 0/);
@@ -68,7 +68,7 @@ test('job output panel renders text and routes kill/scroll keys', () => {
   assert.ok(lines.some((line) => line.includes('sleep 10')));
   assert.ok(lines.some((line) => line.includes('line one')));
   assert.ok(lines.some((line) => line.includes('bash · running')));
-  assert.ok(lines.some((line) => line.includes('enter/d details')));
+  assert.ok(lines.some((line) => line.includes('enter/d full command')));
   panel.handleInput('\r');
   panel.handleInput('d');
   panel.handleInput('k');
