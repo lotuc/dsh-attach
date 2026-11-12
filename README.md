@@ -43,7 +43,7 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
 - **Subagents**: lineage, read-only history, continue/interrupt, parent navigation.
 - **Commands**: `/` completion for local/Host commands and arguments; Host
   command passthrough.
-- **Side questions**: `/btw` overlay; `f` forks with full tool access.
+- **Side questions**: streamed `/btw` overlay with a replayable side thread; `f` starts a background fork with full tool access.
 - **Detail levels**: `Ctrl+G` or `/detail compact|standard|verbose`.
 - **Jobs and Herdr**: background-job output; Herdr state, titles, preview panes.
 - **Reconnect**: automatic retry after Host restart, `/reconnect` on demand.

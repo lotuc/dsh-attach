@@ -98,10 +98,20 @@ Prompt history is per run, max 100. Drafts survive history browsing.
 /btw <question>
 ```
 
-Answers from completed conversation using the session model. It does not queue,
-interrupt, or enter the conversation; no tools. Overlay only, last 20 kept in
-memory. Bare `/btw` reopens the latest. `f` forks the session with full tools;
-`Esc` closes. Single in-flight.
+Answers from the conversation the main model can see: system/project context,
+messages, and tool results, excluding the reply still being written. It does
+not queue, interrupt, or enter the conversation; there are no tools. The
+answer streams into the overlay and stays out of session history.
+
+A later side question replays the last 20 completed asides, so follow-ups work;
+`x` clears them. Bare `/btw` reopens the latest. `Esc` cancels a pending
+answer, `Space`/`Enter` dismiss the card, `c` copies the raw Markdown, `[`/`]`
+navigates earlier asides, and `Up`/`Down` scroll.
+
+`f` starts a background fork subagent with full tools while the main session
+stays open; its report is announced in the transcript and the child appears in
+`/subagent list`. Hosts without the fork-subagent route fall back to a Session
+fork. One side question runs at a time.
 
 ## Goals and plans
 

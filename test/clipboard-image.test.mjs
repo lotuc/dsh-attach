@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { EventEmitter } from 'node:events';
 
-import { readClipboardImage, readClipboardText } from '../lib/client/clipboard-image.js';
+import { readClipboardImage, readClipboardText, writeClipboardText } from '../lib/client/clipboard-image.js';
 
 test('reads a PNG from pngpaste on macOS', async () => {
   const calls = [];
@@ -76,4 +77,43 @@ test('falls back to xclip text on Linux and returns empty when unavailable', asy
     platform: 'linux',
     run: async () => { throw new Error('not installed'); },
   }), '');
+});
+
+
+function fakeSpawn(commands, { fail = false, code = 0 } = {}) {
+  return (command) => {
+    const child = new EventEmitter();
+    child.stdin = { end(value) { commands.push([command, value]); } };
+    queueMicrotask(() => {
+      if (fail) child.emit('error', new Error('not installed'));
+      else child.emit('close', code);
+    });
+    return child;
+  };
+}
+
+test('writes clipboard text through the platform command', async () => {
+  const commands = [];
+  assert.equal(await writeClipboardText('hello', { platform: 'darwin', spawnFn: fakeSpawn(commands) }), true);
+  assert.deepEqual(commands, [['pbcopy', 'hello']]);
+  await assert.rejects(writeClipboardText('', { platform: 'darwin', spawnFn: fakeSpawn([]) }), /nothing/u);
+});
+
+test('falls back through Linux clipboard writers and reports failure', async () => {
+  const commands = [];
+  let first = true;
+  const spawnFn = (command) => {
+    if (first && command === 'wl-copy') {
+      first = false;
+      return fakeSpawn(commands, { fail: true })(command);
+    }
+    return fakeSpawn(commands)(command);
+  };
+  assert.equal(await writeClipboardText('hello', { platform: 'linux', spawnFn }), true);
+  assert.deepEqual(commands.at(-1), ['xclip', 'hello']);
+  assert.equal(commands.some(([command]) => command === 'wl-copy'), true);
+  await assert.rejects(
+    writeClipboardText('hello', { platform: 'linux', spawnFn: fakeSpawn([], { fail: true }) }),
+    /unavailable/u,
+  );
 });

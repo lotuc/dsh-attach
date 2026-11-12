@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import test from 'node:test';
 
+import { stripTerminalSequences } from '@earendil-works/pi-tui';
+
 import { AttachApp } from '../lib/client/app.js';
 import { normalizeInbox } from '../lib/client/inbox.js';
 
@@ -810,6 +812,113 @@ test('auto-approval config commands toggle and add rules', async () => {
     app.editor.handleInput('\r');
     await wait(20);
     assert.equal(app.autoApproval.enabled, false);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+
+class StreamingBtwClient extends FakeClient {
+  constructor() {
+    super();
+    this.btwParams = null;
+    this.btwResult = Promise.withResolvers();
+  }
+  async request(method, params) {
+    if (method === 'btw.ask') {
+      this.btwParams = params;
+      this.requests.push(method);
+      this.requestCalls.push({ method, params });
+      return this.btwResult.promise;
+    }
+    return super.request(method, params);
+  }
+}
+
+test('btw streams into the card and replays the previous answer as side-thread context', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 30 };
+  const tui = new FakeTui(terminal);
+  const client = new StreamingBtwClient();
+  const app = new AttachApp(client, { session: 's1', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    app.editor.setText('/btw why?');
+    app.editor.handleInput('\r');
+    await wait(20);
+    const panel = app.modals.get('btw').component;
+    assert.equal(client.btwParams.question, 'why?');
+    assert.deepEqual(client.btwParams.history, []);
+    client.emit('btw', { type: 'btw', phase: 'delta', requestId: client.btwParams.requestId, text: 'partial ' });
+    await wait(10);
+    assert.match(stripTerminalSequences(panel.render(100).join('\n')), /partial/);
+    client.btwResult.resolve({ answer: 'final answer', reasoning: 'r', provider: 'p', model: 'm' });
+    for (let attempt = 0; attempt < 50 && panel.entry.status !== 'done'; attempt += 1) await wait(5);
+    assert.equal(panel.entry.status, 'done');
+    assert.match(stripTerminalSequences(panel.render(100).join('\n')), /final answer/);
+
+    panel.handleInput(' ');
+    app.editor.setText('/btw and then?');
+    app.editor.handleInput('\r');
+    for (let attempt = 0; attempt < 50 && client.btwParams.question !== 'and then?'; attempt += 1) await wait(5);
+    assert.equal(client.btwParams.history.length, 1);
+    assert.equal(client.btwParams.history[0].question, 'why?');
+    assert.equal(client.btwParams.history[0].answer, 'final answer');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+class ForkBtwClient extends FakeClient {
+  constructor() {
+    super();
+    this.host = { ...this.host, capabilities: ['btw.fork', 'session.fork'] };
+    this.forkParams = null;
+    this.sessionForked = false;
+  }
+  async request(method, params) {
+    if (method === 'btw.fork') {
+      this.forkParams = params;
+      return { supported: true, childId: 'child-btw', name: 'btw-1' };
+    }
+    if (method === 'session.fork') {
+      this.sessionForked = true;
+    }
+    return super.request(method, params);
+  }
+}
+
+test('f starts a background fork without leaving the current session', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 30 };
+  const tui = new FakeTui(terminal);
+  const client = new ForkBtwClient();
+  const app = new AttachApp(client, { session: 's1', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    app.editor.setText('/btw where?');
+    app.editor.handleInput('\r');
+    await wait(30);
+    const panel = app.modals.get('btw').component;
+    panel.handleInput('f');
+    for (let attempt = 0; attempt < 50 && client.forkParams === null; attempt += 1) await wait(5);
+    for (let attempt = 0; attempt < 50 && app.modals.has('btw'); attempt += 1) await wait(5);
+    assert.equal(client.forkParams.question, 'where?');
+    assert.equal(client.forkParams.answer, 'side answer');
+    assert.equal(client.sessionForked, false, 'a background fork must not switch sessions');
+    assert.equal(app.state.sessionId, 's1');
+    assert.equal(app.modals.has('btw'), false);
+    assert.ok(app.rows.some((row) => row.text?.includes('btw fork started')), 'the fork is announced in the transcript');
   } finally {
     app.quit('test');
     await running;

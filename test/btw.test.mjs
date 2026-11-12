@@ -1,7 +1,34 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { askBtw, buildBtwTranscript, resolveBtwRoute, sessionEventMessages, sideQuestionMessages } from '../lib/host/btw.js';
+import {
+  askBtw,
+  buildBtwMessages,
+  buildBtwTranscript,
+  btwRequestMessages,
+  normalizeBtwHistory,
+  resolveBtwRoute,
+  sessionEventMessages,
+  sideQuestionMessages,
+} from '../lib/host/btw.js';
+
+function sessionWith(deriveMessages, extra = {}) {
+  return {
+    deriveMessages,
+    requestHeader: () => ({ config: { provider: 'p', model: 'm' } }),
+    ...extra,
+  };
+}
+
+function routeContext(stream, overrides = {}) {
+  return {
+    get(name) {
+      if (name === 'llm') return { stream };
+      return undefined;
+    },
+    ...overrides,
+  };
+}
 
 test('flattens completed conversation and labels tool results', () => {
   const transcript = buildBtwTranscript([
@@ -47,33 +74,117 @@ test('resolves the session selection before the request header and defaults', ()
   assert.deepEqual(resolveBtwRoute(ctx, agent), { provider: 'p', model: 'm', reasoningEffort: 'high' });
 });
 
-test('asks the same route without tools and returns answer and reasoning', async () => {
+test('normalizes bounded side-thread history', () => {
+  const input = [];
+  for (let i = 0; i < 25; i += 1) input.push({ question: `q${i}`, answer: `a${i}` });
+  input.push({ question: '', answer: 'empty' });
+  input.push({ question: 'drop', answer: '' });
+  const history = normalizeBtwHistory(input);
+  assert.equal(history.length, 20);
+  assert.equal(history[0].question, 'q5');
+  assert.equal(history.at(-1).question, 'q24');
+  assert.equal(normalizeBtwHistory([{ question: 'q', answer: 'x'.repeat(30_000) }])[0].answer.endsWith('…'), true);
+});
+
+test('appends one side boundary after the exact model-visible history', () => {
+  const base = [
+    { role: 'system', content: [{ type: 'text', text: 'PROJECT_RULES' }] },
+    { role: 'user', content: [{ type: 'text', text: 'main task' }] },
+    { role: 'tool', toolCallId: 'c1', content: [{ type: 'text', text: 'tool output' }] },
+  ];
+  const messages = buildBtwMessages(base, [{ question: 'q1', answer: 'a1' }], 'q2');
+  assert.equal(messages.length, base.length + 1);
+  assert.equal(messages[0], base[0]);
+  assert.equal(messages[1], base[1]);
+  const block = messages.at(-1);
+  assert.equal(block.role, 'user');
+  assert.match(block.content[0].text, /SIDE_QUESTION_POLICY/);
+  assert.match(block.content[0].text, /Q: q1\nA: a1/);
+  assert.match(block.content[0].text, /Current side question\]\n\nq2/);
+  assert.equal(base.length, 3, 'the source history is not mutated');
+});
+
+test('asks with the session context prefix, no system override, no tools, and streaming deltas', async () => {
   let request;
-  const ctx = {
-    get(name) {
-      if (name === 'llm') {
-        return {
-          async *stream(options) {
-            request = options;
-            yield { type: 'reasoning-delta', text: 'think' };
-            yield { type: 'text-delta', text: 'answer' };
-            yield { type: 'finish', reason: { kind: 'stop' } };
-          },
-        };
-      }
-      if (name === 'agentDefaultModel') return { currentSelection: () => ({ provider: 'p', model: 'm' }) };
-      return undefined;
-    },
+  const deltas = [];
+  const stream = async function* stream(options) {
+    request = options;
+    yield { type: 'reasoning-delta', text: 'think' };
+    yield { type: 'text-delta', text: 'answer' };
+    yield { type: 'finish', reason: { kind: 'stop' } };
   };
-  const agent = { id: 's1', session: { deriveMessages: () => [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }] } };
-  const result = await askBtw(ctx, agent, 'why?');
+  const ctx = routeContext(stream);
+  const base = [
+    { role: 'system', content: [{ type: 'text', text: 'PROJECT_RULES' }] },
+    { role: 'user', content: [{ type: 'text', text: 'hello' }] },
+  ];
+  const agent = { id: 's1', session: sessionWith(() => base) };
+  const result = await askBtw(ctx, agent, 'why?', {
+    history: [{ question: 'earlier', answer: 'old answer' }],
+    onDelta: (delta) => deltas.push(delta),
+  });
   assert.equal(result.answer, 'answer');
   assert.equal(result.reasoning, 'think');
   assert.equal(result.provider, 'p');
+  assert.equal(result.model, 'm');
+  assert.equal(result.context, 'session');
   assert.equal(request.provider, 'p');
   assert.equal(request.tools, undefined);
-  assert.match(request.system, /SIDE_QUESTION_POLICY/);
-  assert.equal(request.messages.at(-1).content[0].text, 'why?');
+  assert.equal(request.system, undefined, 'the main system message must stay in messages');
+  assert.equal(request.messages[0], base[0]);
+  assert.match(request.messages.at(-1).content[0].text, /SIDE_QUESTION_POLICY/);
+  assert.match(request.messages.at(-1).content[0].text, /Current side question\]\n\nwhy\?/);
+  assert.deepEqual(deltas, [{ reasoning: 'think' }, { text: 'answer' }]);
+});
+
+test('falls back to the raw log when the session cannot derive model-visible messages', async () => {
+  let request;
+  const stream = async function* stream(options) {
+    request = options;
+    yield { type: 'text-delta', text: 'fallback answer' };
+    yield { type: 'finish', reason: { kind: 'stop' } };
+  };
+  const session = sessionWith(
+    () => [],
+    {
+      snapshotEvents: () => [
+        { type: 'user/message', data: { content: [{ type: 'text', text: 'raw task' }] } },
+        { type: 'assistant/message', data: { message: { role: 'assistant', content: [{ type: 'text', text: 'raw answer' }] } } },
+      ],
+    },
+  );
+  const result = await askBtw(routeContext(stream), { id: 's1', session }, 'what?');
+  assert.equal(result.context, 'transcript');
+  assert.equal(request.system, undefined);
+  assert.equal(request.messages[0].role, 'user');
+  assert.match(request.messages[0].content[0].text, /raw task/);
+  assert.match(request.messages.at(-1).content[0].text, /what\?/);
+});
+
+test('adds an explicit note when the side model tries to call a tool', async () => {
+  const stream = async function* stream() {
+    yield { type: 'text-delta', text: 'I would read the file.' };
+    yield { type: 'tool-call-delta', id: 'c1', name: 'read', argumentsDelta: '{}' };
+    yield { type: 'finish', reason: { kind: 'stop' } };
+  };
+  const agent = { id: 's1', session: sessionWith(() => [{ role: 'user', content: [{ type: 'text', text: 'x' }] }]) };
+  const result = await askBtw(routeContext(stream), agent, 'where?');
+  assert.equal(result.toolAttempted, true);
+  assert.match(result.answer, /No tools were executed/);
+});
+
+test('reports cancellation through a stable attach code', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const stream = async function* stream(options) {
+    if (options.signal.aborted) throw new Error('aborted');
+    yield { type: 'text-delta', text: 'never' };
+  };
+  const agent = { id: 's1', session: sessionWith(() => [{ role: 'user', content: [{ type: 'text', text: 'x' }] }]) };
+  await assert.rejects(
+    askBtw(routeContext(stream), agent, 'where?', { signal: controller.signal }),
+    (error) => error.code === 'attach/cancelled',
+  );
 });
 
 test('reconstructs the full conversation from raw session events', () => {
@@ -90,10 +201,12 @@ test('reconstructs the full conversation from raw session events', () => {
   assert.equal(messages[2].role, 'tool');
 });
 
-test('prefers the raw log over compacted derived history', () => {
+test('raw fallback reconstruction stays available', () => {
   const session = {
     snapshotEvents: () => [{ type: 'user/message', data: { content: [{ type: 'text', text: 'raw' }] } }],
     deriveMessages: () => [{ role: 'user', content: [{ type: 'text', text: 'summary' }] }],
   };
   assert.equal(sideQuestionMessages(session)[0].content[0].text, 'raw');
+  const messages = btwRequestMessages([{ role: 'user', text: 'raw' }], { provider: 'p', model: 'm' });
+  assert.equal(messages[0].content[0].text, 'raw');
 });

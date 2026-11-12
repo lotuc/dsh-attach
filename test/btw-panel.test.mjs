@@ -27,3 +27,41 @@ test('btw panel keeps earlier asides navigable and closes on escape', () => {
   panel.handleInput('\x1b');
   assert.equal(closed, true);
 });
+
+test('btw panel copies, clears and dismisses completed answers', () => {
+  const entries = [{ question: 'where?', status: 'done', answer: '# There', reasoning: '', provider: 'p', model: 'm' }];
+  let copied = null;
+  let cleared = 0;
+  let closed = 0;
+  const panel = new BtwPanel(entries, 0, {
+    onCopy: (entry) => { copied = entry; },
+    onClear: () => { cleared += 1; },
+    onClose: () => { closed += 1; },
+  });
+  const text = stripTerminalSequences(panel.render(80).join('\n'));
+  assert.match(text, /p\/m/);
+  assert.match(text, /c copy/);
+  assert.match(text, /x clear/);
+  panel.handleInput('c');
+  assert.equal(copied, entries[0]);
+  panel.handleInput('x');
+  assert.equal(cleared, 1);
+  panel.handleInput(' ');
+  assert.equal(closed, 1);
+});
+
+test('btw panel cancels an answering question on escape', () => {
+  const entries = [{ question: 'slow?', status: 'answering', answer: 'partial', reasoning: '' }];
+  let cancelled = null;
+  let closed = 0;
+  const panel = new BtwPanel(entries, 0, {
+    onCancel: (entry) => { cancelled = entry; },
+    onClose: () => { closed += 1; },
+  });
+  const text = stripTerminalSequences(panel.render(80).join('\n'));
+  assert.match(text, /esc cancel/);
+  assert.match(text, /partial/);
+  panel.handleInput('\x1b');
+  assert.equal(cancelled, entries[0]);
+  assert.equal(closed, 0);
+});

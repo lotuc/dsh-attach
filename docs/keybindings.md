@@ -158,7 +158,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/model [provider model]` | Picker or direct switch. |
 | `/permission [mode]` | Picker or `read-only`/`workspace-write`/`danger-full-access`/`auto`. |
 | `/detail [compact|standard|verbose]` | Detail level. |
-| `/btw <question>` | Side question; `f` forks with tools. |
+| `/btw <question>` | Side question; `f` starts a background fork with tools. |
 | `/approvals [on|off|add <json>|remove <id>|suggest]` | Inspect or edit auto-approval; advanced settings belong in `auto-approve.json`. |
 | `/status` | Session/status details. |
 | `/quit`, `/exit` | Exit without stopping Host work. |
@@ -171,3 +171,16 @@ Host `ctx.commands` entries are merged after local commands and execute inside
 the Host (for example `/compact`). Unknown commands become normal prompts. Host
 commands/subagent history require plugin 0.10.0+; pending interaction replay
 requires 0.8.0+. Reload DSH after plugin upgrades.
+
+
+## Side-question card
+
+| Key | Action |
+|---|---|
+| `Space`, `Enter` | Dismiss the card; a pending answer keeps running. |
+| `Esc` | Cancel a pending answer, or dismiss a completed card. |
+| `Up` / `Down` | Scroll the answer. |
+| `[` / `]` | Move between earlier side questions. |
+| `c` | Copy the raw Markdown answer. |
+| `x` | Clear earlier side questions, keeping the current card. |
+| `f` | Start a background fork with full tools. |
