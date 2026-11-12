@@ -138,15 +138,15 @@ Runtime commands:
 
 ```text
 /approvals             status
-/approvals on|off|toggle    enable or disable
-/approvals reload           reread auto-approve.json (also polled every 2s)
-/approvals mode rules|review
-/approvals policy <text>    set global review policy
-/approvals full on|off      allow/forbid danger-full-access auto-review
-/approvals add <json>       append a rule
-/approvals remove <id>      remove a rule
-/approvals suggest          LLM suggests a rule for the last approval; requires y to add
+/approvals on|off      enable or disable
+/approvals add <json>  append a rule
+/approvals remove <id> remove a rule
+/approvals suggest     LLM suggests a rule for the last approval; requires y to add
 ```
+
+Edit `auto-approve.json` for `mode`, `policy`, `allowFullAccess`,
+`humanOnly`, `humanOnlyPatterns`, `maxAutoApprovals`, and `timeoutMs`. The file
+is reread within 2 seconds; a client restart is not needed after editing.
 
 ## Themes
 

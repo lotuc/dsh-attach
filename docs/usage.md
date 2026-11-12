@@ -138,12 +138,15 @@ Details are scrollable; `Esc`/`q` returns. Routing modes (`tui`, `auto`, `web`,
 [Configuration](configuration.md).
 
 ```text
-/approvals status|on|off|toggle|reload
-/approvals mode rules|review
-/approvals policy <text>
-/approvals add <json> | /approvals remove <id>
-/approvals suggest
+/approvals             status
+/approvals on|off      enable or disable
+/approvals add <json>  append a rule
+/approvals remove <id> remove a rule
+/approvals suggest     propose a rule from the last approval
 ```
+
+Edit `auto-approve.json` for mode, policy, full-access, and limits; it reloads
+within 2 seconds.
 
 `/approvals suggest` asks the model for a rule based on the last approval; it is
 saved only after `y` confirmation. Late attach replays pending requests on
