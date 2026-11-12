@@ -346,6 +346,15 @@ test('commands and skills are discovered and executed for the followed session',
     assert.equal(listed.commands[0].name, 'compact');
     assert.equal(calls.filter((call) => call[0] === 'commands.list').at(-1)[1].id, 's1');
 
+    // A followed session whose Agent is cold still gets the per-Agent catalog,
+    // so completion matches what commands.execute can actually run.
+    const liveAgents = services.agents;
+    services.agents = { get: () => undefined };
+    const cold = await client.request('commands.list');
+    assert.equal(calls.filter((call) => call[0] === 'session.resolveAgent').at(-1)[1], 's1');
+    assert.deepEqual(cold.commands.map((command) => command.name), ['compact', 'plan']);
+    services.agents = liveAgents;
+
     const executed = await client.request('commands.execute', { line: '  /compact  ' });
     assert.equal(executed.executed, true);
     assert.equal(executed.commandId, 'cmd-1');
