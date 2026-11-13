@@ -1,6 +1,6 @@
 {
   "name": "dsh-attach",
-  "version": "2026.1113.1207",
+  "version": "2026.1113.1224",
   "description": "Attach a terminal UI to an already running DeepSeek Harness host: same sessions, same live agents, approvals and questions included.",
   "keywords": [
     "dsh-plugin",
@@ -40,7 +40,8 @@
     }
   },
   "dependencies": {
-    "@earendil-works/pi-tui": "1.5.0"
+    "@earendil-works/pi-tui": "1.5.0",
+    "redos-detector": "6.1.4"
   },
   "peerDependencies": {
     "@deepseek-ai/schemastery": ">=3.18.0 <4"

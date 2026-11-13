@@ -154,3 +154,13 @@ test('validates a suggestion against the actual approval context', () => {
   assert.equal(suggestionMatchesContext({ tool: 'other', command: '^npm test$' }, context), false);
   assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^npm test$', sandbox: 'workspace-write' }, context), false);
 });
+
+test('rejects broad, unanchored, empty-matching, and dangerous-suffix suggestions', () => {
+  const context = { toolName: 'bash', arguments: { command: 'npm test' }, requestedSandbox: null };
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '.*' }, context), false);
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^.*$' }, context), false);
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^npm test' }, context), false);
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^npm test.*$' }, context), false);
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^npm test$' }, context), true);
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^(a+)+$' }, context), false);
+});

@@ -52,6 +52,12 @@ can be fooled by prompt injection. `danger-full-access` requires explicit opt-in
 and still grants all user-accessible paths. Keep the config outside the
 workspace and review it like executable policy.
 
+Rule and suggestion regexes are compiled with the `u` flag and checked with
+`redos-detector`; invalid or super-linear patterns never run. Generated
+suggestions must also be anchored, must not match empty input or dangerous
+canaries, and fall back to an escaped exact-call regex otherwise. An unsafe or
+invalid `humanOnlyPatterns` entry fails closed.
+
 ## Out of scope
 
 - Malicious same-user processes (they can read the descriptor/token).

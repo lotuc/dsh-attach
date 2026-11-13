@@ -113,7 +113,14 @@ Rules mode example:
 ```
 
 Rules match `tool` (or `*`), optional `command` regex (bash), optional `path`
-regex (file tools), and optional `sandbox`. First match wins.
+regex (file tools), and optional `sandbox`. First match wins. Every rule regex
+is compiled with the `u` flag and checked by `redos-detector`; invalid or
+super-linear patterns never execute against a command.
+
+`/approvals suggest` additionally requires anchored patterns, rejects patterns
+that match the empty string or common dangerous canaries (and a mutation of the
+real command), and falls back to an escaped exact-call rule when the reviewer's
+regex is broad, invalid, or unsafe.
 
 Hard gates run before the reviewer:
 

@@ -93,3 +93,13 @@ test('review payload can omit the rule and carries the global policy', () => {
   assert.equal(payload.rule, undefined);
   assert.equal(payload.allowFullAccess, true);
 });
+
+test('unsafe or invalid human-only patterns fail closed', () => {
+  const unsafe = normalizeAutoApprovalConfig({
+    enabled: true,
+    mode: 'review',
+    policy: 'allow tests',
+    humanOnlyPatterns: ['(a+)+$', '['],
+  });
+  assert.equal(autoApprovalBlocked(unsafe, context({ arguments: { command: 'npm test' } })), true);
+});
