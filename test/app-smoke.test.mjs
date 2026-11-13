@@ -695,6 +695,7 @@ test('auto-approval allows a whitelisted call and asks for an unlisted one', asy
     await wait(100);
     assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
     assert.equal(app.modals.has('interactive'), false);
+    assert.equal(app.lastAutoApproval.action, 'allowed');
 
     app.editor.setText('/approvals suggest');
     app.editor.handleInput('\r');
@@ -723,6 +724,8 @@ test('auto-approval allows a whitelisted call and asks for an unlisted one', asy
     await wait(50);
     assert.equal(app.modals.has('interactive'), true, 'unlisted call falls back to the human panel');
     assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+    assert.equal(app.lastAutoApproval.action, 'skip');
+    assert.equal(app.lastAutoApproval.reason, 'no-rule');
   } finally {
     app.quit('test');
     await running;

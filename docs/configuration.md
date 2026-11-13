@@ -148,6 +148,51 @@ Edit `auto-approve.json` for `mode`, `policy`, `allowFullAccess`,
 `humanOnly`, `humanOnlyPatterns`, `maxAutoApprovals`, and `timeoutMs`. The file
 is reread within 2 seconds; a client restart is not needed after editing.
 
+### Debugging auto-approval
+
+`enabled: true` only arms the feature; it does not create a policy. In
+`rules` mode an empty `rules` array approves nothing, and in `review` mode an
+empty `policy` approves nothing.
+
+Start with:
+
+```text
+/approvals
+```
+
+The status panel shows the file path, mode, rule count, `max`, and the last
+decision (`allowed`, `ask`, `failed`, or `skip` with a reason). A quick
+end-to-end check in rules mode:
+
+```text
+/approvals add {"id":"all-bash","tool":"bash","command":".*"}
+```
+
+If that works, narrow the rule. If it still asks, the `last` line or the log
+shows why. Decisions and skip reasons are logged:
+
+```sh
+tail -f "$DSH_HOME/dsh-attach/client.log" | grep --line-buffered auto-approval
+```
+
+Common skip reasons:
+
+| Reason | Meaning |
+|---|---|
+| `disabled` | `/approvals off`, or the config is not enabled. |
+| `rules-empty` | `mode: rules` with no rules. Add one or switch to `review`. |
+| `review-policy-empty` | `mode: review` with an empty `policy`. |
+| `context-unavailable` | The approval has no rendered tool call or its arguments are not valid JSON. The tool name/arguments are missing, so no rule can be evaluated safely. |
+| `no-rule` | The tool name, command/path regex, or sandbox did not match any rule. |
+| `hard-gate` | `humanOnly`, `humanOnlyPatterns`, or `danger-full-access` without `allowFullAccess`. |
+| `max-reached` | The per-session auto-approval cap was reached. |
+| `session-mismatch` | A background fork child approval is deliberately left to a human. |
+
+The reviewer events are `auto-approval-review`, `auto-approval-allowed`,
+`auto-approval-ask`, `auto-approval-failed`, and `auto-approval-skip`.
+A timeout, invalid reviewer JSON, missing LLM, or changed session fails to the
+human panel rather than approving.
+
 ## Themes
 
 ```sh
