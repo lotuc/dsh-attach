@@ -158,7 +158,7 @@ Details are scrollable; `Esc`/`q` returns. Routing modes (`tui`, `auto`, `web`,
 /approvals suggest     propose a rule from the last approval
 ```
 
-Edit `auto-approve.json` for mode, policy, full-access, and limits; it reloads
+Edit `auto-approve.toml` for mode, policy, full-access, and limits; it reloads
 within 2 seconds.
 
 `/approvals suggest` asks the model for a rule based on the last approval; it is

@@ -159,7 +159,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/permission [mode]` | Picker or `read-only`/`workspace-write`/`danger-full-access`/`auto`. |
 | `/detail [compact|standard|verbose]` | Detail level. |
 | `/btw <question>` | Side question; `f` starts a background fork with tools. |
-| `/approvals [on|off|add <json>|remove <id>|suggest]` | Inspect or edit auto-approval; advanced settings belong in `auto-approve.json`. |
+| `/approvals [on|off|add <json>|remove <id>|suggest]` | Inspect or edit auto-approval; advanced settings belong in `auto-approve.toml`. |
 | `/status` | Session/status details. |
 | `/quit`, `/exit` | Exit without stopping Host work. |
 

@@ -74,13 +74,12 @@ Herdr facts (`HERDR_*`) are read only when launched by Herdr. See
 ## Auto-approval
 
 Disabled by default. Config file:
-`$DSH_HOME/dsh-attach/auto-approve.json`; override with
+`$DSH_HOME/dsh-attach/auto-approve.toml`; override with
 `DSH_ATTACH_AUTO_APPROVE` (`off` disables). Client restart required.
 
-The file is read as JSONC: `//` and `/* */` comments and trailing commas are
-accepted. `commandPrefix` may be a token array or a compact whitespace-separated
-string (`"commandPrefix": "npm test"`). `/approvals add|remove|on|off` rewrites
-the file as strict JSON, so comments are lost after a command edit.
+The file is TOML. A legacy `auto-approve.json`/`.jsonc` override is still
+parsed for compatibility. `/approvals add|remove|on|off` rewrites the file in
+place; TOML comments are lost after a command edit.
 
 Two modes:
 
@@ -91,40 +90,47 @@ Two modes:
 
 Global review example:
 
-```json
-{
-  "enabled": true,
-  "mode": "review",
-  "policy": "Allow reads, tests, builds, and dependency installs. Ask for deletes, credentials, host configuration, and anything outside the workspace.",
-  "humanOnly": ["plugin_manager"],
-  "humanOnlyPrefixes": [["rm", "-rf"], ["git", "push"], ["sudo"]],
-  "allowFullAccess": false,
-  "maxAutoApprovals": 20,
-  "timeoutMs": 10000
-}
+```toml
+enabled = true
+mode = "review"
+policy = "Allow reads, tests, builds, and dependency installs. Ask for deletes, credentials, host configuration, and anything outside the workspace."
+human_only = ["plugin_manager"]
+human_only_prefixes = [["rm", "-rf"], ["git", "push"], ["sudo"]]
+allow_full_access = false
+max_auto_approvals = 20
+timeout_ms = 10000
 ```
 
 Rules mode example:
 
-```json
-{
-  "enabled": true,
-  "mode": "rules",
-  "rules": [
-    { "id": "tests", "tool": "bash", "commandPrefix": ["npm", "test"], "cwdPrefix": "/work/project", "sandbox": "workspace-write" },
-    { "id": "jolt-full", "tool": "bash", "commandPrefix": ["jolt", "test"], "sandbox": "danger-full-access", "allowFullAccess": true }
-  ]
-}
+```toml
+enabled = true
+mode = "rules"
+
+[[rules]]
+id = "tests"
+tool = "bash"
+command_prefix = ["npm", "test"]  # a string such as "npm test" also works
+cwd_prefix = "/work/project"
+sandbox = "workspace-write"
+
+[[rules]]
+id = "jolt-full"
+tool = "bash"
+command_prefix = ["jolt", "test"]
+sandbox = "danger-full-access"
+allow_full_access = true
 ```
 
-Rules match `tool` (or `*`), optional `commandPrefix` (an ordered token array
-for bash), optional `pathPrefix` (file tools), optional `cwdPrefix`, and
-optional `sandbox`. First match wins, but every non-read-only subcommand in a
-compound line must match a rule.
+Rules match `tool` (or `*`), optional `command_prefix` (an ordered token array
+for bash; TOML key), optional `path_prefix` (file tools), optional `cwd_prefix`,
+and optional `sandbox`. First match wins, but every non-read-only subcommand in
+a compound line must match a rule.
 
-`commandPrefix` is token-based, not regex. A string is accepted as a
+`command_prefix` is token-based, not regex. A string is accepted as a
 whitespace-separated convenience; an array is preferred. An element may be an
-array of alternatives, for example `[["clojure", "mvn"]]`. The matcher:
+array of alternatives, for example `command_prefix = [["clojure", "mvn"]]`.
+The matcher:
 
 1. splits `&&`, `||`, `;`, `|`, `|&`, `&`, and newlines;
 2. rejects substitutions, subshells, heredocs, and loops;
@@ -136,7 +142,7 @@ array of alternatives, for example `[["clojure", "mvn"]]`. The matcher:
 
 If the shell line cannot be classified safely, auto-approval fails closed.
 
-`/approvals suggest` returns a structured `commandPrefix` (or `pathPrefix`),
+`/approvals suggest` returns a structured `command_prefix` (or `path_prefix`),
 validates it against the actual call, and falls back to the first normalized
 command prefix if the reviewer returns prose, invalid JSON, or a non-matching
 rule.
@@ -144,8 +150,8 @@ rule.
 Hard gates run before the reviewer:
 
 - `humanOnly` tools always ask.
-- `humanOnlyPrefixes` token prefixes (for example `[["rm","-rf"],["sudo"]]`)
-  always ask.
+- `human_only_prefixes` token prefixes (for example
+  `[["rm","-rf"],["sudo"]]`) always ask.
 - `danger-full-access` requires `allowFullAccess: true` and a matching rule in
   `rules` mode. It grants the entire user-accessible filesystem, not a path
   named in the reason.
@@ -176,15 +182,16 @@ Runtime commands:
 literal path) if the reviewer returns prose, invalid JSON, or times out; the
 confirmation panel says when that fallback was used.
 
-Edit `auto-approve.json` for `mode`, `policy`, `allowFullAccess`,
-`humanOnly`, `humanOnlyPrefixes`, `maxAutoApprovals`, and `timeoutMs`. The file
-is reread within 2 seconds; a client restart is not needed after editing.
+Edit `auto-approve.toml` for `mode`, `policy`, `allow_full_access`,
+`human_only`, `human_only_prefixes`, `max_auto_approvals`, and `timeout_ms`.
+The file is reread within 2 seconds; a client restart is not needed after
+editing.
 
 ### Debugging auto-approval
 
-`enabled: true` only arms the feature; it does not create a policy. In
-`rules` mode an empty `rules` array approves nothing, and in `review` mode an
-empty `policy` approves nothing.
+`enabled = true` only arms the feature; it does not create a policy. In
+`rules` mode no `[[rules]]` approves nothing, and in `review` mode an empty
+`policy` approves nothing.
 
 Start with:
 
@@ -197,7 +204,7 @@ decision (`allowed`, `ask`, `failed`, or `skip` with a reason). A quick
 end-to-end check in rules mode:
 
 ```text
-/approvals add {"id":"all-bash","tool":"bash","command":".*"}
+/approvals add {"id":"debug-pwd","tool":"bash","commandPrefix":["pwd"]}
 ```
 
 If that works, narrow the rule. If it still asks, the `last` line or the log
@@ -216,7 +223,7 @@ Common skip reasons:
 | `review-policy-empty` | `mode: review` with an empty `policy`. |
 | `context-unavailable` | The approval has no rendered tool call or its arguments are not valid JSON. The tool name/arguments are missing, so no rule can be evaluated safely. |
 | `no-rule` | A non-read-only subcommand did not match any rule, or the shell line was unparseable. |
-| `hard-gate` | `humanOnly`, a `humanOnlyPrefixes` match, or `danger-full-access` without `allowFullAccess`. |
+| `hard-gate` | `human_only`, a `human_only_prefixes` match, or `danger-full-access` without `allow_full_access`. |
 | `max-reached` | The per-session auto-approval cap was reached. |
 | `session-mismatch` | A background fork child approval is deliberately left to a human. |
 
@@ -224,10 +231,10 @@ The first event is `approval-received`. If it is absent, this TUI never saw
 the approval: another TUI answered first, the Web client handled it, or the
 Host is configured with `approvals: web`/`auto` and routed it away. For a
 focused debug run set `approvals: tui` in the profile's `cordis.patch.yml`.
-Then look for `auto-approval-review`, `auto-approval-allowed`,
-`auto-approval-ask`, `auto-approval-failed`, or `auto-approval-skip`.
-A timeout, invalid reviewer JSON, missing LLM, or changed session fails to the
-human panel rather than approving.
+Then look for `auto-approval-allowed`, `auto-approval-failed`, or
+`auto-approval-skip`; `rules` mode is deterministic and does not emit
+`auto-approval-review`. In `review` mode, a timeout, invalid reviewer JSON,
+missing LLM, or changed session fails to the human panel rather than approving.
 
 ## Themes
 
