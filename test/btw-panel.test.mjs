@@ -65,3 +65,15 @@ test('btw panel cancels an answering question on escape', () => {
   assert.equal(cancelled, entries[0]);
   assert.equal(closed, 0);
 });
+
+test('btw panel toggles fullscreen with F and keeps the answer intact', () => {
+  const entries = [{ question: 'where?', status: 'done', answer: 'there', reasoning: '' }];
+  const states = [];
+  const panel = new BtwPanel(entries, 0, { onToggleFullscreen: (value) => states.push(value) });
+  assert.match(stripTerminalSequences(panel.render(80).join('\n')), /F fullscreen/);
+  panel.handleInput('F');
+  assert.deepEqual(states, [true]);
+  assert.match(stripTerminalSequences(panel.render(80).join('\n')), /F windowed/);
+  panel.handleInput('F');
+  assert.deepEqual(states, [true, false]);
+});

@@ -102,13 +102,14 @@ Answers from the conversation the main model can see: system/project context,
 messages, and tool results, excluding the reply still being written. It does
 not queue, interrupt, or enter the conversation; there are no tools. The
 answer streams into the overlay and stays out of session history. If a model
-emits tool-call markup anyway, it is stripped and the card notes that nothing
-was executed.
+emits tool-call markup anyway, it is stripped; if the model tried to use a
+tool, the card tells you to press `f` for a tool-enabled fork.
 
 A later side question replays the last 20 completed asides, so follow-ups work;
 `x` clears them. Bare `/btw` reopens the latest. `Esc` cancels a pending
 answer, `Space`/`Enter` dismiss the card, `c` copies the raw Markdown, `[`/`]`
-navigates earlier asides, and `Up`/`Down` scroll.
+navigates earlier asides, `Up`/`Down` scroll, and `F` toggles full screen
+for reading or selecting a long answer.
 
 `f` starts a background fork subagent with full tools while the main session
 stays open; its report is announced in the transcript and the child appears in

@@ -862,6 +862,12 @@ test('btw streams into the card and replays the previous answer as side-thread c
     assert.equal(panel.entry.status, 'done');
     assert.match(stripTerminalSequences(panel.render(100).join('\n')), /final answer/);
 
+    panel.handleInput('F');
+    await wait(10);
+    assert.equal(app.btwFullscreen, true);
+    assert.equal(app.modals.get('btw').options.width, '100%');
+    assert.match(stripTerminalSequences(panel.render(100).join('\n')), /F windowed/);
+
     panel.handleInput(' ');
     app.editor.setText('/btw and then?');
     app.editor.handleInput('\r');

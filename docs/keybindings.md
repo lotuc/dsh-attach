@@ -184,3 +184,4 @@ requires 0.8.0+. Reload DSH after plugin upgrades.
 | `c` | Copy the raw Markdown answer. |
 | `x` | Clear earlier side questions, keeping the current card. |
 | `f` | Start a background fork with full tools. |
+| `F` | Toggle the card between windowed and full screen. |

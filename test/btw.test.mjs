@@ -86,21 +86,23 @@ test('normalizes bounded side-thread history', () => {
   assert.equal(normalizeBtwHistory([{ question: 'q', answer: 'x'.repeat(30_000) }])[0].answer.endsWith('…'), true);
 });
 
-test('appends one side boundary after the exact model-visible history', () => {
+test('appends a developer boundary and the bare user question after the exact history', () => {
   const base = [
     { role: 'system', content: [{ type: 'text', text: 'PROJECT_RULES' }] },
     { role: 'user', content: [{ type: 'text', text: 'main task' }] },
     { role: 'tool', toolCallId: 'c1', content: [{ type: 'text', text: 'tool output' }] },
   ];
   const messages = buildBtwMessages(base, [{ question: 'q1', answer: 'a1' }], 'q2');
-  assert.equal(messages.length, base.length + 1);
+  assert.equal(messages.length, base.length + 2);
   assert.equal(messages[0], base[0]);
   assert.equal(messages[1], base[1]);
-  const block = messages.at(-1);
-  assert.equal(block.role, 'user');
-  assert.match(block.content[0].text, /SIDE_QUESTION_POLICY/);
-  assert.match(block.content[0].text, /Q: q1\nA: a1/);
-  assert.match(block.content[0].text, /Current side question\]\n\nq2/);
+  const boundary = messages.at(-2);
+  assert.equal(boundary.role, 'developer');
+  assert.match(boundary.content[0].text, /SIDE_QUESTION_POLICY/);
+  assert.match(boundary.content[0].text, /Q: q1\nA: a1/);
+  const question = messages.at(-1);
+  assert.equal(question.role, 'user');
+  assert.equal(question.content[0].text, 'q2', 'the question must not carry the policy');
   assert.equal(base.length, 3, 'the source history is not mutated');
 });
 
@@ -132,8 +134,9 @@ test('asks with the session context prefix, no system override, no tools, and st
   assert.equal(request.tools, undefined);
   assert.equal(request.system, undefined, 'the main system message must stay in messages');
   assert.equal(request.messages[0], base[0]);
-  assert.match(request.messages.at(-1).content[0].text, /SIDE_QUESTION_POLICY/);
-  assert.match(request.messages.at(-1).content[0].text, /Current side question\]\n\nwhy\?/);
+  assert.equal(request.messages.at(-2).role, 'developer');
+  assert.match(request.messages.at(-2).content[0].text, /SIDE_QUESTION_POLICY/);
+  assert.equal(request.messages.at(-1).content[0].text, 'why?');
   assert.deepEqual(deltas, [{ reasoning: 'think' }, { text: 'answer' }]);
 });
 
@@ -158,10 +161,10 @@ test('falls back to the raw log when the session cannot derive model-visible mes
   assert.equal(request.system, undefined);
   assert.equal(request.messages[0].role, 'user');
   assert.match(request.messages[0].content[0].text, /raw task/);
-  assert.match(request.messages.at(-1).content[0].text, /what\?/);
+  assert.equal(request.messages.at(-1).content[0].text, 'what?');
 });
 
-test('adds an explicit note when the side model tries to call a tool', async () => {
+test('replaces a tool attempt with actionable fork guidance', async () => {
   const stream = async function* stream() {
     yield { type: 'text-delta', text: 'I would read the file.' };
     yield { type: 'tool-call-delta', id: 'c1', name: 'read', argumentsDelta: '{}' };
@@ -170,7 +173,8 @@ test('adds an explicit note when the side model tries to call a tool', async () 
   const agent = { id: 's1', session: sessionWith(() => [{ role: 'user', content: [{ type: 'text', text: 'x' }] }]) };
   const result = await askBtw(routeContext(stream), agent, 'where?');
   assert.equal(result.toolAttempted, true);
-  assert.match(result.answer, /No tools were executed/);
+  assert.match(result.answer, /Press f to fork/);
+  assert.doesNotMatch(result.answer, /I would read/u);
 });
 
 test('reports cancellation through a stable attach code', async () => {
@@ -232,8 +236,7 @@ test('strips leaked DSML tool-call markup from the answer and the stream', async
   });
   assert.equal(result.toolAttempted, true);
   assert.doesNotMatch(result.answer, /DSML|invoke|parameter/u);
-  assert.match(result.answer, /I cannot read files here\./u);
-  assert.match(result.answer, /No tools were executed/u);
+  assert.match(result.answer, /Press f to fork/u);
   assert.doesNotMatch(deltas.join(''), /DSML|invoke|parameter/u);
 });
 
@@ -247,5 +250,6 @@ test('replaces a tool-call-only leaked answer with a clear no-tools message', as
   const result = await askBtw(routeContext(stream), agent, 'run this');
   assert.equal(result.toolAttempted, true);
   assert.match(result.answer, /no tool access/u);
+  assert.match(result.answer, /Press f to fork/u);
   assert.doesNotMatch(result.answer, /DSML/u);
 });

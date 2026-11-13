@@ -41,8 +41,9 @@ test('btw streams deltas and returns the final side answer', async () => {
     assert.equal(result.context, 'session');
     assert.equal(request.system, undefined);
     assert.equal(request.tools, undefined);
-    assert.match(request.messages.at(-1).content[0].text, /Current side question/);
-    assert.match(request.messages.at(-1).content[0].text, /Earlier side questions/);
+    assert.equal(request.messages.at(-2).role, 'developer');
+    assert.match(request.messages.at(-2).content[0].text, /Earlier side questions/);
+    assert.equal(request.messages.at(-1).content[0].text, 'why?');
     assert.ok(events.some((event) => event.phase === 'delta' && event.text === 'side '));
     assert.ok(events.some((event) => event.phase === 'done' && event.answer === 'side answer'));
   }, { fixture });
