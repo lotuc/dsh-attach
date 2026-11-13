@@ -188,8 +188,12 @@ Common skip reasons:
 | `max-reached` | The per-session auto-approval cap was reached. |
 | `session-mismatch` | A background fork child approval is deliberately left to a human. |
 
-The reviewer events are `auto-approval-review`, `auto-approval-allowed`,
-`auto-approval-ask`, `auto-approval-failed`, and `auto-approval-skip`.
+The first event is `approval-received`. If it is absent, this TUI never saw
+the approval: another TUI answered first, the Web client handled it, or the
+Host is configured with `approvals: web`/`auto` and routed it away. For a
+focused debug run set `approvals: tui` in the profile's `cordis.patch.yml`.
+Then look for `auto-approval-review`, `auto-approval-allowed`,
+`auto-approval-ask`, `auto-approval-failed`, or `auto-approval-skip`.
 A timeout, invalid reviewer JSON, missing LLM, or changed session fails to the
 human panel rather than approving.
 

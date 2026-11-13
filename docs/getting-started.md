@@ -14,7 +14,7 @@
 dsh plugin --profile desktop add ./dsh-attach
 # or from a tarball
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1113.1141.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1113.1149.tgz
 ```
 
 If `dsh` is not on `PATH` on macOS:
