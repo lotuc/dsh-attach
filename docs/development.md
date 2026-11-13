@@ -160,7 +160,7 @@ Coverage gates: 70% lines, 65% branches/functions.
 ```sh
 node bin/dsh-attach.js --help
 pnpm pack
-dsh plugin --profile desktop add ./dsh-attach-2026.1112.2317.tgz
+dsh plugin --profile desktop add ./dsh-attach-2026.1113.0919.tgz
 ```
 
 Client `--hot` (or `DSH_ATTACH_HOT=1`) restarts the TUI on `bin/`,

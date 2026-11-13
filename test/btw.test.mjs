@@ -210,3 +210,42 @@ test('raw fallback reconstruction stays available', () => {
   const messages = btwRequestMessages([{ role: 'user', text: 'raw' }], { provider: 'p', model: 'm' });
   assert.equal(messages[0].content[0].text, 'raw');
 });
+
+test('strips leaked DSML tool-call markup from the answer and the stream', async () => {
+  const markup = [
+    '<｜｜DSML｜｜ calls>',
+    '<｜｜DSML｜｜ invoke name="bash">',
+    '<｜｜DSML｜｜ parameter name="command" string="true">sed -n \'1,95p\' docs/keybindings.md</｜｜DSML｜｜ parameter>',
+    '</｜｜DSML｜｜ invoke>',
+    '</｜｜DSML｜｜ calls>',
+  ].join('\n');
+  const deltas = [];
+  const stream = async function* stream() {
+    yield { type: 'text-delta', text: 'I cannot read files here. ' };
+    yield { type: 'text-delta', text: markup.slice(0, 17) };
+    yield { type: 'text-delta', text: markup.slice(17) };
+    yield { type: 'finish', reason: { kind: 'stop' } };
+  };
+  const agent = { id: 's1', session: sessionWith(() => [{ role: 'user', content: [{ type: 'text', text: 'x' }] }]) };
+  const result = await askBtw(routeContext(stream), agent, 'what is in the docs?', {
+    onDelta: (delta) => deltas.push(delta.text ?? ''),
+  });
+  assert.equal(result.toolAttempted, true);
+  assert.doesNotMatch(result.answer, /DSML|invoke|parameter/u);
+  assert.match(result.answer, /I cannot read files here\./u);
+  assert.match(result.answer, /No tools were executed/u);
+  assert.doesNotMatch(deltas.join(''), /DSML|invoke|parameter/u);
+});
+
+test('replaces a tool-call-only leaked answer with a clear no-tools message', async () => {
+  const markup = '<｜｜DSML｜｜ calls>\n<｜｜DSML｜｜ invoke name="bash"></｜｜DSML｜｜ invoke>\n</｜｜DSML｜｜ calls>';
+  const stream = async function* stream() {
+    yield { type: 'text-delta', text: markup };
+    yield { type: 'finish', reason: { kind: 'stop' } };
+  };
+  const agent = { id: 's1', session: sessionWith(() => [{ role: 'user', content: [{ type: 'text', text: 'x' }] }]) };
+  const result = await askBtw(routeContext(stream), agent, 'run this');
+  assert.equal(result.toolAttempted, true);
+  assert.match(result.answer, /no tool access/u);
+  assert.doesNotMatch(result.answer, /DSML/u);
+});

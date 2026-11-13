@@ -101,7 +101,9 @@ Prompt history is per run, max 100. Drafts survive history browsing.
 Answers from the conversation the main model can see: system/project context,
 messages, and tool results, excluding the reply still being written. It does
 not queue, interrupt, or enter the conversation; there are no tools. The
-answer streams into the overlay and stays out of session history.
+answer streams into the overlay and stays out of session history. If a model
+emits tool-call markup anyway, it is stripped and the card notes that nothing
+was executed.
 
 A later side question replays the last 20 completed asides, so follow-ups work;
 `x` clears them. Bare `/btw` reopens the latest. `Esc` cancels a pending
