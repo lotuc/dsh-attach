@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { fallbackSuggestion, parseReview, parseSuggestion, reviewApproval, suggestApprovalRule } from '../lib/host/approval-review.js';
+import { fallbackSuggestion, parseReview, parseSuggestion, reviewApproval, suggestApprovalRule, suggestionMatchesContext } from '../lib/host/approval-review.js';
 
 const payload = {
   toolName: 'bash',
@@ -111,4 +111,46 @@ test('accepts a verdict emitted only in the reasoning channel', async () => {
   const result = await reviewApproval(ctx, agent, payload);
   assert.deepEqual(result, { verdict: 'allow', reason: 'from reasoning' });
   assert.ok(request.maxTokens >= 1024);
+});
+
+
+test('rejects a copied template suggestion and falls back to the exact call', async () => {
+  const ctx = {
+    get(name) {
+      if (name === 'llm') {
+        return {
+          async *stream() {
+            yield {
+              type: 'text-delta',
+              text: '{"rule":{"id":"...","tool":"bash","command":"regex","sandbox":"danger-full-access","description":"..."},"reason":"..."}',
+            };
+            yield { type: 'finish', reason: { kind: 'stop' } };
+          },
+        };
+      }
+      if (name === 'agentDefaultModel') return { currentSelection: () => ({ provider: 'p', model: 'm' }) };
+      return undefined;
+    },
+  };
+  const agent = { id: 's1', session: { deriveMessages: () => [] } };
+  const payload = {
+    context: {
+      toolName: 'bash',
+      arguments: { command: 'npm test' },
+      requestedSandbox: 'danger-full-access',
+    },
+  };
+  const result = await suggestApprovalRule(ctx, agent, payload);
+  assert.equal(result.fallback, true);
+  assert.equal(result.rule.command, '^npm test$');
+  assert.equal(result.rule.allowFullAccess, true);
+  assert.equal(result.rule.sandbox, 'danger-full-access');
+});
+
+test('validates a suggestion against the actual approval context', () => {
+  const context = { toolName: 'bash', arguments: { command: 'npm test' }, requestedSandbox: null };
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^npm test$' }, context), true);
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^npm run' }, context), false);
+  assert.equal(suggestionMatchesContext({ tool: 'other', command: '^npm test$' }, context), false);
+  assert.equal(suggestionMatchesContext({ tool: 'bash', command: '^npm test$', sandbox: 'workspace-write' }, context), false);
 });
