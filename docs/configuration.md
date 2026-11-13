@@ -144,6 +144,10 @@ Runtime commands:
 /approvals suggest     LLM suggests a rule for the last approval; requires y to add
 ```
 
+`/approvals suggest` falls back to an exact-call rule (escaped command or path)
+if the reviewer returns prose, invalid JSON, or times out; the confirmation
+panel says when that fallback was used.
+
 Edit `auto-approve.json` for `mode`, `policy`, `allowFullAccess`,
 `humanOnly`, `humanOnlyPatterns`, `maxAutoApprovals`, and `timeoutMs`. The file
 is reread within 2 seconds; a client restart is not needed after editing.

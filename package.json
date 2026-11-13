@@ -1,6 +1,6 @@
 {
   "name": "dsh-attach",
-  "version": "2026.1113.1149",
+  "version": "2026.1113.1155",
   "description": "Attach a terminal UI to an already running DeepSeek Harness host: same sessions, same live agents, approvals and questions included.",
   "keywords": [
     "dsh-plugin",
