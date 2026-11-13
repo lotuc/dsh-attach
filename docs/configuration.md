@@ -77,6 +77,11 @@ Disabled by default. Config file:
 `$DSH_HOME/dsh-attach/auto-approve.json`; override with
 `DSH_ATTACH_AUTO_APPROVE` (`off` disables). Client restart required.
 
+The file is read as JSONC: `//` and `/* */` comments and trailing commas are
+accepted. `commandPrefix` may be a token array or a compact whitespace-separated
+string (`"commandPrefix": "npm test"`). `/approvals add|remove|on|off` rewrites
+the file as strict JSON, so comments are lost after a command edit.
+
 Two modes:
 
 | Mode | Behavior |
