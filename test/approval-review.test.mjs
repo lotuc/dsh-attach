@@ -89,3 +89,26 @@ test('does not fallback when the reviewer returns a usable rule', () => {
   const fallback = fallbackSuggestion({ context: { toolName: 'read', arguments: { path: 'src/a.js' } } });
   assert.equal(fallback.rule.path, '^src/a\\.js$');
 });
+
+test('accepts a verdict emitted only in the reasoning channel', async () => {
+  let request;
+  const ctx = {
+    get(name) {
+      if (name === 'llm') {
+        return {
+          async *stream(options) {
+            request = options;
+            yield { type: 'reasoning-delta', text: '{"verdict":"allow","reason":"from reasoning"}' };
+            yield { type: 'finish', reason: { kind: 'stop' } };
+          },
+        };
+      }
+      if (name === 'agentDefaultModel') return { currentSelection: () => ({ provider: 'p', model: 'm' }) };
+      return undefined;
+    },
+  };
+  const agent = { id: 's1', session: { deriveMessages: () => [] } };
+  const result = await reviewApproval(ctx, agent, payload);
+  assert.deepEqual(result, { verdict: 'allow', reason: 'from reasoning' });
+  assert.ok(request.maxTokens >= 1024);
+});
