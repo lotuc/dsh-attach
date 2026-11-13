@@ -81,8 +81,8 @@ Two modes:
 
 | Mode | Behavior |
 |---|---|
-| `rules` (default) | A deterministic rule must match, then the reviewer confirms. |
-| `review` | Every approval with tool arguments goes to the reviewer under a global policy; no exact rule is required. |
+| `rules` (default) | A structured prefix rule must match; the rule is the authority and no LLM reviewer runs. |
+| `review` | Every approval with tool arguments goes to the LLM reviewer under a global policy; no exact rule is required. |
 
 Global review example:
 
@@ -92,7 +92,7 @@ Global review example:
   "mode": "review",
   "policy": "Allow reads, tests, builds, and dependency installs. Ask for deletes, credentials, host configuration, and anything outside the workspace.",
   "humanOnly": ["plugin_manager"],
-  "humanOnlyPatterns": ["rm -rf /", "\\.ssh"],
+  "humanOnlyPrefixes": [["rm", "-rf"], ["git", "push"], ["sudo"]],
   "allowFullAccess": false,
   "maxAutoApprovals": 20,
   "timeoutMs": 10000
@@ -106,35 +106,51 @@ Rules mode example:
   "enabled": true,
   "mode": "rules",
   "rules": [
-    { "id": "tests", "tool": "bash", "command": "^npm test\\b", "sandbox": "workspace-write" },
-    { "id": "jolt-full", "tool": "bash", "command": "^cd .*jolt test", "sandbox": "danger-full-access", "allowFullAccess": true }
+    { "id": "tests", "tool": "bash", "commandPrefix": ["npm", "test"], "cwdPrefix": "/work/project", "sandbox": "workspace-write" },
+    { "id": "jolt-full", "tool": "bash", "commandPrefix": ["jolt", "test"], "sandbox": "danger-full-access", "allowFullAccess": true }
   ]
 }
 ```
 
-Rules match `tool` (or `*`), optional `command` regex (bash), optional `path`
-regex (file tools), and optional `sandbox`. First match wins. Every rule regex
-is compiled with the `u` flag and checked by `redos-detector`; invalid or
-super-linear patterns never execute against a command.
+Rules match `tool` (or `*`), optional `commandPrefix` (an ordered token array
+for bash), optional `pathPrefix` (file tools), optional `cwdPrefix`, and
+optional `sandbox`. First match wins, but every non-read-only subcommand in a
+compound line must match a rule.
 
-`/approvals suggest` additionally requires anchored patterns, rejects patterns
-that match the empty string or common dangerous canaries (and a mutation of the
-real command), and falls back to an escaped exact-call rule when the reviewer's
-regex is broad, invalid, or unsafe.
+`commandPrefix` is token-based, not regex. A string is accepted as a
+whitespace-separated convenience; an array is preferred. An element may be an
+array of alternatives, for example `[["clojure", "mvn"]]`. The matcher:
+
+1. splits `&&`, `||`, `;`, `|`, `|&`, `&`, and newlines;
+2. rejects substitutions, subshells, heredocs, and loops;
+3. strips `timeout`, `nice`, `time`, `nohup`, `command`, `builtin`, `stdbuf`,
+   `env`, env assignments, and bare `cd` segments;
+4. treats a small built-in read-only set (`echo`, `tail`, `grep`, `wc`, …) as
+   always safe;
+5. requires every remaining segment to match a rule.
+
+If the shell line cannot be classified safely, auto-approval fails closed.
+
+`/approvals suggest` returns a structured `commandPrefix` (or `pathPrefix`),
+validates it against the actual call, and falls back to the first normalized
+command prefix if the reviewer returns prose, invalid JSON, or a non-matching
+rule.
 
 Hard gates run before the reviewer:
 
 - `humanOnly` tools always ask.
-- `humanOnlyPatterns` (also accepts `denyPatterns`) matching command/path ask.
+- `humanOnlyPrefixes` token prefixes (for example `[["rm","-rf"],["sudo"]]`)
+  always ask.
 - `danger-full-access` requires `allowFullAccess: true` and a matching rule in
   `rules` mode. It grants the entire user-accessible filesystem, not a path
   named in the reason.
 - `maxAutoApprovals` caps auto-approvals per session (`0` = unlimited).
 
-The reviewer gets the tool name, parsed arguments, reason, sandbox modes,
-policy, and matched rule only. It returns `allow` or `ask`. Timeout, invalid
-JSON, missing LLM, missing tool arguments, or changed session falls back to the
-human panel. The reviewer uses the session model.
+In `review` mode the reviewer gets the tool name, parsed arguments, reason,
+sandbox modes, policy, and normalized segments. It returns `allow` or `ask`.
+Timeout, invalid JSON, missing LLM, missing tool arguments, or changed session
+falls back to the human panel. The reviewer uses the session model; `rules`
+mode never invokes it.
 
 Auto-approval is advisory, not a security boundary: arguments and reasons are
 untrusted and can attempt prompt injection. Keep the config outside the
@@ -151,12 +167,12 @@ Runtime commands:
 /approvals suggest     LLM suggests a rule for the last approval; requires y to add
 ```
 
-`/approvals suggest` falls back to an exact-call rule (escaped command or path)
-if the reviewer returns prose, invalid JSON, or times out; the confirmation
-panel says when that fallback was used.
+`/approvals suggest` falls back to the first normalized command prefix (or
+literal path) if the reviewer returns prose, invalid JSON, or times out; the
+confirmation panel says when that fallback was used.
 
 Edit `auto-approve.json` for `mode`, `policy`, `allowFullAccess`,
-`humanOnly`, `humanOnlyPatterns`, `maxAutoApprovals`, and `timeoutMs`. The file
+`humanOnly`, `humanOnlyPrefixes`, `maxAutoApprovals`, and `timeoutMs`. The file
 is reread within 2 seconds; a client restart is not needed after editing.
 
 ### Debugging auto-approval
@@ -194,8 +210,8 @@ Common skip reasons:
 | `rules-empty` | `mode: rules` with no rules. Add one or switch to `review`. |
 | `review-policy-empty` | `mode: review` with an empty `policy`. |
 | `context-unavailable` | The approval has no rendered tool call or its arguments are not valid JSON. The tool name/arguments are missing, so no rule can be evaluated safely. |
-| `no-rule` | The tool name, command/path regex, or sandbox did not match any rule. |
-| `hard-gate` | `humanOnly`, `humanOnlyPatterns`, or `danger-full-access` without `allowFullAccess`. |
+| `no-rule` | A non-read-only subcommand did not match any rule, or the shell line was unparseable. |
+| `hard-gate` | `humanOnly`, a `humanOnlyPrefixes` match, or `danger-full-access` without `allowFullAccess`. |
 | `max-reached` | The per-session auto-approval cap was reached. |
 | `session-mismatch` | A background fork child approval is deliberately left to a human. |
 

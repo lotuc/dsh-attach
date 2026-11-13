@@ -74,7 +74,7 @@ class FakeClient extends EventEmitter {
       case 'approval.review':
         return { verdict: 'allow', reason: 'within the test whitelist' };
       case 'approval.suggest':
-        return { rule: { id: 'suggested-tests', tool: 'bash', command: '^make test' }, reason: 'narrow' };
+        return { rule: { id: 'suggested-tests', tool: 'bash', commandPrefix: ['make', 'test'] }, reason: 'narrow' };
       case 'approval.respond':
         this.approvalOutcomes.push(params?.outcome);
         return { accepted: true };
@@ -670,7 +670,7 @@ test('auto-approval allows a whitelisted call and asks for an unlisted one', asy
     tui,
     autoApprove: {
       enabled: true,
-      rules: [{ id: 'tests', tool: 'bash', command: '^npm test\\b' }],
+      rules: [{ id: 'tests', tool: 'bash', commandPrefix: ['npm', 'test'] }],
     },
   });
   const running = app.run();

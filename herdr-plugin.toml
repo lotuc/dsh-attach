@@ -1,6 +1,6 @@
 id = "dsh-attach"
 name = "DSH Attach"
-version = "2026.1113.1224"
+version = "2026.1113.1250"
 min_herdr_version = "0.9.0"
 description = "Read-only DeepSeek Harness subagent previews in managed Herdr panes."
 platforms = ["linux", "macos"]

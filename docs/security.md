@@ -45,18 +45,19 @@ descriptor files are the entire transport.
 
 ## Auto-approval
 
-Auto-approval is opt-in. `rules` mode uses a deterministic whitelist plus an
-isolated LLM reviewer; `review` mode applies a global policy to every approval.
+Auto-approval is opt-in. `rules` mode uses a deterministic structured
+whitelist; `review` mode applies a global policy to every approval through an
+isolated LLM reviewer.
 Failures fall back to a human. It is **not** a security boundary: the reviewer
 can be fooled by prompt injection. `danger-full-access` requires explicit opt-in
 and still grants all user-accessible paths. Keep the config outside the
 workspace and review it like executable policy.
 
-Rule and suggestion regexes are compiled with the `u` flag and checked with
-`redos-detector`; invalid or super-linear patterns never run. Generated
-suggestions must also be anchored, must not match empty input or dangerous
-canaries, and fall back to an escaped exact-call regex otherwise. An unsafe or
-invalid `humanOnlyPatterns` entry fails closed.
+Bash rules use ordered token prefixes, not user regex. Compound lines are
+split, wrappers and env assignments are stripped, and every non-read-only
+subcommand must match a rule. Substitutions, subshells, heredocs, and loops
+fail closed. Suggestions produce token prefixes (or literal path prefixes) and
+are validated against the actual call; `humanOnlyPrefixes` always asks.
 
 ## Out of scope
 
