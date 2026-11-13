@@ -127,7 +127,10 @@ for bash; TOML key), optional `path_prefix` (file tools), optional `cwd_prefix`,
 and optional `sandbox`. First match wins, but every non-read-only subcommand in
 a compound line must match a rule.
 
-`command_prefix` is token-based, not regex. A string is accepted as a
+`command_prefix` is token-based, not regex. It is a prefix rule, equivalent to
+a trailing wildcard: `["git", "log"]` matches `git log --oneline main` but not
+`git push`. Keep it at program + subcommand; do not copy variable arguments,
+paths, image tags, volume mounts, or inline code. A string is accepted as a
 whitespace-separated convenience; an array is preferred. An element may be an
 array of alternatives, for example `command_prefix = [["clojure", "mvn"]]`.
 The matcher:
@@ -142,9 +145,10 @@ The matcher:
 
 If the shell line cannot be classified safely, auto-approval fails closed.
 
-`/approvals suggest` returns a structured `command_prefix` (or `path_prefix`),
-validates it against the actual call, and falls back to the first normalized
-command prefix if the reviewer returns prose, invalid JSON, or a non-matching
+`/approvals suggest` returns a short `command_prefix` (program + subcommand,
+typically 1-3 tokens) or a `path_prefix`, validates it against the actual call,
+and falls back to the same prefix heuristic if the reviewer returns prose,
+invalid JSON, or a non-matching rule. It never copies the full argv into a
 rule.
 
 Hard gates run before the reviewer:

@@ -8,6 +8,7 @@ import {
   reviewApproval,
   suggestApprovalRule,
   suggestionMatchesContext,
+  suggestCommandPrefix,
 } from '../lib/host/approval-review.js';
 
 const payload = {
@@ -61,7 +62,7 @@ test('parses a suggested token-prefix rule and rejects malformed suggestions', (
   assert.throws(() => parseSuggestion('nope'), /no suggestion JSON/u);
 });
 
-test('builds an exact first-command fallback when the reviewer returns prose', async () => {
+test('builds a short command-prefix fallback when the reviewer returns prose', async () => {
   const ctx = modelContext(async function* stream() {
     yield { type: 'text-delta', text: 'I cannot propose a rule.' };
     yield { type: 'finish', reason: { kind: 'stop' } };
@@ -96,12 +97,12 @@ test('maps a full-access approval to a full-access fallback rule', () => {
       requestedSandbox: 'danger-full-access',
     },
   });
-  assert.deepEqual(fallback.rule.commandPrefix, ['clojure', '-T:build', 'uber']);
+  assert.deepEqual(fallback.rule.commandPrefix, ['clojure', '-T:build']);
   assert.equal(fallback.rule.sandbox, 'danger-full-access');
   assert.equal(fallback.rule.allowFullAccess, true);
 });
 
-test('rejects a copied template suggestion and falls back to the first command', async () => {
+test('rejects a copied template suggestion and falls back to a short prefix', async () => {
   const ctx = modelContext(async function* stream() {
     yield {
       type: 'text-delta',
@@ -135,4 +136,14 @@ test('accepts a verdict emitted only in the reasoning channel', async () => {
   const result = await reviewApproval(ctx, agent, payload);
   assert.deepEqual(result, { verdict: 'allow', reason: 'from reasoning' });
   assert.ok(request.maxTokens >= 1024);
+});
+
+
+test('shortens a full argv to a useful program/subcommand prefix', () => {
+  assert.deepEqual(suggestCommandPrefix(['docker', 'run', '--rm', '--platform', 'linux/amd64', '-v', '/a:/b', 'img']), ['docker', 'run']);
+  assert.deepEqual(suggestCommandPrefix(['npm', 'test', '--', '--run']), ['npm', 'test']);
+  assert.deepEqual(suggestCommandPrefix(['git', 'log', '--oneline', 'main']), ['git', 'log']);
+  assert.deepEqual(suggestCommandPrefix(['clojure', '-T:build', 'uber']), ['clojure', '-T:build']);
+  assert.deepEqual(suggestCommandPrefix(['unzip', '-l', 'app.jar']), ['unzip']);
+  assert.deepEqual(suggestCommandPrefix(['custom-tool', 'do-thing']), ['custom-tool']);
 });
