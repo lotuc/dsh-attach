@@ -29,6 +29,13 @@ test('rejects shell constructs that cannot be classified safely', () => {
   assert.equal(splitShellCommands('echo "unclosed'), null);
 });
 
+test('treats grouping parentheses as transparent but still splits their commands', () => {
+  assert.deepEqual(splitShellCommands('cd /tmp && (temporal server start-dev &)'), [
+    ['cd', '/tmp'],
+    ['temporal', 'server', 'start-dev'],
+  ]);
+});
+
 test('strips env assignments, wrappers, and cd', () => {
   assert.deepEqual(normalizeCommand(['A=1', 'timeout', '900', 'clojure', '-T:build']), ['clojure', '-T:build']);
   assert.deepEqual(normalizeCommand(['env', 'A=1', 'nice', '-n', '5', 'java', '-jar', 'x']), ['java', '-jar', 'x']);
