@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { HerdrReporter, herdrContext, herdrEnvironment, herdrReportArgs, herdrReportMetadataArgs } from '../lib/client/herdr.js';
+import { HerdrReporter, herdrContext, herdrEnvironment, herdrReportArgs, herdrReportMetadataArgs, resolveHerdrState } from '../lib/client/herdr.js';
 
 const ENV = {
   HERDR_ENV: '1',
@@ -126,4 +126,14 @@ test('reports state changes, refreshes resume per session and releases once', ()
   assert.ok(releases[0].args.includes('--clear-display-agent'));
   assert.ok(releases[1].args.includes('release-agent'));
   assert.equal(reporter.report('idle', { sessionId: 's3' }), false);
+});
+
+
+test('counts running background jobs as working', () => {
+  assert.equal(resolveHerdrState(), 'idle');
+  assert.equal(resolveHerdrState({ running: true }), 'working');
+  assert.equal(resolveHerdrState({ subagents: 1 }), 'working');
+  assert.equal(resolveHerdrState({ jobs: 1 }), 'working');
+  assert.equal(resolveHerdrState({ jobs: 1, blocked: true }), 'blocked');
+  assert.equal(resolveHerdrState({ jobs: 1, forcedState: 'idle' }), 'idle');
 });

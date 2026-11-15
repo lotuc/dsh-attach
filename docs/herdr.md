@@ -8,8 +8,8 @@ Herdr integration is Unix-only.
 
 | State | Meaning |
 |---|---|
-| `idle` | Parent turn and all subagents idle. |
-| `working` | A turn or any descendant subagent is running. |
+| `idle` | Parent turn, all descendant subagents, and all background jobs are idle. |
+| `working` | A turn, a descendant subagent, or a background job is running. |
 | `blocked` | An approval or question awaits an answer. |
 
 `blocked` carries a short reason. `herdr agent wait` can wait for these states.
