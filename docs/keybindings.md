@@ -58,6 +58,21 @@ Space or `Tab` after a command opens argument suggestions. Completion covers
 `/permission`, and relative paths. `@` file indexing is not implemented.
 The panel floats above the composer without changing its height.
 
+## Scrollable panels
+
+Info, approval details, job output, and side-question panels share the
+scrollable overlay base.
+
+| Key | Action |
+|---|---|
+| `Up`/`Down`, `Ctrl+P`/`Ctrl+N` | Scroll one line. |
+| `PgUp`/`PgDn`, `Ctrl+U`/`Ctrl+D` | Scroll one page. |
+| `Home`/`g`, `End`/`G` | Jump to top/bottom. |
+| Mouse wheel | Scroll. |
+| `F` | Toggle windowed/fullscreen. |
+| `c` | Copy the panel's raw text, without borders or ANSI styling. |
+| `Esc`/`q` | Close (where the panel is read-only). |
+
 ## Session and model pickers
 
 | Key | Action |
