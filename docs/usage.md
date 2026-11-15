@@ -144,12 +144,15 @@ complete as `/name` with a `skill` label and argument hint, unless shadowed.
 
 ## Desktop focus
 
-`/desktop` brings DSH Desktop to the front, invokes its session search
-(`Cmd+K`), types the current session title, and opens the first match. It is
-macOS-only and best-effort: DSH Desktop only handles `dsh://open`, so selecting
-a session requires Accessibility permission for the terminal running
-`dsh-attach`. Without that permission the command reports the error and leaves
-the app focused.
+`/desktop` raises DSH Desktop and selects the current session by id. The TUI
+writes one request to a loopback bridge and opens `dsh://open`; the web client
+half bundled with `dsh-attach` polls the bridge and calls the harness's
+`uiWorkspace.openSession()`. The session id is never passed through the `dsh`
+protocol.
+
+The bridge listens on `127.0.0.1:39765`; requests expire after 30 seconds. The
+web client half loads only in the Web/Desktop client, so restart DSH Desktop once
+after installing this version. No Accessibility permission is required.
 
 ## Approvals
 

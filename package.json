@@ -1,6 +1,6 @@
 {
   "name": "dsh-attach",
-  "version": "2026.1115.2051",
+  "version": "2026.1115.2059",
   "description": "Attach a terminal UI to an already running DeepSeek Harness host: same sessions, same live agents, approvals and questions included.",
   "keywords": [
     "dsh-plugin",
@@ -18,7 +18,8 @@
       "types": "./lib/host.d.ts",
       "default": "./lib/host.js"
     },
-    "./client": {
+    "./client": "./client.js",
+    "./cli": {
       "default": "./lib/client/cli.js"
     },
     "./package.json": "./package.json"
@@ -30,6 +31,7 @@
     "lib",
     "bin",
     "docs",
+    "client.js",
     "cordis.patch.yml",
     "herdr-plugin.toml",
     "README.md"
@@ -37,6 +39,11 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-workspace"]
     }
   },
   "dependencies": {
