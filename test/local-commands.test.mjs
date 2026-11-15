@@ -21,6 +21,7 @@ function context() {
       interruptAgent: record('interruptAgent'),
       jobs: record('jobs'),
       skillsList: record('skillsList'),
+      skillsPicker: record('skillsPicker'),
       skillShow: record('skillShow'),
       skillRun: record('skillRun'),
       todos: record('todos'),
@@ -142,10 +143,11 @@ test('dispatches local command handlers', async () => {
     ['/job list', ['jobs']],
     ['/job output abc', ['jobOutput', 'abc']],
     ['/job kill abc', ['killJob', 'abc']],
-    ['/skill', ['skillsList']],
-    ['/skill list', ['skillsList']],
-    ['/skill show clojure-eval', ['skillShow', 'clojure-eval']],
-    ['/skill run clojure-eval', ['skillRun', 'clojure-eval']],
+    ['/skills', ['skillsPicker']],
+    ['/skills list', ['skillsList']],
+    ['/skills show clojure-eval', ['skillShow', 'clojure-eval']],
+    ['/skills run clojure-eval', ['skillRun', 'clojure-eval', '']],
+    ['/skills run clojure-eval report.pdf verbose', ['skillRun', 'clojure-eval', 'report.pdf verbose']],
     ['/todo', ['todos']],
     ['/todos', ['todos']],
     ['/detail', ['detail', '']],
@@ -215,7 +217,7 @@ test('dispatches local command handlers', async () => {
 
 test('reports usage for commands with required arguments', async () => {
   const { value, calls } = context();
-  for (const line of ['/job-output', '/job-kill', '/rename', '/steer', '/job output', '/job kill', '/skill show', '/skill run', '/skill bad', '/image bad', '/subagent bad', '/session rename', '/session unarchive', '/session new --preset', '/session archive --bogus', '/session bad']) {
+  for (const line of ['/job-output', '/job-kill', '/rename', '/steer', '/job output', '/job kill', '/skills show', '/skills run', '/skills bad', '/image bad', '/subagent bad', '/session rename', '/session unarchive', '/session new --preset', '/session archive --bogus', '/session bad']) {
     calls.length = 0;
     assert.equal(await executeLocalCommand(line, value), true);
     assert.equal(calls.length, 1);

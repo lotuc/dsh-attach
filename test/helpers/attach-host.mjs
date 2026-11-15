@@ -85,6 +85,7 @@ function defaultSkills() {
   return [
     {
       name: 'clojure-eval',
+      argumentHint: '[code]',
       description: 'Evaluate Clojure',
       whenToUse: 'When a REPL is running',
       path: '/skills/clojure-eval/SKILL.md',

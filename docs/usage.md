@@ -134,8 +134,13 @@ normal question panel.
 
 `/todo` shows pending/in-progress/completed items; activity shows counts.
 
-`/skill list`, `/skill show <name>`, `/skill run <name>`. User skills also
-complete as `/name` unless shadowed.
+`/skills` opens a searchable picker. `Enter` runs a skill, or inserts
+`/skill-name ` when the skill advertises an argument hint. `Tab` always inserts
+the command so arguments can be typed.
+
+`/skills list` prints the catalog; `/skills show <name>` shows instructions;
+`/skills run <name> [args...]` invokes a skill explicitly. User skills also
+complete as `/name` with a `skill` label and argument hint, unless shadowed.
 
 ## Approvals
 

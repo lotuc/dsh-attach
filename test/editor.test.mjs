@@ -42,8 +42,8 @@ test('reopens argument completion after Tab accepts a parent command', async () 
   editor.setAutocompleteProvider({
     async getSuggestions(lines, line, col) {
       const text = (lines[line] ?? '').slice(0, col);
-      if (text === '/sk') return { items: [{ value: '/skill ', label: 'skill' }], prefix: '/sk' };
-      if (text === '/skill ') return { items: [{ value: 'list', label: 'list' }], prefix: 'skill ' };
+      if (text === '/sk') return { items: [{ value: '/skills ', label: 'skill' }], prefix: '/sk' };
+      if (text === '/skills ') return { items: [{ value: 'list', label: 'list' }], prefix: 'skill ' };
       return null;
     },
     applyCompletion(lines, line, col, item, prefix) {
@@ -62,7 +62,7 @@ test('reopens argument completion after Tab accepts a parent command', async () 
   assert.equal(editor.isShowingAutocomplete(), true);
   editor.handleInput('\t');
   await new Promise((resolve) => setTimeout(resolve, 10));
-  assert.equal(editor.getText(), '/skill ');
+  assert.equal(editor.getText(), '/skills ');
   assert.equal(editor.isShowingAutocomplete(), true, 'argument completion should reopen after the parent command');
 });
 
@@ -118,14 +118,14 @@ test('opens argument completion when a space is typed after a command', async ()
   editor.setAutocompleteProvider({
     async getSuggestions(lines, line, col) {
       const text = (lines[line] ?? '').slice(0, col);
-      if (text === '/skill ') return { items: [{ value: 'list', label: 'list' }], prefix: 'skill ' };
+      if (text === '/skills ') return { items: [{ value: 'list', label: 'list' }], prefix: 'skill ' };
       return null;
     },
     applyCompletion(lines, line, col) {
       return { lines, cursorLine: line, cursorCol: col };
     },
   });
-  editor.setText('/skill');
+  editor.setText('/skills');
   editor.handleInput(' ');
   await new Promise((resolve) => setTimeout(resolve, 10));
   assert.equal(editor.isShowingAutocomplete(), true);

@@ -385,12 +385,14 @@ test('commands and skills are discovered and executed for the followed session',
     assert.equal(skillsBefore.complete, true);
     assert.equal(skillsBefore.skills[0].modelInvocable, true);
     assert.equal(skillsBefore.skills[0].whenToUse, 'When a REPL is running');
+    assert.equal(skillsBefore.skills[0].argumentHint, '[code]');
 
     const loaded = await client.request('skill.get', { name: 'clojure-eval' });
     assert.equal(loaded.supported, true);
     assert.equal(loaded.skill.content, 'REPL instructions');
     assert.equal(loaded.skill.path, '/skills/clojure-eval/SKILL.md');
     assert.equal(loaded.skill.provider, 'filesystem');
+    assert.equal(loaded.skill.argumentHint, '[code]');
     assert.equal((await client.request('skill.get', { name: 'model-only' })).skill, null);
     assert.equal((await client.request('skill.get', { name: 'missing' })).skill, null);
 

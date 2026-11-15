@@ -146,7 +146,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/parent` | Parent session. |
 | `/image [paste|list|clear]` | Clipboard images. Aliases: `/paste-image`, `/images`. |
 | `/job [list|output <id>|kill <id>]` | Jobs. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
-| `/skill [list|show <name>|run <name>]` | Skills. |
+| `/skills [list|show <name>|run <name> [args...]]` | Searchable skill picker, details, or explicit invocation. |
 | `/todo` | Todo list. Alias: `/todos`. |
 | `/goal [status|create <objective>|edit [objective]|pause|resume|complete|clear]` | Goal; complete/clear ask `y`. |
 | `/plan [status|enter [message]|exit|approve]` | Plan mode / plan review. |

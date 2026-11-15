@@ -11,6 +11,7 @@ import {
   resumeCompletions,
   sessionTargetCompletions,
   skillCommandItems,
+  skillPickerItems,
 } from '../lib/client/command-catalog.js';
 
 function fakeClient() {
@@ -80,7 +81,7 @@ function fakeClient() {
 
 test('local commands expose grouped navigation', () => {
   const items = localCommandItems(fakeClient());
-  for (const name of ['session', 'subagent', 'parent', 'image', 'job', 'skill', 'todo', 'detail', 'approvals', 'history', 'goal', 'plan']) {
+  for (const name of ['session', 'subagent', 'parent', 'image', 'job', 'skills', 'todo', 'detail', 'approvals', 'history', 'goal', 'plan']) {
     assert.ok(items.some((item) => item.name === name), name);
   }
   assert.equal(items.some((item) => item.name === 'job-output'), false, 'legacy aliases stay out of completion');
@@ -93,12 +94,12 @@ test('local command items expose grouped, resume and model argument completion',
   const subagent = items.find((item) => item.name === 'subagent');
   const image = items.find((item) => item.name === 'image');
   const job = items.find((item) => item.name === 'job');
-  const skill = items.find((item) => item.name === 'skill');
+  const skills = items.find((item) => item.name === 'skills');
   const goal = items.find((item) => item.name === 'goal');
   const plan = items.find((item) => item.name === 'plan');
   const model = items.find((item) => item.name === 'model');
   const permission = items.find((item) => item.name === 'permission');
-  for (const item of [session, subagent, image, job, skill, goal, plan, model, permission]) {
+  for (const item of [session, subagent, image, job, skills, goal, plan, model, permission]) {
     assert.equal(typeof item.getArgumentCompletions, 'function');
   }
 
@@ -137,14 +138,14 @@ test('local command items expose grouped, resume and model argument completion',
     'new --preset minimal',
   ]);
   assert.deepEqual((await image.getArgumentCompletions('')).map((entry) => entry.value), ['paste', 'list', 'clear']);
-  assert.deepEqual((await skill.getArgumentCompletions('')).map((entry) => entry.value), ['list', 'show ', 'run ']);
+  assert.deepEqual((await skills.getArgumentCompletions('')).map((entry) => entry.value), ['list', 'show ', 'run ']);
   const detail = items.find((item) => item.name === 'detail');
   assert.deepEqual((await detail.getArgumentCompletions('')).map((entry) => entry.value), ['compact', 'standard', 'verbose']);
   assert.deepEqual(await subagent.getArgumentCompletions('continue chi'), [
     { value: 'continue child-a', label: 'continue Reviewer', description: 'continuable · running' },
     { value: 'continue child-b', label: 'continue Tester', description: 'one-shot · idle' },
   ]);
-  assert.deepEqual(await skill.getArgumentCompletions('show clo'), [
+  assert.deepEqual(await skills.getArgumentCompletions('show clo'), [
     { value: 'show clojure-eval', label: 'show clojure-eval', description: 'Evaluate Clojure code via nREPL' },
   ]);
   assert.deepEqual((await subagent.getArgumentCompletions('')).map((entry) => entry.value), [
@@ -243,12 +244,18 @@ test('skill names become slash commands unless a command already owns the name',
   const items = skillCommandItems(
     [
       { name: 'clojure-eval', description: 'Evaluate Clojure' },
-      { name: 'skill', description: 'Collides with the local skill group' },
+      { name: 'skills', description: 'Collides with the local skill group' },
       { name: 'bad name', description: 'invalid' },
     ],
-    new Set(['skill']),
+    new Set(['skills']),
   );
-  assert.deepEqual(items, [{ name: 'clojure-eval', description: 'Evaluate Clojure' }]);
+  assert.deepEqual(items, [{ name: 'clojure-eval', description: 'skill · Evaluate Clojure' }]);
+  const enriched = skillCommandItems([{ name: 'pdf', description: 'Read PDFs', source: 'user-dsh', argumentHint: '[file]' }]);
+  assert.deepEqual(enriched, [{
+    name: 'pdf',
+    description: 'skill · user-dsh · Read PDFs',
+    argumentHint: '[file]',
+  }]);
 });
 
 test('the combined provider suggests slash commands and their arguments', async () => {
@@ -314,4 +321,17 @@ test('completes Host permission presets', async () => {
     (await item.getArgumentCompletions('w')).map((entry) => entry.value),
     ['workspace-write'],
   );
+});
+
+
+test('skill picker rows expose source, model policy and argument hints', () => {
+  const items = skillPickerItems([
+    { name: 'pdf', description: 'Read PDFs', source: 'project-dsh', modelInvocable: true, argumentHint: '[file]' },
+    { name: 'notes', description: 'Project notes', source: 'user-dsh', modelInvocable: false },
+  ]);
+  assert.equal(items[0].value, 'pdf');
+  assert.equal(items[0].label, 'pdf [file]');
+  assert.equal(items[0].meta, 'project · model · [file]');
+  assert.equal(items[1].meta, 'user · user-only');
+  assert.equal(items[1].skill.name, 'notes');
 });
