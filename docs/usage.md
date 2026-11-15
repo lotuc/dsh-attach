@@ -142,6 +142,15 @@ the command so arguments can be typed.
 `/skills run <name> [args...]` invokes a skill explicitly. User skills also
 complete as `/name` with a `skill` label and argument hint, unless shadowed.
 
+## Desktop focus
+
+`/desktop` brings DSH Desktop to the front, invokes its session search
+(`Cmd+K`), types the current session title, and opens the first match. It is
+macOS-only and best-effort: DSH Desktop only handles `dsh://open`, so selecting
+a session requires Accessibility permission for the terminal running
+`dsh-attach`. Without that permission the command reports the error and leaves
+the app focused.
+
 ## Approvals
 
 | Key | Action |

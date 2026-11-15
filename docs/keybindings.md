@@ -144,6 +144,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/reconnect` | Reconnect and reopen. |
 | `/subagent [list|continue [id] [text]|interrupt [id]|stop [id]|cancel [id]|preview [count]|parent|peek]` | Subagent control. Aliases: `/subagents`, `/subagents-preview`, `/peek`. |
 | `/parent` | Parent session. |
+| `/desktop` | Focus DSH Desktop and search for the current session (macOS; requires Accessibility). |
 | `/image [paste|list|clear]` | Clipboard images. Aliases: `/paste-image`, `/images`. |
 | `/job [list|output <id>|kill <id>]` | Jobs. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
 | `/skills [list|show <name>|run <name> [args...]]` | Searchable skill picker, details, or explicit invocation. |
