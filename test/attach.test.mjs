@@ -363,7 +363,7 @@ test('lists, opens, streams and prompts a session', async () => {
 test('forks, archives and pins sessions through optional Host services', async () => {
   await withHost(async ({ client, calls, workspaceCalls }) => {
     const described = await client.request('host.describe');
-    for (const capability of ['session.fork', 'session.archive', 'session.pin', 'session.presets']) {
+    for (const capability of ['session.fork', 'session.archive', 'session.pin', 'session.presets', 'skills']) {
       assert.ok(described.host.capabilities.includes(capability), capability);
     }
 
