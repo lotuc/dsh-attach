@@ -60,9 +60,10 @@ The panel floats above the composer without changing its height.
 
 ## Scrollable panels
 
-Info, approval details, job output, question, confirmation, text-prompt, and
-picker panels all support `F` to maximize. Read-only panels use `c` to copy;
-question panels use `C` because `c` enters a custom answer.
+Info, approval prompt/details, job output, question, confirmation,
+text-prompt, side-question, and picker panels all support `F` to maximize.
+Read-only and approval panels use `c` to copy; question panels use `C` because
+`c` enters a custom answer. The picker uses `F` to show more rows.
 
 | Key | Action |
 |---|---|
