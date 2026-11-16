@@ -173,6 +173,7 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
   };
   const clipboard = {
     useImage: true,
+    delayMs: 0,
     image: { mediaType: 'image/png', data: 'YWJj', name: 'clipboard.png' },
     text: 'clipboard text',
   };
@@ -182,6 +183,7 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     terminal,
     tui,
     readClipboardImage: async () => {
+      if (clipboard.delayMs > 0) await wait(clipboard.delayMs);
       if (!clipboard.useImage) throw new Error('clipboard does not contain an image');
       return clipboard.image;
     },
@@ -202,12 +204,26 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     app.editor.handleInput('\r');
     await wait(30);
     assert.equal(app.pendingImages.length, 0, 'submitting a prompt clears its images');
+    assert.ok(app.rows.some((row) => typeof row.text === 'string' && row.text.includes('[image]')), 'the sent row shows an image marker');
     app.pendingImages = [];
     clipboard.useImage = false;
     input('\x16');
     await wait(30);
     assert.match(app.editor.getText(), /clipboard text/, 'Ctrl+V falls back to clipboard text');
     app.editor.setText('');
+
+    // A send while the clipboard read is still in flight waits for the image
+    // instead of sending text only and leaving the image attached afterwards.
+    clipboard.useImage = true;
+    clipboard.delayMs = 30;
+    input('\x16');
+    app.editor.setText('race image');
+    app.editor.handleInput('\r');
+    await wait(80);
+    assert.equal(app.pendingImages.length, 0, 'a racing paste is included and cleared');
+    const imagePrompt = client.requestCalls.filter((call) => call.method === 'session.prompt').at(-1);
+    assert.equal(imagePrompt.params.images.length, 1, 'the racing image reaches session.prompt');
+    clipboard.delayMs = 0;
 
     client.emit('frame', {
       sessionId: 's1',
