@@ -198,6 +198,10 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     input('\x16'); // Ctrl+V
     await wait(30);
     assert.equal(app.pendingImages.length, 1, 'Ctrl+V attaches a clipboard image');
+    app.editor.setText('send the image');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.equal(app.pendingImages.length, 0, 'submitting a prompt clears its images');
     app.pendingImages = [];
     clipboard.useImage = false;
     input('\x16');
