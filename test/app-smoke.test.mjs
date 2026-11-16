@@ -224,6 +224,9 @@ test('the app starts, opens a session, and survives slash autocomplete', async (
     const imagePrompt = client.requestCalls.filter((call) => call.method === 'session.prompt').at(-1);
     assert.equal(imagePrompt.params.images.length, 1, 'the racing image reaches session.prompt');
     clipboard.delayMs = 0;
+    input('\x1b[118;5:3u'); // Ctrl+V key release
+    await wait(30);
+    assert.equal(app.pendingImages.length, 0, 'a key-release event does not paste another image');
 
     client.emit('frame', {
       sessionId: 's1',
