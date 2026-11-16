@@ -176,7 +176,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/model [provider model]` | Picker or direct switch. |
 | `/permission [mode]` | Picker or `read-only`/`workspace-write`/`danger-full-access`/`auto`. |
 | `/detail [compact|standard|verbose]` | Detail level. |
-| `/btw.fork <question>` | Fork a side question directly to a full-tool subagent. |
+| `/btw fork <question>` (alias `/btw.fork`) | Fork a side question directly to a full-tool subagent. |
 | `/btw <question>` | Side question; `f` starts a background fork with tools. |
 | `/approvals [on|off|add <json>|remove <id>|suggest]` | Inspect or edit auto-approval; advanced settings belong in `auto-approve.toml`. |
 | `/status` | Session/status details. |

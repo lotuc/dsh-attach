@@ -77,3 +77,27 @@ test('btw panel toggles fullscreen with F and keeps the answer intact', () => {
   panel.handleInput('F');
   assert.deepEqual(states, [true, false]);
 });
+
+test('shows forking and forked thread states', () => {
+  const forking = new BtwPanel([{
+    question: 'build it',
+    status: 'forking',
+    answer: '',
+    reasoning: '',
+    fork: { status: 'running', childId: 'child-1234567890' },
+  }], 0, {});
+  let text = stripTerminalSequences(forking.render(80).join('\n'));
+  assert.match(text, /Forking to a full-tool subagent/u);
+  assert.match(text, /child-123456/u);
+
+  const done = new BtwPanel([{
+    question: 'build it',
+    status: 'forked',
+    answer: 'finished output',
+    reasoning: '',
+    fork: { status: 'done', childId: 'child-1234567890', output: 'finished output' },
+  }], 0, {});
+  text = stripTerminalSequences(done.render(80).join('\n'));
+  assert.match(text, /finished output/u);
+  assert.match(text, /fork child-123456 done/u);
+});
