@@ -142,6 +142,12 @@ the command so arguments can be typed.
 `/skills run <name> [args...]` invokes a skill explicitly. User skills also
 complete as `/name` with a `skill` label and argument hint, unless shadowed.
 
+## Links
+
+`/links` collects HTTP(S) links from the loaded transcript. `Enter` copies the
+selected URL to the system clipboard and `o` opens it with the platform browser.
+This is the fallback for terminals that do not support OSC 8 hyperlinks.
+
 ## Rewind
 
 `/rewind` opens a picker of loaded user messages. Selecting one replaces that
