@@ -142,6 +142,16 @@ the command so arguments can be typed.
 `/skills run <name> [args...]` invokes a skill explicitly. User skills also
 complete as `/name` with a `skill` label and argument hint, unless shadowed.
 
+## Rewind
+
+`/rewind` opens a picker of loaded user messages. Selecting one replaces that
+message and everything after it on the model-visible surface in the same
+session. `/rewind <seq>` selects a sequence directly.
+
+This is conversation-only: workspace files are unchanged, the durable event
+log still contains the old events, and the client removes the rewound rows from
+the loaded transcript. Cancel a running turn before rewinding.
+
 ## Desktop focus
 
 `/desktop` raises DSH Desktop and selects the current session by id. The TUI

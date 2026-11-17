@@ -162,6 +162,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/subagent [list|continue [id] [text]|interrupt [id]|stop [id]|cancel [id]|preview [count]|parent|peek]` | Subagent control. Aliases: `/subagents`, `/subagents-preview`, `/peek`. |
 | `/parent` | Parent session. |
 | `/desktop` | Raise DSH Desktop and select the current session through the bundled web client half. |
+| `/rewind [seq]` | Pick a user message and truncate the model-visible surface before it in place. |
 | `/image [paste|list|clear]` | Clipboard images. Aliases: `/paste-image`, `/images`. |
 | `/job [list|output <id>|kill <id>]` | Jobs. Aliases: `/jobs`, `/job-output`, `/job-kill`. |
 | `/skills [list|show <name>|run <name> [args...]]` | Searchable skill picker, details, or explicit invocation. |

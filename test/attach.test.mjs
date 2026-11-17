@@ -294,7 +294,7 @@ async function withHost(fn) {
 }
 
 test('lists, opens, streams and prompts a session', async () => {
-  await withHost(async ({ client, calls, push }) => {
+  await withHost(async ({ client, calls, push, agent }) => {
     const list = await client.request('session.list');
     assert.equal(list.items.length, 1);
     assert.equal(list.items[0].title, 'Fixture');
@@ -315,6 +315,24 @@ test('lists, opens, streams and prompts a session', async () => {
     const recorded = calls.find((call) => call[0] === 'prompt')[1];
     assert.equal(recorded.sessionId, 's1');
     assert.deepEqual(recorded.content, [{ type: 'text', text: 'hello' }]);
+
+    const appended = [];
+    const originalSession = agent.session;
+    agent.session = {
+      ...originalSession,
+      surface: { nodes: [1, 2, 3] },
+      eventAt: (seq) => (seq === 2 ? { type: 'user/message' } : { type: 'assistant/message' }),
+      append(type, data, options) {
+        appended.push({ type, data, options });
+        return [{ seq: 4 }];
+      },
+    };
+    const rewound = await client.request('session.rewind', { atSeq: 2 });
+    assert.deepEqual(rewound, { rewound: true, startSeq: 2, endSeq: 3, replacementSeq: 4 });
+    assert.equal(appended[0].type, 'user/message');
+    assert.deepEqual(appended[0].options.surfaceOp, { op: 'replace', startSeq: 2, endSeq: 3 });
+    assert.deepEqual(appended[0].options.sourceEventSeqs, [2, 3]);
+    agent.session = originalSession;
 
     const imagePrompt = await client.request('session.prompt', {
       text: '',
