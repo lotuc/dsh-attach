@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { stripTerminalSequences, visibleWidth } from '@earendil-works/pi-tui';
+
 import { copyToClipboard } from '../lib/client/clipboard.js';
 import { InfoPanel } from '../lib/client/panels.js';
 
@@ -33,4 +35,17 @@ test('scrolls and maximizes the shared info panel', () => {
   panel.handleInput('F');
   assert.deepEqual(fullscreen, [true]);
   assert.equal(panel.fullscreen, true);
+});
+
+test('fullscreen panels drop the left and right frame borders', () => {
+  const panel = new InfoPanel('Info', ['hello'], () => {});
+  const windowed = stripTerminalSequences(panel.render(40).join('\n')).split('\n');
+  assert.match(windowed[1], /^│/u);
+
+  panel.handleInput('F');
+  const rows = stripTerminalSequences(panel.render(40).join('\n')).split('\n');
+  assert.ok(rows.every((row) => !row.includes('│')));
+  assert.match(rows[0], /^─ Info ─/u);
+  assert.match(rows.at(-1), /^─+$/u);
+  assert.ok(rows.every((row) => visibleWidth(row) === 40));
 });
