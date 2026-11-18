@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { nextScrollOffset } from '../lib/client/scroll.js';
+import { nextScrollOffset, nextSelectionIndex } from '../lib/client/scroll.js';
 
 const state = { scroll: 20, maxScroll: 100, page: 10 };
 
@@ -36,4 +36,18 @@ test('scroll helper leaves close and non-scroll keys to the panel', () => {
   assert.equal(nextScrollOffset('q', state), null);
   assert.equal(nextScrollOffset('k', state), null);
   assert.equal(nextScrollOffset('', state), null);
+});
+
+test('selection helper pages lists with the same overlap as scroll panes', () => {
+  const list = { index: 10, length: 30, page: 10 };
+  assert.equal(nextSelectionIndex('\x1b[5~', list), 2);
+  assert.equal(nextSelectionIndex('\x1b[6~', list), 18);
+  assert.equal(nextSelectionIndex('\x15', list), 2);
+  assert.equal(nextSelectionIndex('\x04', list), 18);
+  assert.equal(nextSelectionIndex('\x1b[H', list), 0);
+  assert.equal(nextSelectionIndex('\x1b[F', list), 29);
+  assert.equal(nextSelectionIndex('\x1b[A', list), null);
+  assert.equal(nextSelectionIndex('\x1b[6~', { index: 0, length: 0, page: 10 }), null);
+  assert.equal(nextSelectionIndex('\x1b[5~', { index: 0, length: 3, page: 10 }), 0);
+  assert.equal(nextSelectionIndex('\x1b[6~', { index: 2, length: 3, page: 10 }), 2);
 });

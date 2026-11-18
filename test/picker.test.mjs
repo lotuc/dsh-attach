@@ -288,3 +288,35 @@ test('mouse wheel moves the picker selection', () => {
   panel.handleInput('\x1b[<64;10;5M');
   assert.equal(list.getSelectedItem()?.value, 'a');
 });
+
+test('pages the picker selection with page keys and ctrl navigation', () => {
+  const items = Array.from({ length: 12 }, (_, index) => ({ value: String(index), label: `item ${index}` }));
+  const list = new FilterList(items, 4, selectTheme);
+  const panel = new PickerPanel('Fixture', list, { requestRender: () => {} });
+  assert.equal(list.getSelectedItem()?.value, '0');
+  panel.handleInput('\x1b[6~');
+  assert.equal(list.getSelectedItem()?.value, '2');
+  panel.handleInput('\x1b[6~');
+  assert.equal(list.getSelectedItem()?.value, '4');
+  panel.handleInput('\x15');
+  assert.equal(list.getSelectedItem()?.value, '2');
+  panel.handleInput('\x04');
+  assert.equal(list.getSelectedItem()?.value, '4');
+  panel.handleInput('\x1b[F');
+  assert.equal(list.getSelectedItem()?.value, '11');
+  panel.handleInput('\x1b[H');
+  assert.equal(list.getSelectedItem()?.value, '0');
+});
+
+test('pages the picker while the search input stays active', () => {
+  const items = Array.from({ length: 12 }, (_, index) => ({ value: String(index), label: `item ${index}` }));
+  const list = new FilterList(items, 4, selectTheme);
+  const panel = new PickerPanel('Fixture', list, { requestRender: () => {} });
+  panel.handleInput('/');
+  assert.equal(panel.mode, 'search');
+  panel.handleInput('\x1b[6~');
+  assert.equal(panel.mode, 'search');
+  assert.equal(list.getSelectedItem()?.value, '2');
+  panel.handleInput('\x1b[5~');
+  assert.equal(list.getSelectedItem()?.value, '0');
+});

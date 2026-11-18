@@ -70,7 +70,7 @@ show more rows.
 |---|---|
 | `Up`/`Down`, `Ctrl+P`/`Ctrl+N` | Scroll one line. |
 | `PgUp`/`PgDn`, `Ctrl+U`/`Ctrl+D` | Scroll one page. |
-| `Home`/`g`, `End`/`G` | Jump to top/bottom. |
+| `Home`, `g` / `End`, `G` | Jump to top/bottom (cards; pickers use `Home`/`End`). |
 | Mouse wheel | Scroll. |
 | `F` | Toggle windowed/fullscreen. |
 | `c` | Copy the panel's raw text, without borders or ANSI styling. |
@@ -81,6 +81,8 @@ show more rows.
 | Key | Action |
 |---|---|
 | `Up`/`Down`/`Ctrl+P`/`Ctrl+N` | Move. |
+| `PgUp`/`PgDn`, `Home`/`End` | Move one page, or jump to the first/last row. |
+| `Ctrl+U`/`Ctrl+D` | Move one page in navigation; `Ctrl+U` clears the query while searching. |
 | `n` | New session. |
 | `f` | Fork selected session. |
 | `a` | Archive/unarchive. |
