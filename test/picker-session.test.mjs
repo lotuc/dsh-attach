@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { stripTerminalSequences, visibleWidth } from '@earendil-works/pi-tui';
+
 import { ModalHost } from '../lib/client/modals.js';
 import { openPicker, setPickerItems } from '../lib/client/picker-session.js';
 
@@ -60,4 +62,25 @@ test('setPickerItems preserves the selected value and updates the title', () => 
   assert.deepEqual(picker.list.items.map((item) => item.value), ['c', 'b']);
   assert.equal(picker.list.getSelectedItem().value, 'b');
   assert.equal(picker.panel.title, 'Jobs · 2');
+});
+
+test('picker forwards fullscreen toggles and drops the side frame', () => {
+  const tui = makeTui();
+  const modals = new ModalHost(tui, () => 'editor');
+  const picker = openPicker({ modals, tui, title: 'Pick one', items });
+  const states = [];
+  picker.container.onToggleFullscreen = (value) => states.push(value);
+
+  const windowed = stripTerminalSequences(picker.panel.render(40).join('\n')).split('\n');
+  assert.ok(windowed.some((row) => row.includes('│')));
+
+  picker.panel.handleInput('F');
+  assert.deepEqual(states, [true]);
+  const rows = stripTerminalSequences(picker.panel.render(40).join('\n')).split('\n');
+  assert.ok(rows.every((row) => !row.includes('│')));
+  assert.match(rows[0], /^─ Pick one ─/u);
+  assert.ok(rows.every((row) => visibleWidth(row) === 40));
+
+  picker.panel.handleInput('F');
+  assert.deepEqual(states, [true, false]);
 });
