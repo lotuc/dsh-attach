@@ -229,8 +229,24 @@ Picker: `Enter` history, `c` continue, `x` stop. History is read-only; back with
 
 Continuation needs a continuable child with a live direct parent. Interrupt
 confirms with `y`; it acknowledges cancellation, not quiescence. One-shot or
-external children stop permanently. No new subagent dispatch or parent approval
-routing from the TUI.
+external children stop permanently. The TUI does not dispatch directly and does
+not route parent approvals.
+
+### Delegating a short request
+
+```text
+/delegate 把 popup 全屏时的左右边框去掉
+```
+
+`/delegate` asks the main agent to turn the short request into a self-contained
+task brief using the current conversation and repository context, then launch a
+subagent with it. The client does not invent the brief; it fixes the contract:
+goal, verbatim request, referenced context, scope/non-goals, constraints,
+assumptions, acceptance criteria, output contract and stop conditions.
+
+The transcript keeps the short `/delegate` line while the expanded brief is
+sent to the model. The main agent starts a clean-context subagent by default and
+uses a forked subagent only when the task needs the conversation history.
 
 ## Jobs
 

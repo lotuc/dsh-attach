@@ -1004,3 +1004,33 @@ test('surfaces the provider failure instead of the generic attempt notice', asyn
     else process.env.DSH_ATTACH_NO_MOUSE = previous;
   }
 });
+
+test('delegate sends the expanded brief but echoes the short request', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, { session: 's1', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    app.editor.setText('/delegate 去掉全屏边框');
+    app.editor.handleInput('\r');
+    await wait(80);
+
+    const prompt = client.requestCalls.filter((call) => call.method === 'session.prompt').at(-1)?.params?.text;
+    assert.match(prompt, /^DELEGATION REQUEST/u);
+    assert.match(prompt, /> 去掉全屏边框/u);
+    assert.match(prompt, /Acceptance criteria/u);
+    assert.match(prompt, /actually start a subagent/u);
+    assert.ok(app.rows.some((row) => row.text === '/delegate 去掉全屏边框'), 'the transcript shows the short command');
+    assert.ok(!app.rows.some((row) => row.text?.includes('DELEGATION REQUEST')), 'the orchestration prompt is not echoed');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
