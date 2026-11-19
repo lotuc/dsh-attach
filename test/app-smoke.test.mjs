@@ -958,3 +958,49 @@ test('f starts a background fork without leaving the current session', async () 
     else process.env.DSH_ATTACH_NO_MOUSE = previous;
   }
 });
+
+test('surfaces the provider failure instead of the generic attempt notice', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, { session: 's1', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    const emit = (event) => client.emit('frame', {
+      sessionId: 's1',
+      frame: { type: 'event', event },
+    });
+    const quota = {
+      message: 'Insufficient Balance (request_id: 5b11d0d5)',
+      code: 'ACCOUNT_QUOTA',
+      status: 402,
+    };
+    emit({ type: 'turn/start', data: { turn: 1 } });
+    emit({
+      type: 'assistant/attempt',
+      data: {
+        turn: 1,
+        step: 1,
+        stream: [{ type: 'chunk', chunk: { type: 'finish', reason: { kind: 'error', failure: quota } } }],
+      },
+    });
+    assert.doesNotMatch(
+      stripTerminalSequences(app.document.render(200).join('\n')),
+      /an assistant attempt ended without committing a message/u,
+    );
+    emit({ type: 'turn/end', time: Date.now(), data: { turn: 1, reason: { kind: 'error', error: quota } } });
+    const transcript = stripTerminalSequences(app.document.render(200).join('\n'));
+    assert.match(transcript, /turn failed: Insufficient Balance \(request_id: 5b11d0d5\)/u);
+    assert.match(transcript, /ACCOUNT_QUOTA/u);
+    assert.match(stripTerminalSequences(app.activity.render(300).join('\n')), /turn failed · Insufficient Balance/u);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
