@@ -41,7 +41,6 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
   goals, plan mode, todo list, queue.
 - **Search and history**: `/find`, `Ctrl+R`/`/history`, durable older pages.
 - **Subagents**: lineage, read-only history, continue/interrupt, parent navigation.
-- **Delegation**: `/delegate <short request>` builds a self-contained brief from the conversation and launches a subagent.
 - **Commands**: `/` completion for local/Host commands and arguments; Host
   command passthrough.
 - **Side questions**: streamed `/btw` overlay with a replayable side thread; `f` starts a background fork with full tool access.

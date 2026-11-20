@@ -164,7 +164,6 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/reconnect` | Reconnect and reopen. |
 | `/subagent [list|continue [id] [text]|interrupt [id]|stop [id]|cancel [id]|preview [count]|parent|peek]` | Subagent control. Aliases: `/subagents`, `/subagents-preview`, `/peek`. |
 | `/parent` | Parent session. |
-| `/delegate <request>` | Build a context-complete subagent brief from a short request and launch it through the main agent. |
 | `/desktop` | Raise DSH Desktop and select the current session through the bundled web client half. |
 | `/rewind [seq]` | Pick a user message and truncate the model-visible surface before it in place. |
 | `/links` | Search transcript links; `enter` copies, `o` opens in the browser. |
