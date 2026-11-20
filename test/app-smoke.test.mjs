@@ -1004,3 +1004,24 @@ test('surfaces the provider failure instead of the generic attempt notice', asyn
     else process.env.DSH_ATTACH_NO_MOUSE = previous;
   }
 });
+
+test('passes the cache root to session.open', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, { session: 's1', cacheRoot: '@session', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    const opened = client.requestCalls.find((call) => call.method === 'session.open');
+    assert.equal(opened?.params?.cacheRoot, '@session');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});

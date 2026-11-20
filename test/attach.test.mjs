@@ -1303,3 +1303,39 @@ test('rejects a bad token and accepts the real one', async () => {
     await rm(home, { recursive: true, force: true });
   }
 });
+
+test('injects cache-root environment for explicit and session roots', async () => {
+  await withHost(async ({ client, ctx }) => {
+    await client.request('session.open', { sessionId: 's1', cacheRoot: '@session' });
+    const session = await ctx.get('shell').resolve({
+      command: 'pwd',
+      cwd: '/work/project',
+      env: { BASE: '1' },
+      dshEnv: { DSH_SESSION_ID: 's1' },
+    });
+    assert.equal(session.env.CLJ_CACHE, '/tmp/work/.cache/clojure/cpcache');
+    assert.equal(session.env.GRADLE_USER_HOME, '/tmp/work/.cache/gradle');
+    assert.equal(session.env.MAVEN_ARGS, '-Dmaven.repo.local=/tmp/work/.cache/m2/repository');
+    assert.equal(session.env.BASE, '1');
+
+    await client.request('session.open', { sessionId: 's2', cacheRoot: '/tmp/dsh-cache' });
+    const explicit = await ctx.get('shell').resolve({
+      command: 'pwd',
+      cwd: '/work/other',
+      env: { BASE: '2' },
+      dshEnv: { DSH_SESSION_ID: 's2' },
+    });
+    assert.equal(explicit.env.CLJ_CACHE, '/tmp/dsh-cache/clojure/cpcache');
+    assert.equal(explicit.env.MAVEN_ARGS, '-Dmaven.repo.local=/tmp/dsh-cache/m2/repository');
+
+    await client.request('session.open', { sessionId: 's3' });
+    const cleared = await ctx.get('shell').resolve({
+      command: 'pwd',
+      cwd: '/work/project',
+      env: { BASE: '3' },
+      dshEnv: { DSH_SESSION_ID: 's3' },
+    });
+    assert.equal(cleared.env.CLJ_CACHE, undefined);
+    assert.equal(cleared.env.BASE, '3');
+  });
+});

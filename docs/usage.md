@@ -59,6 +59,26 @@ dsh-attach -s <id> / --reattach <id>
 Agent presets apply to new sessions. `/session presets` shows the roster;
 `/session preset <id>` picks; `/session new --preset <id>` overrides once.
 
+## Cache root
+
+`dsh-attach --cache-root <path|@cwd|@session>` keeps language-tool caches out
+of the home directory for every model shell call. It is off by default.
+
+- `<path>`: use this directory as the cache root.
+- `@cwd`: use `<launch directory>/.cache`.
+- `@session`: use `<session workspace>/.cache`; changing sessions resolves
+  against each session's own workspace.
+
+The Host derives `CLJ_CACHE`, `GITLIBS`, `GRADLE_USER_HOME`, `LEIN_HOME`,
+`COURSIER_CACHE`, `PIP_CACHE_DIR`, `npm_config_cache`, `CARGO_HOME`,
+`GOMODCACHE`, `GOCACHE`, and `MAVEN_ARGS` from the root. The cache root must
+already be writable under the session sandbox, or model shell calls receive the
+usual sandbox denial.
+
+Clojure's Maven repository is configured by `deps.edn` `:mvn/local-repo` rather
+than an environment variable; add it to `~/.clojure/deps.edn` or the project's
+`deps.edn` when `--cache-root` should cover Clojure's Maven artifacts too.
+
 ## Prompts and queue
 
 `Enter` sends and follows the live edge. While a turn runs, prompts queue.
