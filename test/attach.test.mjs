@@ -1339,3 +1339,329 @@ test('injects cache-root environment for explicit and session roots', async () =
     assert.equal(cleared.env.BASE, '3');
   });
 });
+
+test('keeps cache-root environment per connection for the same session', async () => {
+  await withHost(async ({ client, ctx, descriptor }) => {
+    const second = new AttachClient();
+    try {
+      await client.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/cache-a' });
+      await second.connect({ socketPath: descriptor.socketPath, token: descriptor.token, timeoutMs: 2000 });
+      await second.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/cache-b' });
+
+      const shared = await ctx.get('shell').resolve({
+        command: 'pwd',
+        cwd: '/work/project',
+        env: { BASE: '1' },
+        dshEnv: { DSH_SESSION_ID: 's1' },
+      });
+      // The newest valid entry wins while both terminals follow the session.
+      assert.equal(shared.env.CLJ_CACHE, '/tmp/cache-b/clojure/cpcache');
+      assert.equal(shared.env.BASE, '1');
+
+      // Clearing one connection must not clear the other's cache environment.
+      await second.request('session.close');
+      const remaining = await ctx.get('shell').resolve({
+        command: 'pwd',
+        cwd: '/work/project',
+        env: { BASE: '2' },
+        dshEnv: { DSH_SESSION_ID: 's1' },
+      });
+      assert.equal(remaining.env.CLJ_CACHE, '/tmp/cache-a/clojure/cpcache');
+      assert.equal(remaining.env.BASE, '2');
+    } finally {
+      second.close();
+    }
+  });
+});
+
+test('resolves @session only from a known session cwd', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  try {
+    assert.equal(await host.server.sessionCacheRoot('s1', '@session'), '/tmp/work/.cache');
+    // Unknown session: no cwd, so the token stays disabled instead of falling
+    // back to a shell request cwd or resuming an agent.
+    assert.equal(await host.server.sessionCacheRoot('missing', '@session'), null);
+    // Explicit roots never need either cwd.
+    assert.equal(await host.server.sessionCacheRoot('missing', '/tmp/explicit-cache'), '/tmp/explicit-cache');
+    // Invalid roots are disabled rather than throwing.
+    assert.equal(await host.server.sessionCacheRoot('missing', '\u0000'), null);
+  } finally {
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('resolves @session for a cold session from the workingDirectory projection', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home);
+  try {
+    host.ctx.sessionController.list = async () => ({
+      items: [
+        {
+          sessionId: 'cold',
+          updatedAt: 1,
+          projections: { kind: 'sequenced', values: { workingDirectory: '/tmp/cold-work' } },
+        },
+      ],
+    });
+    // No live agent: the read-only summary is the only cwd source, and its cwd
+    // arrives only through the workingDirectory projection.
+    assert.equal(host.ctx.get('agents').get('cold'), undefined);
+    assert.equal(await host.server.sessionCacheRoot('cold', '@session'), '/tmp/cold-work/.cache');
+  } finally {
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('keeps an older cache root when another connection only contributes Herdr env', async () => {
+  await withHost(async ({ client, ctx, descriptor }) => {
+    const second = new AttachClient();
+    try {
+      await client.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/cache-a' });
+      await second.connect({ socketPath: descriptor.socketPath, token: descriptor.token, timeoutMs: 2000 });
+      await second.request('session.open', {
+        sessionId: 's1',
+        env: { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p2' },
+      });
+
+      const resolved = await ctx.get('shell').resolve({
+        command: 'pwd',
+        cwd: '/work/project',
+        env: { BASE: '1' },
+        dshEnv: { DSH_SESSION_ID: 's1' },
+      });
+      assert.equal(resolved.env.CLJ_CACHE, '/tmp/cache-a/clojure/cpcache');
+      assert.equal(resolved.env.HERDR_PANE_ID, 'w1:p2');
+      assert.equal(resolved.env.BASE, '1');
+    } finally {
+      second.close();
+    }
+  });
+});
+
+test('keeps an older Herdr env when another connection only contributes a cache root', async () => {
+  await withHost(async ({ client, ctx, descriptor }) => {
+    const second = new AttachClient();
+    try {
+      await client.request('session.open', {
+        sessionId: 's1',
+        cacheRoot: '/tmp/cache-a',
+        env: { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' },
+      });
+      await second.connect({ socketPath: descriptor.socketPath, token: descriptor.token, timeoutMs: 2000 });
+      await second.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/cache-b' });
+
+      const resolved = await ctx.get('shell').resolve({
+        command: 'pwd',
+        cwd: '/work/project',
+        env: { BASE: '1' },
+        dshEnv: { DSH_SESSION_ID: 's1' },
+      });
+      // The newer cache root wins without erasing the older terminal's Herdr facts.
+      assert.equal(resolved.env.CLJ_CACHE, '/tmp/cache-b/clojure/cpcache');
+      assert.equal(resolved.env.HERDR_PANE_ID, 'w1:p1');
+      assert.equal(resolved.env.BASE, '1');
+    } finally {
+      second.close();
+    }
+  });
+});
+
+const settle = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms));
+
+test('reports the resolved cache root on session.open', async () => {
+  await withHost(async ({ client }) => {
+    const sessionRoot = await client.request('session.open', { sessionId: 's1', cacheRoot: '@session' });
+    assert.equal(sessionRoot.cacheRoot, '/tmp/work/.cache');
+    assert.equal(sessionRoot.applied, true);
+
+    const explicit = await client.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/dsh-cache' });
+    assert.equal(explicit.cacheRoot, '/tmp/dsh-cache');
+    assert.equal(explicit.applied, true);
+
+    // Unknown session: the token cannot resolve without a workspace cwd.
+    const disabled = await client.request('session.open', { sessionId: 'missing', cacheRoot: '@session' });
+    assert.equal(disabled.cacheRoot, null);
+    assert.equal(disabled.applied, true);
+
+    // No request, no cacheRoot field; `applied` is always present.
+    const notRequested = await client.request('session.open', { sessionId: 's1' });
+    assert.equal(Object.hasOwn(notRequested, 'cacheRoot'), false);
+    assert.equal(notRequested.applied, true);
+  });
+});
+
+test('back-to-back opens on one connection leave only the latest environment', async () => {
+  await withHost(async ({ client, ctx }) => {
+    const first = client.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/cache-a' });
+    const second = client.request('session.open', { sessionId: 's2', cacheRoot: '/tmp/cache-b' });
+    await Promise.all([first, second]);
+
+    const stale = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+    assert.equal(stale.env.CLJ_CACHE, undefined);
+    const current = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's2' } });
+    assert.equal(current.env.CLJ_CACHE, '/tmp/cache-b/clojure/cpcache');
+  });
+});
+
+test('a slow earlier open cannot overwrite a later open on the same connection', async () => {
+  await withHost(async ({ client, ctx, server }) => {
+    const original = server.sessionCacheRoot.bind(server);
+    let release;
+    let entered;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    server.sessionCacheRoot = async (sessionId, value) => {
+      if (sessionId === 's1') {
+        entered();
+        await gate;
+      }
+      return original(sessionId, value);
+    };
+
+    const first = client.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/cache-a' });
+    await started;
+    const second = client.request('session.open', { sessionId: 's2', cacheRoot: '/tmp/cache-b' });
+    const secondResult = await second;
+    release();
+    const firstResult = await first;
+
+    // The superseded open says so, so its cache-root verdict is never surfaced.
+    assert.equal(secondResult.applied, true);
+    assert.equal(firstResult.applied, false);
+    assert.equal(firstResult.cacheRoot, '/tmp/cache-a');
+
+    // The later open won even though the earlier lookup finished last.
+    const stale = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+    assert.equal(stale.env.CLJ_CACHE, undefined);
+    const current = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's2' } });
+    assert.equal(current.env.CLJ_CACHE, '/tmp/cache-b/clojure/cpcache');
+  });
+});
+
+test('close during a slow cache-root lookup leaves no environment', async () => {
+  await withHost(async ({ client, ctx, server }) => {
+    const original = server.sessionCacheRoot.bind(server);
+    let release;
+    let entered;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    server.sessionCacheRoot = async (sessionId, value) => {
+      entered();
+      await gate;
+      return original(sessionId, value);
+    };
+
+    const pending = client.request('session.open', { sessionId: 's1', cacheRoot: '/tmp/cache-a' });
+    await started;
+    await client.request('session.close');
+    release();
+    const pendingResult = await pending;
+
+    // A close superseded this open: the response keeps its resolved cacheRoot
+    // for diagnostics but is not applied.
+    assert.equal(pendingResult.applied, false);
+    assert.equal(pendingResult.cacheRoot, '/tmp/cache-a');
+    assert.equal(server.sessionEnv.envFor('s1'), undefined);
+    const resolved = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+    assert.equal(resolved.env.CLJ_CACHE, undefined);
+  });
+});
+
+test('disconnect during a slow cache-root lookup leaves no environment', async () => {
+  await withHost(async ({ client, ctx, server }) => {
+    const original = server.sessionCacheRoot.bind(server);
+    let release;
+    let entered;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const started = new Promise((resolve) => {
+      entered = resolve;
+    });
+    server.sessionCacheRoot = async (sessionId, value) => {
+      entered();
+      await gate;
+      return original(sessionId, value);
+    };
+
+    const pending = client.request('session.open', {
+      sessionId: 's1',
+      cacheRoot: '/tmp/cache-a',
+      env: { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' },
+    }).catch(() => null);
+    await started;
+    client.close();
+    for (let attempt = 0; attempt < 100 && server.connections.size > 0; attempt += 1) await settle(5);
+    assert.equal(server.connections.size, 0);
+    release();
+    await pending;
+
+    assert.equal(server.sessionEnv.envFor('s1'), undefined);
+    const resolved = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+    assert.equal(resolved.env.CLJ_CACHE, undefined);
+    assert.equal(resolved.env.HERDR_PANE_ID, undefined);
+  });
+});
+
+test('stops injecting a connection environment after it disconnects', async () => {
+  await withHost(async ({ client, ctx, server }) => {
+    await client.request('session.open', {
+      sessionId: 's1',
+      cacheRoot: '/tmp/cache-a',
+      env: { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' },
+    });
+    const before = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+    assert.equal(before.env.CLJ_CACHE, '/tmp/cache-a/clojure/cpcache');
+    assert.equal(before.env.HERDR_PANE_ID, 'w1:p1');
+
+    client.close();
+    for (let attempt = 0; attempt < 100 && server.connections.size > 0; attempt += 1) await settle(5);
+    assert.equal(server.connections.size, 0);
+
+    const after = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+    assert.equal(after.env.CLJ_CACHE, undefined);
+    assert.equal(after.env.HERDR_PANE_ID, undefined);
+  });
+});
+
+test('merges newest env with the newest non-null cache root across connections', async () => {
+  await withHost(async ({ client, ctx, descriptor }) => {
+    const second = new AttachClient();
+    try {
+      await client.request('session.open', {
+        sessionId: 's1',
+        cacheRoot: '/tmp/cache-a',
+        env: { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p1' },
+      });
+      await second.connect({ socketPath: descriptor.socketPath, token: descriptor.token, timeoutMs: 2000 });
+      await second.request('session.open', {
+        sessionId: 's1',
+        cacheRoot: '/tmp/cache-b',
+        env: { HERDR_ENV: '1', HERDR_PANE_ID: 'w1:p2' },
+      });
+
+      const merged = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+      assert.equal(merged.env.CLJ_CACHE, '/tmp/cache-b/clojure/cpcache');
+      assert.equal(merged.env.HERDR_PANE_ID, 'w1:p2');
+
+      // Closing the newest connection restores the remaining terminal's pair.
+      await second.request('session.close');
+      const remaining = await ctx.get('shell').resolve({ env: {}, dshEnv: { DSH_SESSION_ID: 's1' } });
+      assert.equal(remaining.env.CLJ_CACHE, '/tmp/cache-a/clojure/cpcache');
+      assert.equal(remaining.env.HERDR_PANE_ID, 'w1:p1');
+    } finally {
+      second.close();
+    }
+  });
+});

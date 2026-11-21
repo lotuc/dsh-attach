@@ -109,10 +109,12 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/host/subagents.js` | Catalog mapping/counts. |
 | `lib/host/subagent-control.js` | Control capability detection. |
 | `lib/host/shell-env.js` | Bounded `HERDR_*` merge. |
+| `lib/host/session-env.js` | Per-connection Session env; cross-connection Herdr/cache-root merge and shell.resolve bridge. |
 | `lib/client/cli.js` | Args, help, `--list`, `--hot`. |
 | `lib/client/hot-reload.js` | Client source supervisor. |
 | `lib/client/connection.js` | Descriptor discovery, dial, reconnect, requests. |
 | `lib/client/app.js` | TUI layout, events, commands, status. |
+| `lib/client/preview.js` | Read-only live preview renderer. |
 | `lib/client/panels.js` | Approval/question/picker/job/info/btw panels. |
 | `lib/client/modals.js` | Named overlay registry. |
 | `lib/client/editor.js` | Stable-height composer/completion. |
@@ -124,10 +126,12 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/client/history-pagination.js` | Older-history cursors/anchoring. |
 | `lib/client/session-*.js` | Session rows/projections. |
 | `lib/client/subagent-*.js` | Picker, labels, capability text. |
-| `lib/client/{approval-context,queue,jobs,inbox,peek,preview,scroll,layout,format,theme,notifications,keys,escape-cancel,ctrl-c}.js` | Panel/support helpers. |
+| `lib/client/{approval-context,queue,jobs,inbox,peek,scroll,layout,format,theme,notifications,keys,escape-cancel,ctrl-c}.js` | Panel/support helpers. |
 | `lib/client/herdr*.js` | Herdr reporting/preview args. |
 | `lib/client/clipboard-image.js` | macOS/Linux/Windows clipboard. |
 | `lib/client/log.js` | Rotating lifecycle log. |
+| `lib/shared/cache-root.js` | Cache-root resolution and shell cache env derivation. |
+| `lib/shared/subagent-errors.js` | Shared subagent control error vocabulary. |
 | `lib/shared/protocol.js` | Wire constants/helpers. |
 | `lib/shared/platform.js` | Socket/pipe, home expansion, signals. |
 | `lib/shared/paths.js` | `$DSH_HOME` resolution. |

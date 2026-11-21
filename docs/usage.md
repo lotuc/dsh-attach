@@ -79,6 +79,14 @@ Clojure's Maven repository is configured by `deps.edn` `:mvn/local-repo` rather
 than an environment variable; add it to `~/.clojure/deps.edn` or the project's
 `deps.edn` when `--cache-root` should cover Clojure's Maven artifacts too.
 
+Several terminals may follow the same session: the newest non-empty Herdr
+environment and the newest non-null cache root are merged independently, so a
+terminal that only forwards a cache root never erases another terminal's Herdr
+facts, and one that only forwards Herdr facts never erases another terminal's
+cache root. When `@session` cannot be resolved (the Host cannot read the session
+workspace cwd without resuming it), the cache root is disabled and the client
+reports it once. A superseded open is ignored for that report.
+
 ## Prompts and queue
 
 `Enter` sends and follows the live edge. While a turn runs, prompts queue.

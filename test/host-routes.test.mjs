@@ -45,7 +45,7 @@ test('session lifecycle routes round-trip through the socket', async () => {
 
     const frameSeen = once(client, 'frame');
     const opened = await client.request('session.open', { sessionId: 's1' });
-    assert.deepEqual(opened, { sessionId: 's1' });
+    assert.deepEqual(opened, { sessionId: 's1', applied: true });
     const [frame] = await frameSeen;
     assert.equal(frame.frame.type, 'snapshot');
     assert.equal(frame.sessionId, 's1');

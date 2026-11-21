@@ -86,6 +86,7 @@ The TUI needs a TTY; use `--list` in scripts.
 | `-n`, `--new` | Create and open a session. |
 | `-p`, `--prompt <text>` | Submit a prompt after opening. |
 | `-C`, `--cwd <path>` | Working directory for a new session. |
+| `--cache-root <path\|@cwd\|@session>` | Keep language-tool caches under this directory (off by default); `@cwd` uses the launching directory, `@session` the Session workspace. |
 | `--list` | Print sessions and exit. |
 | `--all` | Include subagent sessions in `--list`. |
 | `--endpoint <file>` | Use a specific endpoint descriptor. |

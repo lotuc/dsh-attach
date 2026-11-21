@@ -1025,3 +1025,69 @@ test('passes the cache root to session.open', async () => {
     else process.env.DSH_ATTACH_NO_MOUSE = previous;
   }
 });
+
+test('notes once when the host disables an explicit cache root', async () => {
+  class NullCacheRootClient extends FakeClient {
+    async request(method, params) {
+      if (method === 'session.open') {
+        this.requests.push(method);
+        this.requestCalls.push({ method, params });
+        return { sessionId: String(params?.sessionId ?? ''), cacheRoot: null };
+      }
+      return super.request(method, params);
+    }
+  }
+
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 30 };
+  const tui = new FakeTui(terminal);
+  const client = new NullCacheRootClient();
+  const app = new AttachApp(client, { session: 's1', cacheRoot: '@session', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    const transcript = stripTerminalSequences(app.document.render(100).join('\n'));
+    assert.match(transcript, /cache root not applied/u);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('ignores a superseded open when deciding the cache-root notice', async () => {
+  class SupersededClient extends FakeClient {
+    async request(method, params) {
+      if (method === 'session.open') {
+        this.requests.push(method);
+        this.requestCalls.push({ method, params });
+        return { sessionId: String(params?.sessionId ?? ''), applied: false, cacheRoot: null };
+      }
+      return super.request(method, params);
+    }
+  }
+
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 30 };
+  const tui = new FakeTui(terminal);
+  const client = new SupersededClient();
+  const app = new AttachApp(client, { session: 's1', cacheRoot: '@session', logPath: 'off', terminal, tui });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    // Let the open response and any notice settle before asserting the absence.
+    await wait(20);
+    const transcript = stripTerminalSequences(app.document.render(100).join('\n'));
+    assert.doesNotMatch(transcript, /cache root not applied/u);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
