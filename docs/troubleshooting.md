@@ -43,6 +43,7 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | `Permission denied` | Same user and `DSH_HOME` required. |
 | `needs a TTY` | Run from an interactive terminal; use `--list` or `--exec` for scripts. |
 | Exec rejects an approval | `--exec` is non-interactive; use `--approve` for a trusted task, adjust the Session permission, or use the TUI. |
+| Web approval stays after TUI wins | The Web client companion is not loaded; reload the updated dsh-attach client bundle. |
 | Herdr resume cannot connect | Start the DSH Host first. |
 | Herdr title not updated | Update Herdr and restart TUI; use `agent`/`pane` row source. |
 | Preview pane closes | `DSH_ATTACH_PREVIEW_EXIT_AFTER` is positive; set `0` to keep open. |

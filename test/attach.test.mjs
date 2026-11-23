@@ -706,6 +706,94 @@ test('broadcasts approvals to every terminal watching the session', async () => 
   }
 });
 
+test('first-win accepts the terminal answer and publishes the settlement', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home, { approvals: 'first-win', questions: 'tui' });
+  host.state.webLive = true;
+  const settled = [];
+  host.server.onInteractionSettled = (event) => settled.push(event);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    let resolveWeb;
+    const web = new Promise((resolve) => { resolveWeb = resolve; });
+    let delegated = 0;
+    const seen = once(client, 'interactive');
+    const outcome = host.listeners.get('approval/request')({
+      agent: { session: { id: 's1' } },
+      toolName: 'bash',
+      callId: 'call-1',
+      reason: 'both UIs',
+      signal: new AbortController().signal,
+    }, () => { delegated += 1; return web; });
+    const [message] = await seen;
+    assert.equal(message.type, 'approval');
+    assert.equal(delegated, 1);
+    await client.request('approval.respond', { requestId: message.requestId, outcome: 'allowed-once' });
+    assert.equal(await outcome, 'allowed-once');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(settled.length, 1);
+    assert.equal(settled[0].winner, 'terminal');
+    assert.equal(settled[0].outcome, 'allowed-once');
+    assert.equal(settled[0].callId, 'call-1');
+    assert.equal(settled[0].toolName, 'bash');
+
+    resolveWeb('rejected');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(settled.length, 1);
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
+test('first-win accepts the Web answer and closes the terminal', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
+  const host = await makeServer(home, { approvals: 'first-win', questions: 'tui' });
+  host.state.webLive = true;
+  const settled = [];
+  host.server.onInteractionSettled = (event) => settled.push(event);
+  const client = new AttachClient();
+  try {
+    await client.connect({ timeoutMs: 2000 });
+    await client.request('session.open', { sessionId: 's1' });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    let resolveWeb;
+    const web = new Promise((resolve) => { resolveWeb = resolve; });
+    let delegated = 0;
+    const seen = once(client, 'interactive');
+    const closed = once(client, 'interactive-closed');
+    const outcome = host.listeners.get('approval/request')({
+      agent: { session: { id: 's1' } },
+      toolName: 'bash',
+      callId: 'call-2',
+      reason: 'Web first',
+      signal: new AbortController().signal,
+    }, () => { delegated += 1; return web; });
+    const [message] = await seen;
+    assert.equal(delegated, 1);
+    resolveWeb('rejected');
+    assert.equal(await outcome, 'rejected');
+    const [closedMessage] = await closed;
+    assert.equal(closedMessage.requestId, message.requestId);
+    assert.equal(closedMessage.outcome, 'rejected');
+    assert.equal(closedMessage.winner, 'web');
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(settled.length, 1);
+    assert.equal(settled[0].winner, 'web');
+    assert.equal(settled[0].outcome, 'rejected');
+  } finally {
+    client.close();
+    await host.server.stop();
+    await rm(home, { recursive: true, force: true });
+  }
+});
+
 test('replays a pending approval to a terminal that attaches later', async () => {
   const home = await mkdtemp(join(tmpdir(), 'dsh-attach-test-'));
   const host = await makeServer(home, { approvals: 'tui' });

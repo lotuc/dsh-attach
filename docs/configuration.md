@@ -24,8 +24,8 @@ Apply a profile recomposition or restart DSH after changes.
 |---|---:|---|
 | `enabled` | `true` | Start the bridge. |
 | `socketPath` | `""` | Unix socket or Windows named pipe. Empty selects the platform default. |
-| `approvals` | `tui` | `auto`, `tui`, `web`, or `off`. |
-| `questions` | `tui` | Same modes for `ask_user_question`. |
+| `approvals` | `tui` | `auto`, `tui`, `web`, `off`, or `first-win`. |
+| `questions` | `tui` | `auto`, `tui`, `web`, or `off` for `ask_user_question`. |
 | `activeWindowMinutes` | `10` | Activity window for `auto`. |
 | `approvalGraceSeconds` | `120` | Delegate unanswered approvals; `0` waits forever. |
 | `questionGraceSeconds` | `300` | Delegate unanswered questions; `0` waits forever. |
@@ -43,9 +43,18 @@ temp directory. Windows: named pipe; no Unix mode bits.
 | `auto` | Terminal if recently active or no Web client; otherwise Web. |
 | `web` | Web handles it. |
 | `off` | Terminal handling disabled. |
+| `first-win` | Ask both terminal and native Web together; the first answer wins and the loser closes. |
 
 `approvalGraceSeconds`/`questionGraceSeconds` delegate only after the terminal
 has not acknowledged the panel. A shown terminal panel remains terminal-owned.
+
+In `first-win` mode there is no grace handoff: the terminal and the native Web
+UI receive the request at the same time. The Host settles the first answer and
+broadcasts an `approval.closed` event with the outcome/winner. The bundled Web
+companion consumes a same-origin `/dsh-attach/interactions` SSE stream and
+resolves the native Web panel with that outcome so it closes cleanly. Without
+the Web companion (older client bundle, or Web UI never opened), a terminal win
+can leave the native Web panel open even though the decision is already made.
 Disconnect hands the request to Web or releases it. `0` disables the timer.
 
 Late terminals receive pending interactions from the Host.

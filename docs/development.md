@@ -45,6 +45,14 @@ are held in memory, broadcast to watching terminals, and replayed on late
 attach. `tui`/`auto`/`web`/`off` select ownership; grace timers only delegate
 unacknowledged requests. First answer wins.
 
+`approvals: first-win` starts the native Web waterfall and the terminal
+broadcast together. `#settlePending` is the single arbiter; it records the
+outcome/winner, closes every terminal panel, and publishes the settlement on
+`/dsh-attach/interactions`. The Web client companion uses that same-origin SSE
+stream to call `PendingApproval.answer()` on the native panel, so the losing UI
+closes instead of remaining stale. The route checks the DSH connection's
+`requestRejection` when available.
+
 ### Endpoint discovery
 
 Descriptors with `0600`: `$DSH_HOME/dsh-attach/endpoint.json` and
@@ -116,8 +124,10 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/host/subagent-control.js` | Control capability detection. |
 | `lib/host/shell-env.js` | Bounded `HERDR_*` merge. |
 | `lib/host/session-env.js` | Per-connection Session env; cross-connection Herdr/cache-root merge and shell.resolve bridge. |
+| `lib/host/interaction-events.js` | Bounded settlement log and same-origin SSE stream for the Web approval companion. |
 | `lib/client/cli.js` | Args, help, `--list`, `--hot`. |
 | `lib/client/autostart.js` | Start DSH on demand and wait for its endpoint. |
+| `client.js` | Web/Desktop client half: focus bridge and first-win approval companion. |
 | `lib/client/exec.js` | One-shot prompt execution, final-text capture, and interaction denial. |
 | `lib/client/hot-reload.js` | Client source supervisor. |
 | `lib/client/connection.js` | Descriptor discovery, dial, reconnect, requests. |

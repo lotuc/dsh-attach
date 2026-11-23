@@ -32,6 +32,16 @@ The Host plugin runs with DSH's permissions. Approvals and sandbox settings stil
 govern model actions; the terminal does not bypass them. Do not expose the bridge
 to another user or run it from an untrusted account.
 
+## First-win approval companion
+
+`approvals: first-win` adds a same-origin `GET /dsh-attach/interactions` SSE
+route to DSH's existing web server. It does not start a new listener. The
+stream carries only settled interaction facts (`sessionId`, `callId`, outcome,
+winner) for the Web companion to close the losing native approval panel; it
+cannot approve anything. The route checks `connection.requestRejection` when
+the DSH connection service is available. The settlement log is bounded to 128
+entries and is replayable across a Web reconnect.
+
 ## Terminal injection
 
 Host/model/tool output, titles, questions, and queue text are sanitized: CSI,

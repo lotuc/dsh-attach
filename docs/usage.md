@@ -331,7 +331,9 @@ questions from the old process may be lost.
 ## Multiple terminals
 
 TUI-mode approvals/questions broadcast to all TUIs on the session; first answer
-wins. The terminal follows one session at a time; other sessions keep running.
+wins. With `approvals: first-win`, the terminal and native Web approval panels
+are opened together; the first accepted answer wins and the companion closes
+the Web panel. The terminal follows one session at a time; other sessions keep running.
 
 ## Mouse and focus
 

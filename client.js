@@ -49,8 +49,64 @@ window.__ModuleLoader__.load({
       };
     }
 
+    function startApprovalCompanion(ctx) {
+      if (typeof EventSource !== 'function' || typeof ctx.uiSession?.sessionStatus?.getSnapshot !== 'function') {
+        return () => {};
+      }
+      const settled = new Map();
+      const handled = new Set();
+      const keyOf = (event) => `${event.sessionId}\u0000${event.callId ?? ''}\u0000${event.toolName ?? ''}`;
+      const findPending = (event) => {
+        const statuses = ctx.uiSession.sessionStatus.getSnapshot();
+        const pending = statuses.get(event.sessionId)?.pendingInteraction;
+        if (pending?.kind !== 'approval' || pending.answerable === false) return null;
+        if (event.callId && pending.callId && event.callId !== pending.callId) return null;
+        if (!event.callId && event.toolName && pending.toolName && event.toolName !== pending.toolName) return null;
+        return pending;
+      };
+      const reconcile = () => {
+        for (const [key, event] of settled) {
+          if (handled.has(key)) continue;
+          const pending = findPending(event);
+          if (pending === null) continue;
+          handled.add(key);
+          if (typeof pending.answer !== 'function') continue;
+          if (event.outcome === 'allowed-once' || event.outcome === 'rejected') {
+            // The Host has already accepted the terminal's outcome. This resolves
+            // the local Web waterfall so the shared panel closes; the Host ignores
+            // the duplicate decision because its pending entry is already settled.
+            void Promise.resolve().then(() => pending.answer(event.outcome)).catch(() => {});
+          } else if (typeof pending.abort === 'function') {
+            pending.abort('answered elsewhere');
+          }
+        }
+      };
+      const source = new EventSource('/dsh-attach/interactions');
+      source.addEventListener('interaction', (message) => {
+        let event;
+        try {
+          event = JSON.parse(message.data);
+        } catch {
+          return;
+        }
+        if (event?.kind !== 'approval' || event.winner === 'web') return;
+        const key = keyOf(event);
+        settled.set(key, event);
+        if (settled.size > 64) settled.delete(settled.keys().next().value);
+        reconcile();
+      });
+      const status = ctx.uiSession.sessionStatus;
+      const unsubscribe = typeof status.subscribe === 'function'
+        ? status.subscribe(reconcile)
+        : () => {};
+      return () => {
+        source.close();
+        unsubscribe();
+      };
+    }
+
     return {
-      inject: ['sessions', 'uiWorkspace'],
+      inject: ['sessions', 'uiWorkspace', 'uiSession'],
       apply(ctx) {
         let stopped = false;
         let pollTimer = null;
@@ -84,6 +140,7 @@ window.__ModuleLoader__.load({
             cancelSelection?.();
           };
         }, 'dsh-attach: desktop focus bridge');
+        ctx.effect(() => startApprovalCompanion(ctx), 'dsh-attach: approval companion');
       },
     };
   },
