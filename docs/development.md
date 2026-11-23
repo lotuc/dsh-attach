@@ -118,6 +118,7 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/host/session-env.js` | Per-connection Session env; cross-connection Herdr/cache-root merge and shell.resolve bridge. |
 | `lib/client/cli.js` | Args, help, `--list`, `--hot`. |
 | `lib/client/autostart.js` | Start DSH on demand and wait for its endpoint. |
+| `lib/client/exec.js` | One-shot prompt execution, final-text capture, and interaction denial. |
 | `lib/client/hot-reload.js` | Client source supervisor. |
 | `lib/client/connection.js` | Descriptor discovery, dial, reconnect, requests. |
 | `lib/client/app.js` | TUI layout, events, commands, status. |

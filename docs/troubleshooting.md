@@ -41,7 +41,8 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | No sessions in picker | Blank sessions are hidden; use `--list --all`. |
 | `command not found` | Add profile `.bin` to `PATH` or call the shim directly. |
 | `Permission denied` | Same user and `DSH_HOME` required. |
-| `needs a TTY` | Run from an interactive terminal; use `--list` for scripts. |
+| `needs a TTY` | Run from an interactive terminal; use `--list` or `--exec` for scripts. |
+| Exec rejects an approval | `--exec` is non-interactive; use `--approve` for a trusted task, adjust the Session permission, or use the TUI. |
 | Herdr resume cannot connect | Start the DSH Host first. |
 | Herdr title not updated | Update Herdr and restart TUI; use `agent`/`pane` row source. |
 | Preview pane closes | `DSH_ATTACH_PREVIEW_EXIT_AFTER` is positive; set `0` to keep open. |

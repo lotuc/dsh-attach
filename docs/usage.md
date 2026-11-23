@@ -12,6 +12,49 @@ composer    prompt + floating completion
 footer      keys, tokens/context, permission
 ```
 
+## Command-line execution
+
+`--exec` runs one prompt without a TUI. It creates a new Session by default,
+prints the final assistant text to stdout, and exits with `0` on completion,
+`1` on a failed turn, `124` on timeout, or `130` when interrupted.
+
+```sh
+dsh-attach --exec -p "fix the failing test"
+dsh-attach --exec -s <session-id> -p "continue"
+printf 'summarize this repository' | dsh-attach --exec
+```
+
+Use `--json` for an agent dispatcher:
+
+```sh
+dsh-attach --exec --json -p "fix the failing test"
+```
+
+```json
+{
+  "ok": true,
+  "sessionId": "session-...",
+  "turn": 1,
+  "text": "done",
+  "reason": "completed",
+  "failure": null,
+  "usage": { "inputTokens": 1436, "outputTokens": 2 },
+  "interactions": [],
+  "error": null
+}
+```
+
+- `--session <id>` reuses an idle Session; `--new` is implied otherwise.
+- `--cwd` applies only to a new Session.
+- `--exec-timeout <seconds>` cancels a stalled turn; default 1800, `0` waits forever.
+- Empty prompt on stdin is rejected.
+- The runner is non-interactive: approvals are rejected and questions are
+  cancelled, then reported in `interactions` and on stderr.
+- `--approve` allows every approval for that exec run. It is a broad,
+  dangerous grant; use it only for a task and repository you trust.
+- Configure the Session permission or use the TUI when a task needs finer
+  approval policy than reject-all or allow-all.
+
 ## Turn folding
 
 Each turn groups reasoning and tools. Running work expands with live labels such

@@ -78,6 +78,10 @@ Disabled by default. Config file:
 `$DSH_HOME/dsh-attach/auto-approve.toml`; override with
 `DSH_ATTACH_AUTO_APPROVE` (`off` disables). Client restart required.
 
+This policy belongs to the interactive TUI. `--exec` is separate: it rejects
+approvals unless `--approve` is passed, which allows every approval for that
+run.
+
 The file is TOML. A legacy `auto-approve.json`/`.jsonc` override is still
 parsed for compatibility. `/approvals add|remove|on|off` rewrites the file in
 place; TOML comments are lost after a command edit.

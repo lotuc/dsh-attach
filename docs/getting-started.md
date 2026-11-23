@@ -70,6 +70,7 @@ dsh-attach -s <session-id>  # open a session
 dsh-attach --new -p "run the tests"
 dsh-attach --new -C ~/src/project
 dsh-attach --list           # non-interactive
+dsh-attach --exec -p "run the tests"   # one-shot, no TUI
 ```
 
 If no endpoint exists, the client starts the desktop app on macOS/Windows, or
@@ -77,7 +78,7 @@ If no endpoint exists, the client starts the desktop app on macOS/Windows, or
 `DSH_ATTACH_NO_START=1` to fail immediately instead. Explicit `--endpoint` and
 `--socket` connections never trigger a launch.
 
-The TUI needs a TTY; use `--list` in scripts.
+The TUI needs a TTY; use `--list` or `--exec` in scripts.
 
 ## CLI
 
@@ -94,6 +95,10 @@ The TUI needs a TTY; use `--list` in scripts.
 | `--cache-root <path\|@cwd\|@session>` | Keep language-tool caches under this directory (off by default); `@cwd` uses the launching directory, `@session` the Session workspace. |
 | `--list` | Print sessions and exit. |
 | `--all` | Include subagent sessions in `--list`. |
+| `--exec` | Run one prompt without a TUI and print the final answer; reads stdin when `--prompt` is omitted. |
+| `--json` | With `--exec`, print one JSON result object. |
+| `--approve` | With `--exec`, allow every approval (dangerous). |
+| `--exec-timeout <seconds>` | Cancel a stalled exec; default 1800, `0` waits forever. |
 | `--endpoint <file>` | Use a specific endpoint descriptor. |
 | `--socket <path>` | Connect to a socket or named pipe; needs `--token`. |
 | `--token <token>` | Token for `--socket`. |
