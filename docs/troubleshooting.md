@@ -26,7 +26,8 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 
 | Symptom | Fix |
 |---|---|
-| `no attach endpoint` | Install/mount the plugin, then reload DSH. |
+| `no attach endpoint` | The client starts DSH and waits. If it times out, check that dsh-attach is installed in that profile. |
+| `no attach endpoint appeared within 120s` | DSH started without the bridge; install/mount the plugin, then restart DSH. |
 | `cannot reach the attach bridge` | Stale/dead endpoint; try `/reconnect` or restart the Host. With `--socket`, restart the client because the token rotates. |
 | `unknown attach method` | Host runs an older bridge; apply a recomposition/restart. |
 | Host connection lost | Client retries and reopens; `/reconnect` forces it. |

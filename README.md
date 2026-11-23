@@ -1,8 +1,9 @@
 # dsh-attach
 
-Attach a terminal UI to a **running** DeepSeek Harness host. The Host plugin
-exposes `sessionController` over a local socket or named pipe; the client sees
-the same sessions, turns, approvals, and questions as the Web UI.
+Attach a terminal UI to DeepSeek Harness. The Host plugin exposes
+`sessionController` over a local socket or named pipe; the client sees the same
+sessions, turns, approvals, and questions as the Web UI. If DSH is not running,
+`dsh-attach` starts it and waits for the bridge.
 
 ```text
 Host process  ◀── local socket / named pipe ──▶  dsh-attach
@@ -14,8 +15,9 @@ uses a per-process token.
 
 ## Quick start
 
-Requirements: a running DSH Desktop or Web host, the same OS user, and Node.js
-`^22.19.0 || >=24.0.0`.
+Requirements: DSH Desktop or Web installed, the same OS user, and Node.js
+`^22.19.0 || >=24.0.0`. The client starts the macOS/Windows desktop app, or
+`dsh web` for a CLI-only install, when no attach endpoint is present.
 
 ```sh
 dsh plugin --profile desktop add ./dsh-attach
@@ -47,6 +49,7 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
 - **Side questions**: streamed `/btw` overlay with a replayable side thread; `f` starts a background fork with full tool access.
 - **Detail levels**: `Ctrl+G` or `/detail compact|standard|verbose`.
 - **Jobs and Herdr**: background-job output; Herdr state, titles, preview panes.
+- **Auto-start**: launches DSH when it is not running, then waits for the attach bridge.
 - **Reconnect**: automatic retry after Host restart, `/reconnect` on demand.
 - **Cross-platform**: Unix socket or Windows named pipe; Windows TUI requires a
   ConPTY terminal.

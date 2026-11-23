@@ -9,7 +9,9 @@
 4. **Shared protocol** (`lib/shared/protocol.js`) defines JSONL messages and limits.
 
 The bridge never starts a second harness; it calls the live Host controller, so
-queueing, persistence, approvals, and model routing stay authoritative.
+queueing, persistence, approvals, and model routing stay authoritative. When
+discovery finds no endpoint, `lib/client/autostart.js` starts the real DSH
+process once and polls for its descriptor.
 
 ### Session follow
 
@@ -48,6 +50,10 @@ unacknowledged requests. First answer wins.
 Descriptors with `0600`: `$DSH_HOME/dsh-attach/endpoint.json` and
 `<profile>-<pid>.json`. Writes are atomic. The client tries the primary, then
 newest siblings, filtered by `--profile`; protocol and token must match.
+
+When discovery has no endpoint and no explicit `--endpoint`/`--socket` was
+given, the client starts DSH once (desktop app, or `dsh <profile>`) and polls
+for up to 120 seconds. `DSH_ATTACH_NO_START=1` disables the launch.
 
 ## Wire protocol
 
@@ -111,6 +117,7 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/host/shell-env.js` | Bounded `HERDR_*` merge. |
 | `lib/host/session-env.js` | Per-connection Session env; cross-connection Herdr/cache-root merge and shell.resolve bridge. |
 | `lib/client/cli.js` | Args, help, `--list`, `--hot`. |
+| `lib/client/autostart.js` | Start DSH on demand and wait for its endpoint. |
 | `lib/client/hot-reload.js` | Client source supervisor. |
 | `lib/client/connection.js` | Descriptor discovery, dial, reconnect, requests. |
 | `lib/client/app.js` | TUI layout, events, commands, status. |

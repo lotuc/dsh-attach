@@ -55,6 +55,7 @@ Late terminals receive pending interactions from the Host.
 | Variable | Effect |
 |---|---|
 | `DSH_HOME` | Host home; default `~/.dsh`. Host and client must agree. |
+| `DSH_ATTACH_NO_START` | Set to `1` to fail instead of starting DSH when no endpoint exists. |
 | `DSH_ATTACH_THEME` | `light` or `dark`; `--theme` wins. |
 | `DSH_ATTACH_NO_MOUSE=1` | Disable mouse/focus reporting. |
 | `DSH_ATTACH_FULL_MOUSE=1` | Keep all-motion mouse tracking (`1003`). |

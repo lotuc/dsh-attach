@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- DSH Desktop or Web host with `sessionController`.
+- DSH Desktop or Web with `sessionController`; the client can start it.
 - Same OS user as the Host.
 - Node.js `^22.19.0 || >=24.0.0` for the client.
 - Unix socket on Linux/macOS; named pipe on Windows. Windows TUI needs a
@@ -71,6 +71,11 @@ dsh-attach --new -p "run the tests"
 dsh-attach --new -C ~/src/project
 dsh-attach --list           # non-interactive
 ```
+
+If no endpoint exists, the client starts the desktop app on macOS/Windows, or
+`dsh web` when only the CLI is installed, and waits up to 120 seconds. Set
+`DSH_ATTACH_NO_START=1` to fail immediately instead. Explicit `--endpoint` and
+`--socket` connections never trigger a launch.
 
 The TUI needs a TTY; use `--list` in scripts.
 
