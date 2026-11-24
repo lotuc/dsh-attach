@@ -42,7 +42,7 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | `command not found` | Add profile `.bin` to `PATH` or call the shim directly. |
 | `Permission denied` | Same user and `DSH_HOME` required. |
 | `needs a TTY` | Run from an interactive terminal; use `--list` or `--exec` for scripts. |
-| Exec rejects an approval | `--exec` is non-interactive; use `--approve` for a trusted task, adjust the Session permission, or use the TUI. |
+| Exec rejects an approval | `--exec` is non-interactive; use `--approvals=host` with DSH open, `--approve` for a trusted task, adjust the Session permission, or use the TUI. |
 | Web approval stays after TUI wins | The Web client companion is not loaded; reload the updated dsh-attach client bundle. |
 | Herdr resume cannot connect | Start the DSH Host first. |
 | Herdr title not updated | Update Herdr and restart TUI; use `agent`/`pane` row source. |

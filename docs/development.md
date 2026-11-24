@@ -101,7 +101,7 @@ Client notifications: `frame`, `session.error`, `approval`, `question`,
 | `approval.suggest` | LLM-proposed auto-approval rule for the last approval. |
 | `approval.respond` / `cancel` | Approval outcome. |
 | `question.respond` / `cancel` | Question answers. |
-| `interactive.ack` / `detach` | Shared-request acknowledgement/detach. |
+| `interactive.ack` / `detach` / `delegate` | Shared-request acknowledgement/detach/handoff to Web. |
 | `activity` | Heartbeat for `auto`. |
 
 Limits: protocol 1; inbound 4 MiB; outbound 64 MiB; hello deadline 10 s;

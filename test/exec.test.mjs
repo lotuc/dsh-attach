@@ -162,6 +162,30 @@ test('rejects approvals and cancels questions instead of waiting', async () => {
   assert.equal(client.requests.some((entry) => entry.method === 'question.cancel'), true);
 });
 
+test('delegates approvals to DSH when approvals is host', async () => {
+  const warnings = [];
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      fake.emit('interactive', {
+        type: 'approval',
+        requestId: 'a-host',
+        sessionId: 'new-1',
+        toolName: 'bash',
+        reason: 'needs review',
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-1', 'continued');
+      finish(fake, 'new-1');
+    },
+  });
+  const result = await runExec(client, { prompt: 'work', approvals: 'host', warn: (line) => warnings.push(line) });
+  assert.equal(result.interactions[0].outcome, 'delegated');
+  assert.equal(warnings.some((line) => /delegated approval for bash/.test(line)), true);
+  assert.equal(client.requests.some((entry) => entry.method === 'interactive.delegate'), true);
+  assert.equal(client.requests.some((entry) => entry.method === 'approval.respond'), false);
+});
+
 test('--approve allows approvals when explicitly requested', async () => {
   const client = fakeClient({
     sessionId: 'new-1',

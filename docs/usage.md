@@ -48,8 +48,11 @@ dsh-attach --exec --json -p "fix the failing test"
 - `--cwd` applies only to a new Session.
 - `--exec-timeout <seconds>` cancels a stalled turn; default 1800, `0` waits forever.
 - Empty prompt on stdin is rejected.
-- The runner is non-interactive: approvals are rejected and questions are
-  cancelled, then reported in `interactions` and on stderr.
+- The runner is non-interactive. By default approvals are rejected and
+  questions are cancelled, then reported in `interactions` and on stderr.
+- `--approvals=host` delegates approvals/questions to the native DSH Web
+  answerer instead; it requires that UI to be open and a Host approval mode
+  other than `first-win`.
 - `--approve` allows every approval for that exec run. It is a broad,
   dangerous grant; use it only for a task and repository you trust.
 - Configure the Session permission or use the TUI when a task needs finer
