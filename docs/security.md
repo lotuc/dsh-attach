@@ -57,7 +57,9 @@ descriptor files are the entire transport.
 
 Auto-approval is opt-in. `rules` mode uses a deterministic structured
 whitelist; `review` mode applies a global policy to every approval through an
-isolated LLM reviewer.
+isolated LLM reviewer. `--exec --approval-rules` uses the same matcher and
+review route for one headless run; unmatched calls are denied or delegated,
+never implicitly allowed.
 Failures fall back to a human. It is **not** a security boundary: the reviewer
 can be fooled by prompt injection. `danger-full-access` requires explicit opt-in
 and still grants all user-accessible paths. Keep the config outside the

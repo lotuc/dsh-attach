@@ -128,7 +128,8 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/client/cli.js` | Args, help, `--list`, `--hot`. |
 | `lib/client/autostart.js` | Start DSH on demand and wait for its endpoint. |
 | `client.js` | Web/Desktop client half: focus bridge and first-win approval companion. |
-| `lib/client/exec.js` | One-shot prompt execution, final-text capture, and interaction denial. |
+| `lib/client/exec.js` | One-shot prompt execution, final-text capture, and approval policy. |
+| `lib/client/exec-rules.js` | Load explicit TOML/JSONC approval rules for `--exec`. |
 | `lib/client/hot-reload.js` | Client source supervisor. |
 | `lib/client/connection.js` | Descriptor discovery, dial, reconnect, requests. |
 | `lib/client/app.js` | TUI layout, events, commands, status. |

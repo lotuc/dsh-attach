@@ -51,7 +51,7 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
 - **Detail levels**: `Ctrl+G` or `/detail compact|standard|verbose`.
 - **Jobs and Herdr**: background-job output; Herdr state, titles, preview panes.
 - **Auto-start**: launches DSH when it is not running, then waits for the attach bridge.
-- **Command-line exec**: `--exec` runs one prompt without a TUI, prints the final answer, and exits; `--json` returns a machine-readable result.
+- **Command-line exec**: `--exec` runs one prompt without a TUI, prints the final answer, and exits; `--json` returns a JSON result and `--approval-rules` scopes approvals.
 - **Reconnect**: automatic retry after Host restart, `/reconnect` on demand.
 - **Cross-platform**: Unix socket or Windows named pipe; Windows TUI requires a
   ConPTY terminal.

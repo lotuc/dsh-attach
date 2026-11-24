@@ -98,6 +98,7 @@ The TUI needs a TTY; use `--list` or `--exec` in scripts.
 | `--exec` | Run one prompt without a TUI and print the final answer; reads stdin when `--prompt` is omitted. |
 | `--json` | With `--exec`, print one JSON result object. |
 | `--approvals <deny\|host>` | With `--exec`, reject approvals (default) or delegate them to DSH Web. |
+| `--approval-rules <file>` | With `--exec`, load scoped approval rules (TOML/JSONC). |
 | `--approve` | With `--exec`, allow every approval (dangerous). |
 | `--exec-timeout <seconds>` | Cancel a stalled exec; default 1800, `0` waits forever. |
 | `--endpoint <file>` | Use a specific endpoint descriptor. |

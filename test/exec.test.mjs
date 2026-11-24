@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 import test from 'node:test';
 
 import { runExec } from '../lib/client/exec.js';
+import { normalizeAutoApprovalConfig } from '../lib/client/auto-approval.js';
 
 function frame(client, sessionId, type, data, extra = {}) {
   client.emit('frame', {
@@ -184,6 +185,141 @@ test('delegates approvals to DSH when approvals is host', async () => {
   assert.equal(warnings.some((line) => /delegated approval for bash/.test(line)), true);
   assert.equal(client.requests.some((entry) => entry.method === 'interactive.delegate'), true);
   assert.equal(client.requests.some((entry) => entry.method === 'approval.respond'), false);
+});
+
+test('applies matching approval rules before rejecting', async () => {
+  const warnings = [];
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'tool/call', {
+        callId: 'tool-1',
+        name: 'bash',
+        arguments: JSON.stringify({ command: 'npm test -- --runInBand' }),
+      });
+      fake.emit('interactive', {
+        type: 'approval',
+        requestId: 'rule-1',
+        sessionId: 'new-1',
+        toolName: 'bash',
+        callId: 'tool-1',
+        reason: 'run tests',
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  const approvalRules = normalizeAutoApprovalConfig({
+    enabled: true,
+    mode: 'rules',
+    rules: [{ id: 'tests', tool: 'bash', commandPrefix: ['npm', 'test'] }],
+  });
+  const result = await runExec(client, {
+    prompt: 'work',
+    approvalRules,
+    warn: (line) => warnings.push(line),
+  });
+  assert.equal(result.interactions[0].outcome, 'allowed-once');
+  assert.equal(result.interactions[0].decision, 'rule:tests');
+  assert.equal(warnings.some((line) => /auto-approved bash/.test(line)), true);
+  const response = client.requests.find((entry) => entry.method === 'approval.respond');
+  assert.equal(response.params.outcome, 'allowed-once');
+});
+
+test('uses the Host reviewer in review mode', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      fake.emit('interactive', {
+        type: 'approval',
+        requestId: 'review-1',
+        sessionId: 'new-1',
+        toolName: 'bash',
+        reason: 'safe command',
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  const request = client.request;
+  client.request = async (method, params) => {
+    if (method === 'approval.review') return { verdict: 'allow', reason: 'safe' };
+    return request(method, params);
+  };
+  const approvalRules = normalizeAutoApprovalConfig({
+    enabled: true,
+    mode: 'review',
+    policy: 'allow safe read-only commands',
+  });
+  const result = await runExec(client, { prompt: 'work', approvalRules });
+  assert.equal(result.interactions[0].outcome, 'allowed-once');
+  assert.match(result.interactions[0].decision, /rule review/);
+});
+
+test('falls back when no approval rule matches', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'tool/call', {
+        callId: 'tool-2',
+        name: 'bash',
+        arguments: JSON.stringify({ command: 'rm -rf build' }),
+      });
+      fake.emit('interactive', {
+        type: 'approval',
+        requestId: 'rule-2',
+        sessionId: 'new-1',
+        toolName: 'bash',
+        callId: 'tool-2',
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  const approvalRules = normalizeAutoApprovalConfig({
+    enabled: true,
+    mode: 'rules',
+    rules: [{ id: 'tests', tool: 'bash', commandPrefix: ['npm', 'test'] }],
+  });
+  const result = await runExec(client, { prompt: 'work', approvalRules });
+  assert.equal(result.interactions[0].outcome, 'rejected');
+  assert.equal(result.interactions[0].decision, 'non-interactive exec mode');
+  const response = client.requests.find((entry) => entry.method === 'approval.respond');
+  assert.equal(response.params.outcome, 'rejected');
+});
+
+test('delegates unmatched approvals when rules and host mode are combined', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'tool/call', {
+        callId: 'tool-3',
+        name: 'bash',
+        arguments: JSON.stringify({ command: 'git push origin main' }),
+      });
+      fake.emit('interactive', {
+        type: 'approval',
+        requestId: 'rule-3',
+        sessionId: 'new-1',
+        toolName: 'bash',
+        callId: 'tool-3',
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  const approvalRules = normalizeAutoApprovalConfig({
+    enabled: true,
+    mode: 'rules',
+    rules: [{ id: 'tests', tool: 'bash', commandPrefix: ['npm', 'test'] }],
+  });
+  const result = await runExec(client, {
+    prompt: 'work',
+    approvals: 'host',
+    approvalRules,
+  });
+  assert.equal(result.interactions[0].outcome, 'delegated');
+  assert.equal(client.requests.some((entry) => entry.method === 'interactive.delegate'), true);
 });
 
 test('--approve allows approvals when explicitly requested', async () => {

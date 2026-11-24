@@ -55,8 +55,39 @@ dsh-attach --exec --json -p "fix the failing test"
   other than `first-win`.
 - `--approve` allows every approval for that exec run. It is a broad,
   dangerous grant; use it only for a task and repository you trust.
-- Configure the Session permission or use the TUI when a task needs finer
-  approval policy than reject-all or allow-all.
+- `--approval-rules <file>` applies scoped rules for that exec run. The file
+  uses the same TOML/JSONC shape as the TUI's `auto-approve.toml`.
+
+### Approval rules for exec
+
+```toml
+enabled = true
+mode = "rules"
+
+[[rules]]
+id = "tests"
+tool = "bash"
+command_prefix = ["npm", "test"]
+
+[[rules]]
+id = "source"
+tool = "write"
+path_prefix = "src/"
+```
+
+```sh
+dsh-attach --exec --json --approval-rules ./approval.toml -p "run the tests"
+```
+
+- A matching rule allows the call; a blocked or unmatched call follows
+  `--approvals` (`deny` by default, or `host` to delegate to DSH Web).
+- `mode = "review"` sends unmatched requests through the Host review route
+  using `policy`.
+- `enabled = false` makes the file invalid for an exec run.
+- `--approve` overrides rules for the whole run.
+- The file is explicit, so omitting `enabled` enables it; this differs from
+  the TUI's default-off auto-approval config.
+- Rules are not a security sandbox; the DSH permission/sandbox still applies.
 
 ## Turn folding
 

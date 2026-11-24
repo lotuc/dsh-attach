@@ -88,8 +88,8 @@ Disabled by default. Config file:
 `DSH_ATTACH_AUTO_APPROVE` (`off` disables). Client restart required.
 
 This policy belongs to the interactive TUI. `--exec` is separate: it rejects
-approvals unless `--approve` is passed, which allows every approval for that
-run.
+approvals unless `--approve` is passed, or loads its own scoped file with
+`--approval-rules` (same schema, unmatched calls follow `--approvals`).
 
 The file is TOML. A legacy `auto-approve.json`/`.jsonc` override is still
 parsed for compatibility. `/approvals add|remove|on|off` rewrites the file in
