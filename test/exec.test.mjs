@@ -44,6 +44,14 @@ function fakeClient({ sessionId = 's1', items = [], onPrompt } = {}) {
       case 'approval.respond':
       case 'question.cancel':
         return { accepted: true };
+      case 'sandbox.allowDir':
+        return { supported: true, directory: params.directory, registered: true, directories: [params.directory], pending: [] };
+      case 'commands.execute':
+        return { executed: true, commandId: 'permission', result: undefined };
+      case 'session.selectModel':
+        return { selection: { provider: params.provider, model: params.model } };
+      case 'session.rename':
+        return { renamed: true };
       default:
         throw new Error(`unexpected request ${method}`);
     }
@@ -388,7 +396,9 @@ test('surfaces a session error during a turn', async () => {
   });
   await assert.rejects(
     runExec(client, { prompt: 'work' }),
-    (error) => error?.code === 'attach/follow' && /follow failed/.test(error.message),
+    (error) => error?.code === 'attach/follow'
+      && /follow failed/.test(error.message)
+      && error?.sessionId === 'new-1',
   );
 });
 
@@ -402,7 +412,7 @@ test('fails when the Host closes during a turn', async () => {
   });
   await assert.rejects(
     runExec(client, { prompt: 'work' }),
-    (error) => error?.code === 'attach/closed',
+    (error) => error?.code === 'attach/closed' && error?.sessionId === 'new-1',
   );
 });
 
@@ -439,4 +449,349 @@ test('ignores interactions from another session', async () => {
   const result = await runExec(client, { prompt: 'work', warn: (line) => warnings.push(line) });
   assert.deepEqual(result.interactions, []);
   assert.deepEqual(warnings, []);
+});
+
+test('removes the interactive listener after every run', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-1', 'done');
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'one' });
+  await runExec(client, { prompt: 'two' });
+  assert.equal(client.listenerCount('interactive'), 0);
+  assert.equal(client.listenerCount('frame'), 0);
+  assert.equal(client.listenerCount('session-error'), 0);
+  assert.equal(client.listenerCount('close'), 0);
+});
+
+test('forwards the Host displayReason to the exec reviewer', async () => {
+  const payloads = [];
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      fake.emit('interactive', {
+        type: 'approval',
+        requestId: 'review-display',
+        sessionId: 'new-1',
+        toolName: 'bash',
+        reason: 'needs write access',
+        displayReason: { en: 'Needs write access', zh: '需要写入权限' },
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  const request = client.request;
+  client.request = async (method, params) => {
+    if (method === 'approval.review') {
+      payloads.push(params.payload);
+      return { verdict: 'allow', reason: 'safe' };
+    }
+    return request(method, params);
+  };
+  const approvalRules = normalizeAutoApprovalConfig({
+    enabled: true,
+    mode: 'review',
+    policy: 'allow safe read-only commands',
+  });
+  await runExec(client, { prompt: 'work', approvalRules });
+  assert.equal(payloads.length, 1);
+  assert.equal(payloads[0].displayReason, '需要写入权限');
+});
+
+test('preserves the created session id on timeout and failure', async () => {
+  const client = fakeClient({
+    sessionId: 'new-timeout',
+    onPrompt: (fake) => {
+      frame(fake, 'new-timeout', 'turn/start', { turn: 1 });
+    },
+  });
+  await assert.rejects(
+    runExec(client, { prompt: 'slow', timeoutMs: 15 }),
+    (error) => error?.code === 'attach/exec-timeout' && error?.sessionId === 'new-timeout',
+  );
+});
+
+test('preserves the requested session id when the session is missing', async () => {
+  const client = fakeClient({ items: [] });
+  await assert.rejects(
+    runExec(client, { sessionId: 'missing-session', prompt: 'work' }),
+    (error) => error?.code === 'attach/exec-session' && error?.sessionId === 'missing-session',
+  );
+});
+
+test('reports the session immediately after session.open', async () => {
+  const seen = [];
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-1', 'done');
+      finish(fake, 'new-1');
+    },
+  });
+  const request = client.request;
+  client.request = async (method, params) => {
+    if (method === 'session.open') {
+      client.emit('frame', {
+        sessionId: params.sessionId,
+        frame: { type: 'snapshot', header: { cwd: '/real/work' } },
+      });
+      return { sessionId: params.sessionId };
+    }
+    return request(method, params);
+  };
+  const result = await runExec(client, {
+    prompt: 'work',
+    onSession: (sessionId, facts) => seen.push({ sessionId, facts }),
+  });
+  assert.equal(result.sessionId, 'new-1');
+  assert.deepEqual(seen, [{ sessionId: 'new-1', facts: { cwd: '/real/work' } }]);
+});
+
+test('registers every --allow-dir root before the prompt', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'work', allowDirs: ['/shared', '/cache'] });
+  const calls = client.requests.map((entry) => entry.method);
+  assert.deepEqual(
+    client.requests.filter((entry) => entry.method === 'sandbox.allowDir').map((entry) => entry.params.directory),
+    ['/shared', '/cache'],
+  );
+  assert.ok(calls.indexOf('sandbox.allowDir') < calls.indexOf('session.prompt'));
+});
+
+test('fails fast when --allow-dir is unsupported or rejected', async () => {
+  const unsupported = fakeClient({ sessionId: 'new-1' });
+  unsupported.host = { capabilities: [] };
+  await assert.rejects(
+    runExec(unsupported, { prompt: 'work', allowDirs: ['/shared'] }),
+    (error) => error?.code === 'attach/exec-allow-dir' && /sandbox\.roots/u.test(error.message),
+  );
+  assert.equal(
+    unsupported.requests.some((entry) => entry.method === 'sandbox.allowDir' || entry.method === 'session.prompt'),
+    false,
+  );
+
+  const rejected = fakeClient({ sessionId: 'new-1' });
+  const request = rejected.request;
+  rejected.request = async (method, params) => {
+    if (method === 'sandbox.allowDir') {
+      throw Object.assign(new Error('not a directory'), { code: 'attach/invalid-root' });
+    }
+    return request(method, params);
+  };
+  await assert.rejects(
+    runExec(rejected, { prompt: 'work', allowDirs: ['/missing'] }),
+    (error) => error?.code === 'attach/exec-allow-dir' && /not a directory/u.test(error.message),
+  );
+  assert.equal(rejected.requests.some((entry) => entry.method === 'session.prompt'), false);
+});
+
+test('accepts a pending writable root for a new or idle session, but fails when neither registered nor pending', async () => {
+  const pendingClient = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  const pendingRequest = pendingClient.request;
+  pendingClient.request = async (method, params) => {
+    if (method === 'sandbox.allowDir') {
+      return { supported: true, directory: params.directory, registered: false, pending: [params.directory], directories: [] };
+    }
+    return pendingRequest(method, params);
+  };
+  const result = await runExec(pendingClient, { prompt: 'work', allowDirs: ['/shared'] });
+  assert.equal(result.ok, true);
+
+  const failedClient = fakeClient({ sessionId: 'new-1' });
+  const failedRequest = failedClient.request;
+  failedClient.request = async (method, params) => {
+    if (method === 'sandbox.allowDir') {
+      return { supported: true, directory: params.directory, registered: false, pending: [], directories: [] };
+    }
+    return failedRequest(method, params);
+  };
+  await assert.rejects(
+    runExec(failedClient, { prompt: 'work', allowDirs: ['/shared'] }),
+    (error) => error?.code === 'attach/exec-allow-dir' && /did not register/u.test(error.message),
+  );
+});
+
+test('applies --permission before the prompt', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'work', permission: 'workspace-write' });
+  const command = client.requests.find((entry) => entry.method === 'commands.execute');
+  assert.equal(command.params.line, '/permission workspace-write');
+  const methods = client.requests.map((entry) => entry.method);
+  assert.ok(methods.indexOf('commands.execute') < methods.indexOf('session.prompt'));
+});
+
+test('validates --permission and --model before touching the Host', async () => {
+  const client = fakeClient();
+  await assert.rejects(
+    runExec(client, { prompt: 'work', permission: 'root' }),
+    (error) => error?.code === 'attach/exec-permission',
+  );
+  await assert.rejects(
+    runExec(client, { prompt: 'work', model: 'no-slash' }),
+    (error) => error?.code === 'attach/exec-model',
+  );
+  assert.deepEqual(client.requests, []);
+});
+
+test('fails clearly when the Host rejects --permission', async () => {
+  const client = fakeClient({ sessionId: 'new-1' });
+  const request = client.request;
+  client.request = async (method, params) => {
+    if (method === 'commands.execute') return { executed: false };
+    return request(method, params);
+  };
+  await assert.rejects(
+    runExec(client, { prompt: 'work', permission: 'auto' }),
+    (error) => error?.code === 'attach/exec-permission' && /cannot apply/u.test(error.message),
+  );
+});
+
+test('selects --model with the provider/model split at the first slash', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'work', model: 'openrouter/anthropic/claude' });
+  const selection = client.requests.find((entry) => entry.method === 'session.selectModel');
+  assert.deepEqual(selection.params, { provider: 'openrouter', model: 'anthropic/claude' });
+});
+
+test('creates a new session with --preset and rejects it with --session', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'work', cwd: '/work', preset: 'minimal' });
+  assert.deepEqual(client.requests[0].params, { cwd: '/work', agentPreset: 'minimal' });
+
+  const reused = fakeClient({ items: [{ sessionId: 's1', running: false }] });
+  await assert.rejects(
+    runExec(reused, { sessionId: 's1', prompt: 'work', preset: 'minimal' }),
+    (error) => error?.code === 'attach/exec-preset',
+  );
+});
+
+test('renames the session with --title', async () => {
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'work', title: '  nightly run  ' });
+  const rename = client.requests.find((entry) => entry.method === 'session.rename');
+  assert.deepEqual(rename.params, { sessionId: 'new-1', title: 'nightly run' });
+  await assert.rejects(
+    runExec(fakeClient(), { prompt: 'work', title: '  ' }),
+    (error) => error?.code === 'attach/exec-title',
+  );
+});
+
+test('streams tool calls and interactions through observer callbacks', async () => {
+  const toolCalls = [];
+  const interactions = [];
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'tool/call', { callId: 'tool-1', name: 'bash', arguments: '{}' });
+      fake.emit('interactive', {
+        type: 'approval',
+        requestId: 'a1',
+        sessionId: 'new-1',
+        toolName: 'bash',
+        callId: 'tool-1',
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, {
+    prompt: 'work',
+    onToolCall: (call) => toolCalls.push(call),
+    onInteraction: (record) => interactions.push(record),
+  });
+  assert.deepEqual(toolCalls, [{ sessionId: 'new-1', callId: 'tool-1', name: 'bash' }]);
+  assert.equal(interactions.length, 1);
+  assert.equal(interactions[0].type, 'approval');
+  assert.equal(interactions[0].outcome, 'rejected');
+});
+
+test('preserves the session id when interrupted', async () => {
+  const client = fakeClient({ sessionId: 'new-interrupt' });
+  const running = runExec(client, { prompt: 'slow', timeoutMs: 0 });
+  const deadline = Date.now() + 1_000;
+  while (!client.requests.some((entry) => entry.method === 'session.prompt') && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+  process.emit('SIGINT');
+  await assert.rejects(
+    running,
+    (error) => error?.code === 'attach/exec-interrupted' && error?.sessionId === 'new-interrupt',
+  );
+});
+
+test('reports unsupported and rejected sandbox responses', async () => {
+  const unsupported = fakeClient({ sessionId: 'new-1' });
+  const unsupportedRequest = unsupported.request;
+  unsupported.request = async (method, params) => {
+    if (method === 'sandbox.allowDir') return { supported: false, directory: params.directory, registered: false };
+    return unsupportedRequest(method, params);
+  };
+  await assert.rejects(
+    runExec(unsupported, { prompt: 'work', allowDirs: ['/shared'] }),
+    (error) => error?.code === 'attach/exec-allow-dir' && /does not support/u.test(error.message),
+  );
+
+  const rejected = fakeClient({ sessionId: 'new-1' });
+  const rejectedRequest = rejected.request;
+  rejected.request = async (method, params) => {
+    if (method === 'sandbox.allowDir') {
+      return { supported: true, directory: params.directory, registered: false, error: 'SANDBOX_INVALID_ROOT' };
+    }
+    return rejectedRequest(method, params);
+  };
+  await assert.rejects(
+    runExec(rejected, { prompt: 'work', allowDirs: ['/shared'] }),
+    (error) => error?.code === 'attach/exec-allow-dir' && /SANDBOX_INVALID_ROOT/u.test(error.message),
+  );
+});
+
+test('fails clearly when the Host has no command registry', async () => {
+  const client = fakeClient({ sessionId: 'new-1' });
+  client.host = { capabilities: [] };
+  await assert.rejects(
+    runExec(client, { prompt: 'work', permission: 'auto' }),
+    (error) => error?.code === 'attach/exec-permission' && /commands are unavailable/u.test(error.message),
+  );
 });

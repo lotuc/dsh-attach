@@ -16,15 +16,73 @@ footer      keys, tokens/context, permission
 
 `--exec` runs one prompt without a TUI. It creates a new Session by default,
 prints the final assistant text to stdout, and exits with `0` on completion,
-`1` on a failed turn, `124` on timeout, or `130` when interrupted.
+`1` on a failed turn or runtime error, `124` on timeout, `130` when interrupted,
+or `2` on invalid arguments or prompt input.
 
 ```sh
 dsh-attach --exec -p "fix the failing test"
 dsh-attach --exec -s <session-id> -p "continue"
+dsh-attach --exec -f prompt.md -o answer.md
 printf 'summarize this repository' | dsh-attach --exec
 ```
 
-Use `--json` for an agent dispatcher:
+- `--session <id>` reuses an idle Session; `--new` is implied otherwise.
+- `--cwd` applies only to a new Session.
+- `--exec-timeout <seconds>` cancels a stalled turn; default 1800, `0` waits forever.
+- `-p/--prompt`, `-f/--prompt-file`, and stdin are prompt sources; `-p` and `-f`
+  are mutually exclusive, and an empty prompt or file is rejected.
+- The client prints `dsh-attach: session <id>` to stderr as soon as the Session
+  opens. A timeout, interrupt, connection error, or failed turn therefore leaves
+  a resumable id: use `-s <id>` to continue it.
+- The runner is non-interactive. By default approvals are rejected and
+  questions are cancelled, then reported in `interactions` and on stderr.
+- `--approvals=host` delegates approvals/questions to the native DSH Web
+  answerer instead; it requires that UI to be open and a Host approval mode
+  other than `first-win`.
+- `--approve` allows every approval for that exec run. It is a broad,
+  dangerous grant; use it only for a task and repository you trust.
+- `--approval-rules <file|@default>` applies scoped rules for that exec run.
+  The file uses the same TOML/JSONC shape as the TUI's `auto-approve.toml`;
+  `@default` reads the TUI policy (`DSH_ATTACH_AUTO_APPROVE`, or
+  `$DSH_HOME/dsh-attach/auto-approve.toml`).
+
+### Sandbox, permission, model, preset, and title
+
+`--allow-dir <path>` (repeatable, `~` expanded) registers a writable root for
+the Session after it opens and before the prompt. The Host must advertise
+`sandbox.roots`; if it does not, rejects the directory (`invalid-root`), or
+leaves the grant unregistered, exec fails before sending the prompt. Grants are
+runtime-only and disappear when the Session detaches.
+
+`--permission <read-only|workspace-write|danger-full-access|auto>` applies
+`/permission <value>` after opening the Session and before the prompt. A Host
+without the command registry, or a command the Host does not run, fails exec
+with a clear error instead of silently running under the old preset.
+`danger-full-access` is a broad grant; pass it only for a task and repository
+you trust.
+
+`--model <provider/model>` splits at the first slash, so model ids that contain
+a slash keep their full name, and calls `session.selectModel` before the prompt.
+
+`--preset <id>` creates a new Session with that agent preset. It is rejected
+together with `-s/--session`; omit `--new` and the preset applies to the new
+Session created by exec.
+
+`--title <text>` renames the Session after it opens and before the prompt.
+
+### Prompt and output files
+
+```sh
+dsh-attach --exec -f prompts/nightly.md -o out/answer.md
+```
+
+- `-f/--prompt-file <path>` reads UTF-8 prompt text; a file that is empty after
+  trimming is rejected.
+- `-o/--output <path>` writes the final assistant text after the run when it is
+  non-empty, creating parent directories. Stdout and `--json` output are
+  unchanged.
+
+### Machine-readable output
 
 ```sh
 dsh-attach --exec --json -p "fix the failing test"
@@ -36,7 +94,7 @@ dsh-attach --exec --json -p "fix the failing test"
   "sessionId": "session-...",
   "turn": 1,
   "text": "done",
-  "reason": "completed",
+  "reason": "complete",
   "failure": null,
   "usage": { "inputTokens": 1436, "outputTokens": 2 },
   "interactions": [],
@@ -44,19 +102,24 @@ dsh-attach --exec --json -p "fix the failing test"
 }
 ```
 
-- `--session <id>` reuses an idle Session; `--new` is implied otherwise.
-- `--cwd` applies only to a new Session.
-- `--exec-timeout <seconds>` cancels a stalled turn; default 1800, `0` waits forever.
-- Empty prompt on stdin is rejected.
-- The runner is non-interactive. By default approvals are rejected and
-  questions are cancelled, then reported in `interactions` and on stderr.
-- `--approvals=host` delegates approvals/questions to the native DSH Web
-  answerer instead; it requires that UI to be open and a Host approval mode
-  other than `first-win`.
-- `--approve` allows every approval for that exec run. It is a broad,
-  dangerous grant; use it only for a task and repository you trust.
-- `--approval-rules <file>` applies scoped rules for that exec run. The file
-  uses the same TOML/JSONC shape as the TUI's `auto-approve.toml`.
+A failed or interrupted run keeps the same shape and includes
+`"sessionId": "<id or null>"` in the error object, for example
+`{"ok":false,"sessionId":"session-...","error":{"code":"attach/exec-timeout","message":"..."}}`.
+
+`--jsonl` streams newline-delimited progress events instead of one result. It is
+incompatible with `--json`.
+
+```json
+{"type":"session.started","sessionId":"session-...","cwd":"/work"}
+{"type":"tool.call","sessionId":"session-...","callId":"call-1","name":"bash"}
+{"type":"interaction","sessionId":"session-...","kind":"approval","requestId":"req-1","tool":"bash","callId":"call-1","reason":"needs write access","outcome":"rejected","decision":"non-interactive exec mode"}
+{"type":"turn.end","ok":true,"sessionId":"session-...","turn":1,"text":"done","reason":"complete","failure":null,"usage":{},"interactions":[],"error":null}
+```
+
+`turn.end` is the final event when the turn finishes (successfully or not). If
+the runner throws (timeout, interrupt, closed connection), the final event is
+`{"type":"error","ok":false,"sessionId":"<id or null>","error":{"code":"...","message":"..."}}`.
+Exit codes are the same as the non-streaming modes.
 
 ### Approval rules for exec
 
@@ -77,17 +140,50 @@ path_prefix = "src/"
 
 ```sh
 dsh-attach --exec --json --approval-rules ./approval.toml -p "run the tests"
+dsh-attach --exec --approval-rules @default -p "run the tests"
 ```
 
 - A matching rule allows the call; a blocked or unmatched call follows
   `--approvals` (`deny` by default, or `host` to delegate to DSH Web).
 - `mode = "review"` sends unmatched requests through the Host review route
-  using `policy`.
+  using `policy`; the Host's `displayReason` is forwarded to the reviewer.
 - `enabled = false` makes the file invalid for an exec run.
 - `--approve` overrides rules for the whole run.
 - The file is explicit, so omitting `enabled` enables it; this differs from
   the TUI's default-off auto-approval config.
+- `@default` resolves to `DSH_ATTACH_AUTO_APPROVE` when it is set and not
+  `off`/`0`, otherwise to `$DSH_HOME/dsh-attach/auto-approve.toml`.
 - Rules are not a security sandbox; the DSH permission/sandbox still applies.
+
+## Session listing
+
+`--list` prints `ID`, `AGE`, `STATE`, `CWD`, and `TITLE`; subagent Sessions are
+hidden unless `--all` is used. `--list --json` prints one object with the same
+filtering and newest-first order, but no truncation:
+
+```sh
+dsh-attach --list --json
+dsh-attach --list --json --all
+```
+
+```json
+{
+  "items": [
+    {
+      "sessionId": "session-...",
+      "title": "nightly",
+      "cwd": "/work/project",
+      "updatedAt": 1730000000000,
+      "running": false,
+      "blank": false,
+      "parentSessionId": null,
+      "origin": "user",
+      "agentPreset": "minimal",
+      "model": { "provider": "provider", "model": "model" }
+    }
+  ]
+}
+```
 
 ## Turn folding
 

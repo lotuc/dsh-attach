@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { findExecApprovalRule, loadExecApprovalRules } from '../lib/client/exec-rules.js';
+import { findExecApprovalRule, loadExecApprovalRules, resolveExecApprovalRulesPath } from '../lib/client/exec-rules.js';
 import { normalizeAutoApprovalConfig } from '../lib/client/auto-approval.js';
 
 async function withRules(text, fn) {
@@ -84,4 +84,46 @@ test('matches explicit rules for safe commands and non-shell tools', () => {
     cwd: '/repo',
     arguments: { command: 'pwd && rm -rf /' },
   }), null);
+});
+
+test('resolves @default to the TUI auto-approval file', () => {
+  assert.equal(
+    resolveExecApprovalRulesPath('@default', { DSH_HOME: '/home/test', DSH_ATTACH_AUTO_APPROVE: '/policy/custom.toml' }),
+    '/policy/custom.toml',
+  );
+  assert.equal(
+    resolveExecApprovalRulesPath('@default', { DSH_HOME: '/home/test', DSH_ATTACH_AUTO_APPROVE: 'off' }),
+    '/home/test/dsh-attach/auto-approve.toml',
+  );
+  assert.equal(
+    resolveExecApprovalRulesPath('@default', { DSH_HOME: '/home/test' }),
+    '/home/test/dsh-attach/auto-approve.toml',
+  );
+  assert.equal(resolveExecApprovalRulesPath('./approval.toml', { DSH_HOME: '/home/test' }), './approval.toml');
+  assert.throws(
+    () => resolveExecApprovalRulesPath('  ', {}),
+    (error) => error?.code === 'attach/exec-rules',
+  );
+});
+
+test('loads @default from DSH_HOME', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'dsh-attach-home-'));
+  await mkdir(join(home, 'dsh-attach'));
+  const path = join(home, 'dsh-attach', 'auto-approve.toml');
+  await writeFile(path, 'mode = "rules"\n[[rules]]\nid = "tests"\ntool = "bash"\ncommand_prefix = ["npm", "test"]\n');
+  const previous = process.env.DSH_HOME;
+  const previousRules = process.env.DSH_ATTACH_AUTO_APPROVE;
+  process.env.DSH_HOME = home;
+  delete process.env.DSH_ATTACH_AUTO_APPROVE;
+  try {
+    const config = await loadExecApprovalRules('@default');
+    assert.equal(config.enabled, true);
+    assert.equal(config.rules[0].id, 'tests');
+  } finally {
+    if (previous === undefined) delete process.env.DSH_HOME;
+    else process.env.DSH_HOME = previous;
+    if (previousRules === undefined) delete process.env.DSH_ATTACH_AUTO_APPROVE;
+    else process.env.DSH_ATTACH_AUTO_APPROVE = previousRules;
+    await rm(home, { recursive: true, force: true });
+  }
 });

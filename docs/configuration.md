@@ -90,6 +90,10 @@ Disabled by default. Config file:
 This policy belongs to the interactive TUI. `--exec` is separate: it rejects
 approvals unless `--approve` is passed, or loads its own scoped file with
 `--approval-rules` (same schema, unmatched calls follow `--approvals`).
+`--approval-rules @default` resolves to the TUI's own file: the
+`DSH_ATTACH_AUTO_APPROVE` path when set and not `off`/`0`, otherwise
+`$DSH_HOME/dsh-attach/auto-approve.toml`. Explicit paths are read as-is
+(`~` expanded).
 
 The file is TOML. A legacy `auto-approve.json`/`.jsonc` override is still
 parsed for compatibility. `/approvals add|remove|on|off` rewrites the file in
@@ -372,6 +376,15 @@ binds it, so cache writes do not require a separate grant. Grants are
 runtime-only and per Session: they are not persisted and disappear on detach,
 Session switch, Host stop, or resume/fork. Reopening a Session registers the
 cache root again.
+
+Headless exec uses the same routes explicitly. `--exec --allow-dir <path>`
+(repeatable) calls `sandbox.allowDir` after the Session opens and before the
+prompt. Because the caller required that writable root, exec fails before
+prompting when the Host does not advertise `sandbox.roots`, rejects the
+directory (`attach/invalid-root`), or returns it unregistered. `--exec
+--permission <preset>` runs `/permission <preset>` through `commands.execute`
+at the same point; a Host without a command registry, or a command that does
+not run, fails the exec instead of silently keeping the previous sandbox.
 
 ## Themes
 

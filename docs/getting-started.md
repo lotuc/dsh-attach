@@ -70,7 +70,9 @@ dsh-attach -s <session-id>  # open a session
 dsh-attach --new -p "run the tests"
 dsh-attach --new -C ~/src/project
 dsh-attach --list           # non-interactive
+dsh-attach --list --json    # machine-readable session summaries
 dsh-attach --exec -p "run the tests"   # one-shot, no TUI
+dsh-attach --exec --jsonl -p "run the tests"   # stream progress events
 ```
 
 If no endpoint exists, the client starts the desktop app on macOS/Windows, or
@@ -91,16 +93,24 @@ The TUI needs a TTY; use `--list` or `--exec` in scripts.
 | `--preview-exit-after <seconds>` | Preview idle timeout; `0` keeps open. |
 | `-n`, `--new` | Create and open a session. |
 | `-p`, `--prompt <text>` | Submit a prompt after opening. |
+| `-f`, `--prompt-file <path>` | With `--exec`, read the prompt from a UTF-8 file instead of `--prompt`/stdin. |
+| `-o`, `--output <path>` | With `--exec`, also write the final text to this file. |
 | `-C`, `--cwd <path>` | Working directory for a new session. |
 | `--cache-root <path\|@cwd\|@session>` | Keep language-tool caches under this directory (off by default); `@cwd` uses the launching directory, `@session` the Session workspace. |
 | `--list` | Print sessions and exit. |
 | `--all` | Include subagent sessions in `--list`. |
-| `--exec` | Run one prompt without a TUI and print the final answer; reads stdin when `--prompt` is omitted. |
-| `--json` | With `--exec`, print one JSON result object. |
+| `--exec` | Run one prompt without a TUI and print the final answer; reads stdin when `--prompt` and `--prompt-file` are omitted. |
+| `--json` | With `--exec`, print one JSON result object; with `--list`, print one JSON object of full session summaries. |
+| `--jsonl` | With `--exec`, stream newline-delimited progress events. |
 | `--approvals <deny\|host>` | With `--exec`, reject approvals (default) or delegate them to DSH Web. |
-| `--approval-rules <file>` | With `--exec`, load scoped approval rules (TOML/JSONC). |
+| `--approval-rules <file\|@default>` | With `--exec`, load scoped rules (TOML/JSONC); `@default` reads the TUI's auto-approve policy. |
 | `--approve` | With `--exec`, allow every approval (dangerous). |
 | `--exec-timeout <seconds>` | Cancel a stalled exec; default 1800, `0` waits forever. |
+| `--allow-dir <path>` | With `--exec`, register a writable root; repeatable, `~` expanded. |
+| `--permission <preset>` | With `--exec`, apply `read-only`, `workspace-write`, `danger-full-access`, or `auto` before the prompt. |
+| `--model <provider/model>` | With `--exec`, select the provider/model before the prompt. |
+| `--preset <id>` | With `--exec`, create the new Session with this agent preset; incompatible with `--session`. |
+| `--title <text>` | With `--exec`, rename the Session before the prompt. |
 | `--endpoint <file>` | Use a specific endpoint descriptor. |
 | `--socket <path>` | Connect to a socket or named pipe; needs `--token`. |
 | `--token <token>` | Token for `--socket`. |
@@ -126,6 +136,15 @@ dsh-attach --socket /path/to/attach.sock --token '<token>'
 `--list` prints `ID`, `AGE`, `STATE`, `CWD`, and `TITLE`. Subagent sessions are
 hidden unless `--all` is used. The interactive picker also hides subagents; use
 `/subagent list` inside a session.
+
+`--list --json` prints one `{"items":[...]}` object for scripts. It applies the
+same `--all` filter and newest-first order, but keeps full `sessionId`, `cwd`,
+`title`, `agentPreset`, and `model` values instead of truncating columns.
+
+```sh
+dsh-attach --list --json
+dsh-attach --list --json --all
+```
 
 ## Upgrade
 
