@@ -37,20 +37,31 @@ async function loadClient() {
     answer: async (outcome) => { answered.push(outcome); },
     abort: (reason) => { aborted.push(reason); },
   };
+  const injected = [];
   const ctx = {
     sessions: { list: { getSnapshot: () => ({ byId: {} }) } },
     uiWorkspace: { openSession() {} },
-    uiSession: {
-      sessionStatus: {
-        getSnapshot: () => new Map([['s1', { pendingInteraction }]]),
-        subscribe(listener) {
-          statusListener = listener;
-          return () => { statusListener = null; };
-        },
-      },
-    },
     effect(fn) {
       effects.push(fn());
+    },
+    inject(deps, callback) {
+      injected.push(deps);
+      if (Array.isArray(deps) && deps.includes('uiSession.sessionStatus')) {
+        callback({
+          uiSession: {
+            sessionStatus: {
+              getSnapshot: () => new Map([['s1', { pendingInteraction }]]),
+              subscribe(listener) {
+                statusListener = listener;
+                return () => { statusListener = null; };
+              },
+            },
+          },
+          effect(fn) {
+            effects.push(fn());
+          },
+        });
+      }
     },
   };
 
@@ -80,6 +91,7 @@ async function loadClient() {
     sources,
     answered,
     aborted,
+    injected,
     setPending(value) {
       pendingInteraction = value;
       statusListener?.();
@@ -98,6 +110,7 @@ async function loadClient() {
 test('answers the native Web approval with the terminal outcome', async () => {
   const fixture = await loadClient();
   try {
+    assert.deepEqual(fixture.injected, [['uiSession.sessionStatus']]);
     assert.equal(fixture.sources.length, 1);
     assert.equal(fixture.sources[0].url, '/dsh-attach/interactions');
     fixture.sources[0].emit({

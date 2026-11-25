@@ -106,7 +106,7 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['sessions', 'uiWorkspace', 'uiSession'],
+      inject: ['sessions', 'uiWorkspace'],
       apply(ctx) {
         let stopped = false;
         let pollTimer = null;
@@ -140,7 +140,9 @@ window.__ModuleLoader__.load({
             cancelSelection?.();
           };
         }, 'dsh-attach: desktop focus bridge');
-        ctx.effect(() => startApprovalCompanion(ctx), 'dsh-attach: approval companion');
+        ctx.inject(['uiSession.sessionStatus'], (sessionCtx) => {
+          sessionCtx.effect(() => startApprovalCompanion(sessionCtx), 'dsh-attach: approval companion');
+        });
       },
     };
   },
