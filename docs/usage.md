@@ -281,8 +281,21 @@ after installing this version. No Accessibility permission is required.
 |---|---|
 | `y` | Allow once. |
 | `n` | Reject. |
+| `s` | Allow this session: derive one narrow rule from this call and auto-allow matches. |
+| `a` | Always allow: preview the same rule, append it to `auto-approve.toml`, then allow. |
+| `r` | Reject now, then send a short note to steer or queue guidance for the model. |
+| `w` | Under `workspace-write`, grant the target's parent directory as a writable root, then allow. |
 | `Enter`/`d`/`e` | Full details. |
 | `Esc` | Detach; another client/timeout may answer. |
+
+The card itself shows the facts that change the decision: a sandbox escalation
+(`workspace-write → danger-full-access`), the model's `justification` when it
+differs from the reason, and a target path with an `outside workspace` marker.
+`danger-full-access` is highlighted and `s`/`a` are labelled `DANGER`; the rule
+then repeats that full access only for this session or this exact policy entry.
+`w` appears only for a file tool under `workspace-write` whose target lies
+outside the session workspace, including when the model asked for
+`danger-full-access`; it is the narrower alternative to granting everything.
 
 Details are scrollable; `Esc`/`q` returns. Routing modes (`tui`, `auto`, `web`,
 `off`), grace periods, and optional whitelist + LLM auto-approval are in
@@ -294,6 +307,10 @@ Details are scrollable; `Esc`/`q` returns. Routing modes (`tui`, `auto`, `web`,
 /approvals add <json>  append a rule
 /approvals remove <id> remove a rule
 /approvals suggest     propose a rule from the last approval
+
+/sandbox                    list this session's runtime writable roots
+/sandbox allow-dir <path>   register a directory for this session
+/sandbox revoke-dir <path>  remove a registered directory
 ```
 
 Edit `auto-approve.toml` for mode, policy, full-access, and limits; it reloads
@@ -302,6 +319,35 @@ within 2 seconds.
 `/approvals suggest` asks the model for a rule based on the last approval; it is
 saved only after `y` confirmation. Late attach replays pending requests on
 Host 0.8.0+.
+
+### Session rules and writable roots
+
+`s` and `a` share one deterministic rule: the bash program plus subcommand
+(`npm test`), or the exact resolved path for a file tool. It never copies
+arguments such as image tags, revisions, or inline code. The rule is:
+
+- **scoped** to this session and to the sandbox the call requested;
+- **in memory** for `s`; cleared on session switch or client restart;
+- **mirrored to the Host** when it advertises `approval.session-allow`, so a
+  matching later call is allowed inside the `approval/request` waterfall
+  without opening a panel in any terminal. Other terminals and `--exec` share
+  that decision. A failing or absent mirror leaves the client-only behavior.
+
+Host-side matching fails closed: a missing `callId`, a missing tool call in the
+session log, arguments that are not a JSON object, an unparseable shell line, or
+a `danger-full-access` request without an explicit full-access rule all fall
+back to the normal interactive approval.
+
+A background `/btw fork` child approval reaches the parent terminal but belongs
+to another session, so its panel offers only allow, reject, details, and detach.
+`approvals: off` also takes precedence: mirrored rules are not evaluated.
+
+`w` and `/sandbox allow-dir` call `ctx.sandboxPolicy.registerWritableRoot()`.
+Grants are runtime-only: they disappear on detach, session switch, Host restart,
+or resume/fork. The path must be an existing absolute physical directory;
+`--cache-root` is registered automatically when a session opens. A Host without
+`sandboxPolicy` (or a missing directory) is reported as unsupported/not
+registered and never blocks session open.
 
 ## Questions
 

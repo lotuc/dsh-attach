@@ -33,18 +33,35 @@ class FakeClient extends EventEmitter {
   constructor() {
     super();
     this.host = {
-      capabilities: ['session.fork', 'session.archive', 'session.pin', 'session.presets'],
+      capabilities: [
+        'session.fork',
+        'session.archive',
+        'session.pin',
+        'session.presets',
+        'sandbox.roots',
+        'approval.session-allow',
+      ],
       pluginVersion: '2026.1112.0920',
     };
     this.closed = false;
     this.requests = [];
     this.requestCalls = [];
     this.approvalOutcomes = [];
+    this.sessionAllowRequests = [];
   }
   async request(method, params) {
     this.requests.push(method);
     this.requestCalls.push({ method, params });
     switch (method) {
+      case 'approval.allowSession':
+        this.sessionAllowRequests.push(params?.rule);
+        return { accepted: true, rules: this.sessionAllowRequests.length };
+      case 'sandbox.dirs':
+        return { supported: true, directories: ['/work/.cache'] };
+      case 'sandbox.allowDir':
+        return { supported: true, directory: params?.directory, registered: true, directories: [params?.directory] };
+      case 'sandbox.revokeDir':
+        return { supported: true, removed: true, directory: params?.directory, directories: [] };
       case 'session.list':
         return {
           items: [{
@@ -846,6 +863,480 @@ test('auto-approval config commands toggle and add rules', async () => {
   }
 });
 
+
+function emitToolCall(client, callId, command) {
+  client.emit('frame', {
+    sessionId: 's1',
+    frame: {
+      type: 'event',
+      event: { type: 'tool/call', data: { callId, name: 'bash', arguments: JSON.stringify({ command }) } },
+    },
+  });
+}
+
+function emitApproval(client, requestId, callId, reason = 'run tests') {
+  client.emit('interactive', {
+    type: 'approval',
+    requestId,
+    sessionId: 's1',
+    toolName: 'bash',
+    callId,
+    reason,
+    displayReason: { zh: '允许运行' },
+  });
+}
+
+test('pressing s allows this session and the next matching call skips the panel', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    emitToolCall(client, 'c1', 'npm test');
+    emitApproval(client, 'r1', 'c1');
+    await wait(50);
+    assert.equal(app.modals.has('interactive'), true);
+    const panel = app.modals.get('interactive').component;
+    panel.handleInput('s');
+    await wait(50);
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+    assert.equal(app.modals.has('interactive'), false);
+    assert.equal(app.sessionAllowRules.length, 1);
+    assert.deepEqual(client.sessionAllowRequests, [{ tool: 'bash', commandPrefix: ['npm', 'test'] }]);
+    assert.match(
+      stripTerminalSequences(panel.render(100).join('\n')),
+      /this session would allow bash · npm test/,
+    );
+
+    emitToolCall(client, 'c2', 'npm test -- --watch');
+    emitApproval(client, 'r2', 'c2');
+    await wait(50);
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once', 'allowed-once']);
+    assert.equal(app.modals.has('interactive'), false, 'the mirrored rule skips the approval panel');
+
+    emitToolCall(client, 'c3', 'rm -rf build');
+    emitApproval(client, 'r3', 'c3', 'delete build');
+    await wait(50);
+    assert.equal(app.modals.has('interactive'), true, 'an unrelated command still asks');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('pressing a previews and appends the durable rule before allowing', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    emitToolCall(client, 'c1', 'npm test');
+    emitApproval(client, 'r1', 'c1');
+    await wait(50);
+    app.modals.get('interactive').component.handleInput('a');
+    await wait(20);
+    assert.equal(app.modals.has('confirm'), true);
+    const preview = stripTerminalSequences(app.modals.get('confirm').component.render(100).join('\n'));
+    assert.match(preview, /session-bash-npm-test/);
+    app.modals.get('confirm').component.handleInput('y');
+    await wait(50);
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+    assert.equal(app.autoApproval.enabled, true);
+    assert.equal(app.autoApproval.rules.some((rule) => rule.id === 'session-bash-npm-test'), true);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('pressing r rejects and immediately offers a guidance note', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    emitToolCall(client, 'c1', 'npm test');
+    emitApproval(client, 'r1', 'c1');
+    emitToolCall(client, 'c2', 'npm run build');
+    emitApproval(client, 'r2', 'c2');
+    await wait(50);
+    app.modals.get('interactive').component.handleInput('r');
+    await wait(50);
+    assert.deepEqual(client.approvalOutcomes, ['rejected']);
+    assert.equal(app.modals.has('rejectNote'), true);
+    assert.equal(app.modals.has('interactive'), false, 'the queued approval waits behind the note');
+    const note = app.modals.get('rejectNote').component;
+    note.input.setValue('use pnpm test instead');
+    note.handleInput('\r');
+    await wait(50);
+    assert.equal(app.modals.has('rejectNote'), false);
+    assert.equal(app.modals.has('interactive'), true, 'the queued approval resumes after the note');
+    const prompt = client.requestCalls.find((call) => call.method === 'session.prompt');
+    assert.equal(prompt.params.text, 'use pnpm test instead');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('pressing w grants the outside target directory and allows the call', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    app.state.permission = 'workspace-write';
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: {
+          type: 'tool/call',
+          data: {
+            callId: 'c1',
+            name: 'edit',
+            arguments: JSON.stringify({ file_path: '/definitely-outside/a.txt', old_string: 'a', new_string: 'b' }),
+          },
+        },
+      },
+    });
+    client.emit('interactive', {
+      type: 'approval',
+      requestId: 'r1',
+      sessionId: 's1',
+      toolName: 'edit',
+      callId: 'c1',
+      reason: 'edit a log outside the workspace',
+    });
+    await wait(50);
+    const panel = app.modals.get('interactive').component;
+    assert.match(stripTerminalSequences(panel.render(100).join('\n')), /\[w\] allow dir/);
+    panel.handleInput('w');
+    await wait(50);
+    assert.deepEqual(
+      client.requestCalls.filter((call) => call.method === 'sandbox.allowDir').map((call) => call.params),
+      [{ directory: '/definitely-outside' }],
+    );
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+    assert.equal(app.modals.has('interactive'), false);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('the sandbox command lists, grants and revokes session writable roots', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    app.editor.setText('/sandbox dirs');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.equal(app.modals.has('info'), true);
+    const info = stripTerminalSequences(app.modals.get('info').component.render(100).join('\n'));
+    assert.match(info, /Session writable roots/);
+    assert.match(info, /\/work\/\.cache/);
+    app.modals.get('info').component.onClose();
+    await wait(20);
+
+    app.editor.setText('/sandbox allow-dir /tmp/extra');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.deepEqual(
+      client.requestCalls.filter((call) => call.method === 'sandbox.allowDir').map((call) => call.params),
+      [{ directory: '/tmp/extra' }],
+    );
+
+    app.editor.setText('/sandbox revoke-dir /tmp/extra');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.deepEqual(
+      client.requestCalls.filter((call) => call.method === 'sandbox.revokeDir').map((call) => call.params),
+      [{ directory: '/tmp/extra' }],
+    );
+
+    app.editor.setText('/sandbox');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.equal(app.modals.has('info'), true, '/sandbox with no argument lists roots');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('an older Host keeps session rules terminal-only and explains missing sandbox routes', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  client.host.capabilities = ['session.fork'];
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    emitToolCall(client, 'c1', 'npm test');
+    emitApproval(client, 'r1', 'c1');
+    await wait(50);
+    app.modals.get('interactive').component.handleInput('s');
+    await wait(50);
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+    assert.equal(app.sessionAllowRules.length, 1);
+    assert.deepEqual(client.sessionAllowRequests, [], 'no mirror route on an older Host');
+
+    app.editor.setText('/sandbox dirs');
+    app.editor.handleInput('\r');
+    await wait(30);
+    assert.equal(client.requestCalls.some((call) => call.method === 'sandbox.dirs'), false);
+    assert.equal(app.modals.has('info'), false);
+    assert.equal(
+      app.rows.some((row) => typeof row.text === 'string' && /does not expose session writable roots/.test(row.text)),
+      true,
+    );
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('a background child approval never exposes parent-session actions', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    app.state.permission = 'workspace-write';
+    client.emit('frame', {
+      sessionId: 'child-1',
+      frame: {
+        type: 'event',
+        event: {
+          type: 'tool/call',
+          data: {
+            callId: 'c1',
+            name: 'edit',
+            arguments: JSON.stringify({ file_path: '/definitely-outside/a.txt', old_string: 'a', new_string: 'b' }),
+          },
+        },
+      },
+    });
+    client.emit('interactive', {
+      type: 'approval',
+      requestId: 'r1',
+      sessionId: 'child-1',
+      toolName: 'edit',
+      callId: 'c1',
+      reason: 'a background fork writes outside',
+    });
+    await wait(50);
+    const panel = app.modals.get('interactive').component;
+    const rendered = stripTerminalSequences(panel.render(100).join('\n'));
+    assert.doesNotMatch(rendered, /\[s\]/);
+    assert.doesNotMatch(rendered, /\[a\]/);
+    assert.doesNotMatch(rendered, /\[r\]/);
+    assert.doesNotMatch(rendered, /\[w\]/);
+    assert.equal(panel.onSessionAllow, undefined, 'no rule may attach to the parent session');
+    assert.equal(panel.onAlwaysAllow, undefined);
+    assert.equal(panel.onRejectNote, undefined);
+    assert.equal(panel.onRegisterDir, undefined);
+    assert.equal(panel.handlePanelInput('s'), false);
+    assert.equal(panel.handlePanelInput('a'), false);
+    assert.equal(panel.handlePanelInput('r'), false);
+    assert.equal(panel.handlePanelInput('w'), false);
+    assert.deepEqual(client.sessionAllowRequests, []);
+    assert.equal(client.requestCalls.some((call) => call.method === 'sandbox.allowDir'), false);
+    panel.handleInput('y');
+    await wait(30);
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('review mode does not offer the durable always-allow action', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: true, mode: 'review', policy: '' },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    emitToolCall(client, 'c1', 'npm test');
+    emitApproval(client, 'r1', 'c1');
+    await wait(50);
+    assert.equal(app.modals.has('interactive'), true, 'an empty review policy falls back to the panel');
+    const panel = app.modals.get('interactive').component;
+    const rendered = stripTerminalSequences(panel.render(100).join('\n'));
+    assert.match(rendered, /\[s\] session/);
+    assert.doesNotMatch(rendered, /\[a\] always/);
+    assert.equal(panel.handlePanelInput('a'), false);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('a repeated s or w key press is inert while its RPC is in flight', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 80, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    emitToolCall(client, 'c1', 'npm test');
+    emitApproval(client, 'r1', 'c1');
+    await wait(50);
+    const panel = app.modals.get('interactive').component;
+    panel.handleInput('s');
+    panel.handleInput('s');
+    await wait(50);
+    assert.equal(client.sessionAllowRequests.length, 1, 'the second s is ignored');
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once']);
+
+    app.state.permission = 'workspace-write';
+    client.emit('frame', {
+      sessionId: 's1',
+      frame: {
+        type: 'event',
+        event: {
+          type: 'tool/call',
+          data: {
+            callId: 'c2',
+            name: 'edit',
+            arguments: JSON.stringify({ file_path: '/definitely-outside/a.txt', old_string: 'a', new_string: 'b' }),
+          },
+        },
+      },
+    });
+    client.emit('interactive', {
+      type: 'approval',
+      requestId: 'r2',
+      sessionId: 's1',
+      toolName: 'edit',
+      callId: 'c2',
+      reason: 'outside write',
+    });
+    await wait(50);
+    const filePanel = app.modals.get('interactive').component;
+    filePanel.handleInput('w');
+    filePanel.handleInput('w');
+    await wait(50);
+    assert.equal(
+      client.requestCalls.filter((call) => call.method === 'sandbox.allowDir').length,
+      1,
+      'the second w is ignored',
+    );
+    assert.deepEqual(client.approvalOutcomes, ['allowed-once', 'allowed-once']);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
 
 class StreamingBtwClient extends FakeClient {
   constructor() {

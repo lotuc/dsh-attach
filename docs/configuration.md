@@ -254,6 +254,125 @@ Then look for `auto-approval-allowed`, `auto-approval-failed`, or
 `auto-approval-review`. In `review` mode, a timeout, invalid reviewer JSON,
 missing LLM, or changed session fails to the human panel rather than approving.
 
+## Session approvals and writable roots
+
+The approval panel's `s`, `a`, and `w` actions complement the durable
+auto-approval file. They are separate mechanisms with separate lifetimes.
+
+### `s`: allow this session
+
+`s` derives one deterministic rule from the current call:
+
+- bash: the program and, for known subcommand tools (`git`, `npm`, `docker`,
+  `clojure`, …), the subcommand, for example `["npm", "test"]`;
+- file tools: the resolved target path, for example
+  `/work/project/notes.txt`;
+- the sandbox the call requested, when it requested one.
+
+The sandbox scope is exact: a rule derived from a call with no requested sandbox
+matches only later calls that also request none, and a rule derived from a
+`workspace-write` retry matches only that mode. A later escalation therefore
+needs its own `s` instead of inheriting a narrower approval.
+
+The rule never copies variable arguments or inline code. A mixed compound line
+(`npm test && rm -rf build`) has no single narrow rule, so `s`/`a` are not
+offered rather than writing a rule the matcher would refuse to reuse. The rule
+is kept in client memory, cleared when the Session changes or the client
+restarts, and used to auto-allow later matching approvals in this terminal. For a
+`danger-full-access` prompt the action is labelled `DANGER`; the rule then
+repeats full access for this session, and only because the human chose `s` on
+that exact prompt.
+
+When the Host advertises `approval.session-allow`, the client also sends the
+rule to `approval.allowSession`. The Host keeps it per Session and per
+connection, evaluates it in the `approval/request` waterfall before any
+answerer starts, and returns `allowed-once` immediately on a match. That keeps
+`tui`, `first-win`, `web`, and `--exec` consistent: a matching call never opens
+a panel, and a non-matching call follows the configured routing mode normally.
+`approvals: off` takes precedence over mirrored rules: the bridge takes no part
+and delegates every request. Host rules are cleared when the connection closes,
+switches Session, or the Host stops.
+
+A background `/btw fork` child approval is still routed to the parent terminal,
+but it belongs to another Session. Its panel offers only allow/reject/details/
+detach; `s`, `a`, `r`, and `w` are disabled so no rule, writable root, or
+rejection note can attach to the parent Session.
+
+Evaluation fails closed. No allow is produced when any of these is true:
+
+- the request has no `callId`;
+- the Session log has no `tool/call` event for that `callId`;
+- the tool arguments are not a JSON object;
+- the shell line cannot be classified safely (substitution, heredoc, loop,
+  unmatched quote);
+- a compound line contains a non-read-only segment outside the prefix;
+- `danger-full-access` is requested without an explicit full-access rule;
+- the rule file/aggregate cannot be read.
+
+An older Host without `approval.session-allow` simply never receives the
+mirror request; `s` stays terminal-local, and the panel still works.
+
+### `a`: always allow
+
+`a` previews the same rule in a confirmation panel and, on `y`, appends it to
+`auto-approve.toml` with a generated `session-<tool>-<target>` id, enables
+auto-approval if it was disabled, and allows the current call once. The rule is
+then an ordinary durable rule; edit or remove it with `/approvals`. In `review`
+mode `a` is not offered: the reviewer ignores `[[rules]]`, so the only effect
+would be flipping the global `allow_full_access` switch.
+
+A `danger-full-access` rule requires the explicit marker stored in the rule
+(`allow_full_access = true`) and also enables the global `allow_full_access`
+switch, because the durable matcher's hard gate checks both. The confirmation
+panel says this.
+
+### `r`: reject with a note
+
+The DSH `ApprovalOutcome` has no rejection reason, so `r` rejects first and
+then opens a one-line prompt. A non-empty note is sent with `session.prompt`:
+`steer` while a turn is running, otherwise `queue`. Submitting an empty note
+just closes the prompt. `Esc` closes it without sending anything.
+
+### `w`: allow a directory for this session
+
+Under `workspace-write`, a file tool (`write`/`edit`) whose resolved target lies
+outside the session workspace offers `w`, including when the approval asks for
+`danger-full-access`. It registers the target's parent directory with
+`ctx.sandboxPolicy.registerWritableRoot(session, directory)` and then allows the
+call once, instead of widening the whole session to `danger-full-access`.
+Approvals that carry a shell command never offer `w`.
+
+Runtime commands:
+
+```text
+/sandbox                    list this session's registered roots
+/sandbox allow-dir <path>   register one directory
+/sandbox revoke-dir <path>  remove this connection's grant
+```
+
+The Host advertises `sandbox.roots` only when
+`@deepseek-ai/dsh-sandbox-policy` is mounted. On an older Host the commands
+report that the route is unavailable and `w` is not offered.
+
+Validation happens before `registerWritableRoot`:
+
+- the path must be absolute, under 4096 characters, and contain no NUL byte;
+- `~` and `~/...` targets are expanded with the user's home directory before
+  the outside-workspace check and the `w` grant;
+- `realpath` must resolve it to an existing directory (symlinks are resolved,
+  because DSH rejects symlinked execution paths);
+- a filesystem root (such as `/`) is refused; that breadth is only available
+  through the explicit `danger-full-access` flow;
+- a missing, relative, non-directory, or root path returns
+  `attach/invalid-root`; a service-level `SANDBOX_INVALID_ROOT` only leaves the
+  root unregistered.
+
+A resolved `--cache-root` is registered automatically when `session.open`
+binds it, so cache writes do not require a separate grant. Grants are
+runtime-only and per Session: they are not persisted and disappear on detach,
+Session switch, Host stop, or resume/fork. Reopening a Session registers the
+cache root again.
+
 ## Themes
 
 ```sh

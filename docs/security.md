@@ -71,6 +71,32 @@ subcommand must match a rule. Substitutions, subshells, heredocs, and loops
 fail closed. Suggestions produce token prefixes (or literal path prefixes) and
 are validated against the actual call; `humanOnlyPrefixes` always asks.
 
+## Session rules
+
+`s` in the approval panel creates a narrow, session-scoped rule; `a` appends the
+same rule to the durable file after confirmation. Session rules are runtime
+state, owned by one terminal connection: they are cleared on Session switch,
+disconnect, or Host stop, and never written to disk. When the Host exposes
+`approval.session-allow`, it mirrors the rule and settles matching
+`approval/request` calls before any panel is broadcast. Host-side matching is
+fail-closed on a missing `callId`, an unresolvable tool call, non-JSON
+arguments, an unparseable shell line, or `danger-full-access` without the
+explicit full-access marker. `approvals: off` skips mirrored rules entirely. A
+Host that does not expose the route keeps the rule in the terminal only. Quick
+actions are disabled for a background child approval because their grants would
+otherwise apply to the parent Session.
+
+## Runtime writable roots
+
+`w` and `/sandbox allow-dir` use DSH's
+`ctx.sandboxPolicy.registerWritableRoot()` for one Session. They are not a
+sandbox override: the directory is validated as an existing absolute physical
+path (realpath, no symlink target) before registration, grants are runtime-only,
+and they disappear on detach, Session switch, Host restart, resume, or fork.
+`/sandbox revoke-dir` removes the calling connection's grant. A Host without
+`sandboxPolicy` reports the route as unsupported rather than silently widening
+permissions, and `danger-full-access` is never granted implicitly.
+
 ## Out of scope
 
 - Malicious same-user processes (they can read the descriptor/token).

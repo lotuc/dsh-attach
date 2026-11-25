@@ -91,6 +91,142 @@ test('approval details scrolls long content and closes with escape', () => {
   assert.equal(closed, 1);
 });
 
+test('approval card shows escalation, justification and an outside-workspace target', () => {
+  const dirs = [];
+  const panel = new ApprovalPanel(
+    { toolName: 'write', displayReason: 'Allow this write?' },
+    'write a log',
+    () => {},
+    {
+      rawDetail: JSON.stringify({
+        file_path: '/outside/project/a.log',
+        sandbox_permissions: 'danger-full-access',
+        justification: 'the log lives outside the workspace',
+      }),
+      context: { cwd: '/work', permission: 'workspace-write' },
+      onSessionAllow: () => {},
+      onAlwaysAllow: () => {},
+      onRejectNote: () => {},
+      onRegisterDir: (directory) => dirs.push(directory),
+    },
+  );
+  const rendered = stripTerminalSequences(panel.render(100).join('\n'));
+  assert.match(rendered, /sandbox escalation: workspace-write → danger-full-access/);
+  assert.match(rendered, /full access/);
+  assert.match(rendered, /why/);
+  assert.match(rendered, /the log lives outside the workspace/);
+  assert.match(rendered, /target \/outside\/project\/a\.log/);
+  assert.match(rendered, /outside workspace/);
+  assert.match(rendered, /this session would allow/);
+  assert.match(rendered, /\[s\] session DANGER/);
+  assert.match(rendered, /\[a\] always DANGER/);
+  assert.match(rendered, /\[r\] reject\+note/);
+  assert.match(rendered, /\[w\] allow dir/, 'a workspace-write file target still offers the narrower directory grant');
+  assert.equal(panel.canRegisterDir(), true);
+  panel.handleInput('w');
+  assert.deepEqual(dirs, ['/outside/project'], 'the directory grant is the narrower alternative to full access');
+  const risk = panel.detailsSections().find((section) => section.label === 'Risk');
+  assert.match(risk.text, /entire user-accessible filesystem/);
+});
+
+test('approval quick actions dispatch narrow rules and allow-dir targets', () => {
+  const calls = { session: [], always: [], note: 0, dirs: [], answers: [] };
+  const panel = new ApprovalPanel(
+    { toolName: 'bash' },
+    'npm test',
+    (outcome) => calls.answers.push(outcome),
+    {
+      rawDetail: JSON.stringify({ command: 'npm test -- --run' }),
+      context: { cwd: '/work', permission: 'workspace-write' },
+      onSessionAllow: (rule) => calls.session.push(rule),
+      onAlwaysAllow: (rule) => calls.always.push(rule),
+      onRejectNote: () => { calls.note += 1; },
+      onRegisterDir: (directory) => calls.dirs.push(directory),
+    },
+  );
+  const rendered = stripTerminalSequences(panel.render(100).join('\n'));
+  assert.match(rendered, /this session would allow bash · npm test/);
+  assert.match(rendered, /\[s\] session/);
+
+  panel.handleInput('s');
+  panel.handleInput('a');
+  panel.handleInput('r');
+  assert.deepEqual(calls.session, [{ tool: 'bash', commandPrefix: ['npm', 'test'] }]);
+  assert.deepEqual(calls.always, [{ tool: 'bash', commandPrefix: ['npm', 'test'] }]);
+  assert.equal(calls.note, 1);
+  assert.deepEqual(calls.dirs, [], 'a command approval has no target directory');
+  assert.equal(panel.canRegisterDir(), false, 'a shell command never offers a directory grant');
+  assert.deepEqual(calls.answers, [], 'quick actions never answer by themselves');
+
+  const filePanel = new ApprovalPanel(
+    { toolName: 'edit' },
+    'edit outside.txt',
+    () => {},
+    {
+      rawDetail: JSON.stringify({ file_path: '../outside.txt', old_string: 'a', new_string: 'b' }),
+      context: { cwd: '/work/repo', permission: 'workspace-write' },
+      onRegisterDir: (directory) => calls.dirs.push(directory),
+    },
+  );
+  assert.match(stripTerminalSequences(filePanel.render(100).join('\n')), /\[w\] allow dir/);
+  filePanel.handleInput('w');
+  assert.deepEqual(calls.dirs, ['/work']);
+  assert.equal(filePanel.canRegisterDir(), true);
+
+  const rootPanel = new ApprovalPanel(
+    { toolName: 'edit' },
+    'edit a root-level file',
+    () => {},
+    {
+      rawDetail: JSON.stringify({ file_path: '/outside.txt', old_string: 'a', new_string: 'b' }),
+      context: { cwd: '/work/repo', permission: 'workspace-write' },
+      onRegisterDir: (directory) => calls.dirs.push(directory),
+    },
+  );
+  assert.equal(rootPanel.canRegisterDir(), false, 'granting the filesystem root is refused');
+  assert.doesNotMatch(stripTerminalSequences(rootPanel.render(100).join('\n')), /\[w\] allow dir/);
+});
+
+test('quick actions are inert when the app supplies no callbacks', () => {
+  const answers = [];
+  const panel = new ApprovalPanel(
+    { toolName: 'bash' },
+    'echo ok',
+    (outcome) => answers.push(outcome),
+    { rawDetail: JSON.stringify({ command: 'echo ok' }) },
+  );
+  for (const key of ['s', 'a', 'r', 'w']) {
+    assert.equal(panel.handlePanelInput(key), false);
+  }
+  assert.deepEqual(answers, []);
+  assert.equal(panel.sessionRule().commandPrefix[0], 'echo');
+  const rendered = stripTerminalSequences(panel.render(100).join('\n'));
+  assert.doesNotMatch(rendered, /\[s\]/);
+  assert.doesNotMatch(rendered, /\[w\]/);
+});
+
+test('a mixed compound call offers no session or always action', () => {
+  const calls = [];
+  const panel = new ApprovalPanel(
+    { toolName: 'bash' },
+    'npm test && rm -rf build',
+    () => {},
+    {
+      rawDetail: JSON.stringify({ command: 'npm test && rm -rf build' }),
+      context: { cwd: '/work', permission: 'workspace-write' },
+      onSessionAllow: () => calls.push('s'),
+      onAlwaysAllow: () => calls.push('a'),
+    },
+  );
+  const rendered = stripTerminalSequences(panel.render(100).join('\n'));
+  assert.doesNotMatch(rendered, /\[s\]/);
+  assert.doesNotMatch(rendered, /\[a\]/);
+  assert.equal(panel.sessionRule(), null);
+  assert.equal(panel.handlePanelInput('s'), false);
+  assert.equal(panel.handlePanelInput('a'), false);
+  assert.deepEqual(calls, []);
+});
+
 test('approval requires explicit keys and detaches on escape', () => {
   const answers = [];
   let details = 0;

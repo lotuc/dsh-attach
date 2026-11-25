@@ -125,8 +125,18 @@ continue; a missing live parent is marked `parent offline`.
 |---|---|
 | `y`/`Y` | Allow once. |
 | `n`/`N` | Reject. |
+| `s`/`S` | Allow this session with a narrow rule derived from the call. |
+| `a`/`A` | Preview the same rule, then append it to `auto-approve.toml` and allow. |
+| `r`/`R` | Reject, then prompt for a short guidance note (steers or queues). |
+| `w`/`W` | `workspace-write` only: grant the target's parent directory, then allow. |
 | `Enter`/`d`/`D`/`e`/`E` | Read-only details. |
 | `Esc` | Detach this terminal. |
+
+The card shows sandbox escalation, `justification`, and `outside workspace`
+targets without opening details. `danger-full-access` marks `s`/`a` as
+`DANGER`; `w` is offered only for an outside-workspace file target under
+`workspace-write`. `a` is unavailable in review mode, and a background `/btw`
+child approval exposes only `y`/`n`/details/`Esc`.
 
 Details: arrows/`Ctrl+P`/`Ctrl+N`/wheel scroll; `PgUp`/`PgDn`/`Ctrl+U`/`Ctrl+D`
 page; `Home`/`End`/`g`/`G` jump; `Esc`/`q` close.
@@ -185,6 +195,7 @@ with `DSH_ATTACH_PREVIEW_EXIT_AFTER`; default stays open.
 | `/btw list` | Search btw history. |
 | `/btw <question>` | Side question; `f` starts a background fork with tools. |
 | `/approvals [on|off|add <json>|remove <id>|suggest]` | Inspect or edit auto-approval; advanced settings belong in `auto-approve.toml`. |
+| `/sandbox [dirs|allow-dir <path>|revoke-dir <path>]` | List or change this session's runtime writable roots (requires Host `sandbox.roots`). |
 | `/status` | Session/status details. |
 | `/quit`, `/exit` | Exit without stopping Host work. |
 

@@ -99,8 +99,10 @@ Client notifications: `frame`, `session.error`, `approval`, `question`,
 | `subagent.continue` / `interrupt` | Follow-up or stop. |
 | `approval.review` | Isolated LLM review of an approval. |
 | `approval.suggest` | LLM-proposed auto-approval rule for the last approval. |
+| `approval.allowSession` | Mirror one validated session allow rule on the Host. |
 | `approval.respond` / `cancel` | Approval outcome. |
 | `question.respond` / `cancel` | Question answers. |
+| `sandbox.dirs` / `allowDir` / `revokeDir` | Runtime session writable roots (requires `sandbox.roots`). |
 | `interactive.ack` / `detach` / `delegate` | Shared-request acknowledgement/detach/handoff to Web. |
 | `activity` | Heartbeat for `auto`. |
 
@@ -120,6 +122,8 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/host/server.js` | Transport, auth, protocol, follow, interactive/job routes. |
 | `lib/host/btw.js` | Side-question route and bounded context. |
 | `lib/host/approval-review.js` | Isolated approval reviewer prompt, JSON verdict, rule suggestion. |
+| `lib/host/session-allow.js` | Host-side callId argument lookup and session-rule evaluation. |
+| `lib/host/sandbox-roots.js` | Runtime `registerWritableRoot` bookkeeping, validation, and disposal. |
 | `lib/host/subagents.js` | Catalog mapping/counts. |
 | `lib/host/subagent-control.js` | Control capability detection. |
 | `lib/host/shell-env.js` | Bounded `HERDR_*` merge. |
@@ -150,6 +154,7 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/client/clipboard-image.js` | macOS/Linux/Windows clipboard. |
 | `lib/client/log.js` | Rotating lifecycle log. |
 | `lib/shared/cache-root.js` | Cache-root resolution and shell cache env derivation. |
+| `lib/shared/session-allow.js` | Session allow-rule derivation, validation, matching, and sandbox risk helpers. |
 | `lib/shared/subagent-errors.js` | Shared subagent control error vocabulary. |
 | `lib/shared/protocol.js` | Wire constants/helpers. |
 | `lib/shared/platform.js` | Socket/pipe, home expansion, signals. |

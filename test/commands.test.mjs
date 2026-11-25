@@ -81,7 +81,7 @@ function fakeClient() {
 
 test('local commands expose grouped navigation', () => {
   const items = localCommandItems(fakeClient());
-  for (const name of ['session', 'subagent', 'parent', 'desktop', 'rewind', 'links', 'image', 'job', 'skills', 'todo', 'detail', 'approvals', 'history', 'goal', 'plan']) {
+  for (const name of ['session', 'subagent', 'parent', 'desktop', 'rewind', 'links', 'image', 'job', 'skills', 'todo', 'detail', 'approvals', 'sandbox', 'history', 'goal', 'plan']) {
     assert.ok(items.some((item) => item.name === name), name);
   }
   assert.equal(items.some((item) => item.name === 'job-output'), false, 'legacy aliases stay out of completion');
@@ -97,9 +97,10 @@ test('local command items expose grouped, resume and model argument completion',
   const skills = items.find((item) => item.name === 'skills');
   const goal = items.find((item) => item.name === 'goal');
   const plan = items.find((item) => item.name === 'plan');
+  const sandbox = items.find((item) => item.name === 'sandbox');
   const model = items.find((item) => item.name === 'model');
   const permission = items.find((item) => item.name === 'permission');
-  for (const item of [session, subagent, image, job, skills, goal, plan, model, permission]) {
+  for (const item of [session, subagent, image, job, skills, goal, plan, sandbox, model, permission]) {
     assert.equal(typeof item.getArgumentCompletions, 'function');
   }
 
@@ -138,6 +139,11 @@ test('local command items expose grouped, resume and model argument completion',
     'new --preset minimal',
   ]);
   assert.deepEqual((await image.getArgumentCompletions('')).map((entry) => entry.value), ['paste', 'list', 'clear']);
+  assert.deepEqual((await sandbox.getArgumentCompletions('')).map((entry) => entry.value), [
+    'dirs',
+    'allow-dir ',
+    'revoke-dir ',
+  ]);
   assert.deepEqual((await skills.getArgumentCompletions('')).map((entry) => entry.value), ['list', 'show ', 'run ']);
   const detail = items.find((item) => item.name === 'detail');
   assert.deepEqual((await detail.getArgumentCompletions('')).map((entry) => entry.value), ['compact', 'standard', 'verbose']);
