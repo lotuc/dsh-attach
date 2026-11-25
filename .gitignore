@@ -10,6 +10,7 @@ pnpm-debug.log*
 .cache/
 coverage/
 tmp/
+.tmp/
 
 # local secrets
 .env

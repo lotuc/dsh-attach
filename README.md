@@ -32,6 +32,18 @@ Windows: run from Windows Terminal/ConPTY and use:
 The first install must be loaded by DSH. Later upgrades can apply through
 Plugin Manager/profile recomposition or HMR without a full app restart.
 
+### Agent skill (`npx skills`)
+
+Install the bundled [dsh-exec](skills/dsh-exec/SKILL.md) skill so other coding
+agents (Claude Code, Codex, Cursor, Antigravity, etc.) can dispatch tasks to
+DSH via `dsh-attach --exec`:
+
+```sh
+npx skills add lotuc/dsh-tui-attach@dsh-exec -g -y
+# or from a local checkout
+npx skills add ./dsh-tui-attach --skill dsh-exec -g -y
+```
+
 See [Getting started](docs/getting-started.md) for install and CLI details.
 
 ## Features
