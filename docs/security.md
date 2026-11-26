@@ -1,7 +1,9 @@
 # Security
 
-`dsh-attach` is a local control surface. It adds no remote access and no second
-authorization layer.
+`dsh-attach` is a control surface for one Harness. Locally it speaks over an
+owner-only socket or named pipe; remotely it can relay that same local protocol
+over an SSH stdio channel. It adds no listener and no second authorization
+layer either way.
 
 ## Trust boundary
 
@@ -19,12 +21,24 @@ Anyone who can connect can operate the Harness. Protect the account, the
 - Unix directory `0700`; socket/descriptor `0600`.
 - Windows: directory ACLs plus the random token; no Unix mode claim.
 - Descriptor: `endpoint.json` and `<profile>-<pid>.json`.
+- Remote attach: `ssh -T <target> dsh-attach --stdio-proxy`. SSH carries
+  NDJSON frames on stdin/stdout; no TCP port is opened on the Host, and no
+  `ssh -L`/`-R` forward is required.
 
 ## Authentication
 
 Each Host generates a 32-byte random token, stores it in the descriptor, and
 compares a SHA-256 hash with `timingSafeEqual`. A client without the token is
 rejected before it can issue requests. Tokens rotate when the Host restarts.
+
+For SSH attach the token never leaves the remote machine. The local client sends
+`hello` with an empty token; the remote `--stdio-proxy` reads the descriptor and
+injects the current token immediately before forwarding that first frame. Every
+later frame is passed through unmodified. A fresh reconnect starts a fresh
+proxy, which re-discovers the endpoint, so a Host restart with a new PID, socket
+path, and token is handled automatically. The proxy fails closed with an
+NDJSON `error` frame and a non-zero exit if the first frame is malformed or is
+not `hello`.
 
 ## Process permissions
 
@@ -48,10 +62,26 @@ Host/model/tool output, titles, questions, and queue text are sanitized: CSI,
 OSC, and dangerous C0/C1 control sequences are removed before display. This
 prevents model output from controlling the terminal.
 
-## Local-only
+## Remote SSH boundary
 
-No network listener, relay, or cloud service. Unix socket/Named pipe and
-descriptor files are the entire transport.
+SSH authentication is the outer boundary for remote attach. `dsh-attach` does
+not add an account system, a password prompt, or a network listener; it relies
+on the user's existing OpenSSH config, agent, host keys, and `known_hosts`.
+`--exec` and `--list` force `BatchMode=yes`, so missing credentials fail instead
+of prompting. Keep `StrictHostKeyChecking` enabled; `--ssh-opt` is intentionally
+a raw escape hatch for the user's own SSH policy.
+
+The remote side still enforces the same local rules: the proxy must run as the
+same OS user as the Host, and the descriptor/socket permissions still apply.
+Anyone who can authenticate to that SSH account can operate that Harness. The
+local token is not a remote secret and is not trusted by the Host.
+
+## Local-only by default
+
+Without `--ssh`, there is no network listener, relay, or cloud service. Unix
+socket/Named pipe and descriptor files are the entire transport. With `--ssh`,
+the only network component is the user's own SSH connection; the Host remains
+local-only.
 
 ## Auto-approval
 
@@ -102,7 +132,9 @@ permissions, and `danger-full-access` is never granted implicitly.
 - Malicious same-user processes (they can read the descriptor/token).
 - A compromised DSH Host or model.
 - Terminal emulator vulnerabilities.
-- Remote/multi-user access.
+- Multi-user access to the same Host account.
+- The security of the user's SSH configuration, agent forwarding, or remote
+  account.
 
 ## Operations
 

@@ -423,3 +423,37 @@ dsh-attach --socket /run/user/1000/dsh-attach.sock --token '<token>'
 ```
 
 The token is a per-process secret. Treat it as a password.
+
+## Remote SSH
+
+Remote attach uses the remote machine's own Host configuration and descriptor.
+The local client does not read `$DSH_HOME` in `--ssh` mode and never starts a
+local Host.
+
+```sh
+dsh-attach --ssh user@host
+dsh-attach --ssh user@host --profile desktop
+dsh-attach --ssh user@host --remote-bin ~/.local/bin/dsh-attach
+dsh-attach --ssh user@host --ssh-opt "-o" --ssh-opt "ServerAliveInterval=5"
+```
+
+- `--profile` filters the remote descriptor and is forwarded to the proxy.
+- `--endpoint` is a **remote** descriptor path; it is forwarded to the proxy
+  and is not expanded with the local home directory.
+- `--cwd`, `--allow-dir`, and `--cache-root` are also remote paths. `@cwd` is
+  rejected in `--ssh` mode; use `@session` or an explicit remote path.
+- `--remote-bin` replaces the remote discovery probe. This is the reliable way
+  to target a Windows remote, for example
+  `--remote-bin 'C:\Users\me\.dsh\profiles\desktop\node_modules\.bin\dsh-attach.cmd'`.
+- `--ssh-opt` is forwarded verbatim, one argv element per flag; repeat it for
+  flags that take a separate value.
+- `--ssh` cannot be combined with `--socket` or `--hot`.
+- The remote Host must already be running; unlike local discovery, SSH attach
+  does not auto-start the remote Harness.
+- `DSH_ATTACH_NO_START` is evaluated by the machine that runs `dsh-attach`.
+  It does not affect the remote proxy, which only discovers endpoints.
+
+SSH keepalives (`ServerAliveInterval=10`, `ServerAliveCountMax=3`) and
+`ConnectTimeout=10` are always sent; `--exec` and `--list` also send
+`BatchMode=yes`. Put persistent host aliases, users, ports, and identity files
+in `~/.ssh/config` and use the alias as the `--ssh` target.

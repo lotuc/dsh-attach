@@ -23,7 +23,40 @@
 | `--approve` | exec | Allow every approval for the run (dangerous; mutually exclusive with `--approvals host`). |
 | `--exec-timeout <seconds>` | exec | Cancel a stalled turn (default `1800`, `0` waits forever). Exits `124`. |
 | `--list` | list | List sessions and exit. Combine with `--json` for machine-readable output and `--all` to include subagents. |
-| `--profile <name>` | global | Filter Host endpoint descriptors by DSH profile (e.g. `desktop`, `web`). |
+| `--profile <name>` | global | Filter Host endpoint descriptors by DSH profile (e.g. `desktop`, `web`). Forwarded to the remote proxy under `--ssh`. |
+| `--ssh <target>` | global | Attach over SSH (`user@host` or an ssh alias) via a remote `--stdio-proxy`; no Host TCP listener. Mutually exclusive with `--socket`/`--hot`. |
+| `--remote-bin <path>` | remote | Explicit remote `dsh-attach` executable; skips the remote probe. Requires `--ssh`. Use a `.cmd` path for a Windows remote. |
+| `--ssh-opt <arg>` | remote | Extra argv element forwarded to `ssh`; repeat for `-o value` pairs. Requires `--ssh`. |
+| `--stdio-proxy` | internal | Remote-side stdin/stdout proxy used by `--ssh`. Not combined with `--exec`, `--list`, `--preview`, `--hot`, or `--ssh`. |
+
+## Remote Path Rules (`--ssh`)
+
+- `-C/--cwd`, `--allow-dir`, `--endpoint`, and `--cache-root` refer to the
+  remote machine and are **not** expanded with the local home/cwd.
+- `--cache-root @cwd` is rejected under `--ssh`; use `@session` or an explicit
+  remote path. `@session` and explicit remote paths are passed through.
+- `-f/--prompt-file`, `-o/--output`, `--log`, and `--approval-rules` remain
+  local files and still expand `~`.
+- `--exec` and `--list` imply SSH `BatchMode=yes`; key/agent auth is required.
+- The remote Host must already be running.
+
+Remote reconnect error codes:
+
+| Code | Retryable | Meaning |
+|---|---|---|
+| `attach/ssh-auth` | no | Permission denied, host-key verification, or unsupported auth. |
+| `attach/ssh-remote-bin` | no | Remote `dsh-attach` not found (ssh exit 127). |
+| `attach/ssh-failed` | no | SSH connected but the remote command/protocol failed. |
+| `attach/stdio-proxy` | no | The remote proxy received a malformed/non-hello first frame. |
+| `attach/unreachable` | yes | DNS, refused, reset, broken pipe, or host unreachable. |
+| `attach/timeout` | yes | SSH connect or handshake timeout. |
+| `attach/closed` | yes | The stream closed before/while connected; used when remote exec recovery expires. |
+
+With `--ssh --exec`, a mid-turn drop gets up to 60 seconds of reconnects on the
+same session. If the turn already ended during the outage, the final text and
+usage are read from the fresh snapshot and returned with `ok: true`. If
+recovery expires, the error payload is `attach/closed` and `sessionId` is
+preserved for `-s`.
 
 ## Output Schemas
 

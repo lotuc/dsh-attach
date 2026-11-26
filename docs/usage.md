@@ -155,6 +155,49 @@ dsh-attach --exec --approval-rules @default -p "run the tests"
   `off`/`0`, otherwise to `$DSH_HOME/dsh-attach/auto-approve.toml`.
 - Rules are not a security sandbox; the DSH permission/sandbox still applies.
 
+## Remote SSH
+
+`--ssh <target>` attaches to a Host on another machine without opening a TCP
+listener there. The local client spawns:
+
+```text
+ssh -T -o ServerAliveInterval=10 -o ServerAliveCountMax=3 -o ConnectTimeout=10 \
+    [BatchMode] <target> -- dsh-attach --stdio-proxy [--profile ...] [--endpoint ...]
+```
+
+`--stdio-proxy` runs on the remote host, discovers that host's
+`$DSH_HOME/dsh-attach/endpoint.json`, dials its Unix socket or Windows named
+pipe, and pipes NDJSON frames over the SSH stdin/stdout stream. It intercepts
+only the opening `hello` to replace the local client's empty token with the
+descriptor token, so the token never leaves the remote machine and no Host
+protocol change is involved.
+
+```sh
+dsh-attach --ssh user@host
+dsh-attach --ssh user@host -s <session-id>
+dsh-attach --ssh user@host --exec --jsonl -p "run the tests"
+dsh-attach --ssh user@host --list --json
+dsh-attach --ssh user@host --remote-bin ~/.local/bin/dsh-attach
+dsh-attach --ssh user@host --ssh-opt "-o" --ssh-opt "StrictHostKeyChecking=accept-new"
+```
+
+- `--exec` and `--list` always add `BatchMode=yes`; key or agent auth must be
+  configured because no password prompt can appear.
+- The remote executable is probed as `dsh-attach` on `PATH`,
+  `$HOME/.local/bin/dsh-attach`, then
+  `$HOME/.dsh/profiles/*/node_modules/.bin/dsh-attach`. `--remote-bin` skips the
+  probe; on a Windows remote pass the resolved `.cmd` path.
+- `--cwd`, `--allow-dir`, `--endpoint`, and `--cache-root` are remote paths and
+  are not expanded locally. `--cache-root @cwd` is rejected because the local
+  cwd is meaningless; use `@session` or an explicit remote path. `-f`, `-o`,
+  `--log`, and `--approval-rules` remain local files.
+- `--ssh` cannot be combined with `--socket` or `--hot`.
+- The header shows `ssh:<target>`. `/desktop` is disabled because it would
+  focus the local desktop, and local `HERDR_*` variables are not forwarded to
+  the remote Host.
+- A Host restart on the remote side is handled by reconnecting with a fresh
+  SSH proxy, which re-discovers the new PID, socket path, and rotated token.
+
 ## Session listing
 
 `--list` prints `ID`, `AGE`, `STATE`, `CWD`, and `TITLE`; subagent Sessions are
@@ -241,6 +284,8 @@ of the home directory for every model shell call. It is off by default.
 - `@cwd`: use `<launch directory>/.cache`.
 - `@session`: use `<session workspace>/.cache`; changing sessions resolves
   against each session's own workspace.
+- With `--ssh`, explicit paths are remote paths and are not expanded; `@cwd`
+  is rejected. `@session` and explicit remote paths still work.
 
 The Host derives `CLJ_CACHE`, `GITLIBS`, `GRADLE_USER_HOME`, `LEIN_HOME`,
 `COURSIER_CACHE`, `PIP_CACHE_DIR`, `npm_config_cache`, `CARGO_HOME`,
@@ -365,7 +410,8 @@ the loaded transcript. Cancel a running turn before rewinding.
 writes one request to a loopback bridge and opens `dsh://open`; the web client
 half bundled with `dsh-attach` polls the bridge and calls the harness's
 `uiWorkspace.openSession()`. The session id is never passed through the `dsh`
-protocol.
+protocol. In `--ssh` mode `/desktop` is disabled: the remote session cannot
+focus the local DSH Desktop.
 
 The bridge listens on `127.0.0.1:39765`; requests expire after 30 seconds. The
 web client half loads only in the Web/Desktop client, so restart DSH Desktop once
@@ -499,10 +545,29 @@ Reattach with: dsh-attach --reattach <session-id>
 Preserves profile, endpoint, theme; suppress with `DSH_ATTACH_NO_EXIT_HINT=1`.
 Signal/crash exits do not print it.
 
-After Host restart, the client retries and reopens the session; `/reconnect`
-forces it. A durably interrupted last turn gets one continuation prompt with a
-stable request id. `DSH_ATTACH_AUTO_RESUME=0` disables it. Pending approvals or
-questions from the old process may be lost.
+After Host restart or a dropped connection, the client retries and reopens the
+session; `/reconnect` forces it. A durably interrupted last turn gets one
+continuation prompt with a stable request id. `DSH_ATTACH_AUTO_RESUME=0`
+disables it. Pending approvals or questions from the old process may be lost.
+
+Remote mode is stricter and more forgiving at the same time:
+
+- SSH keepalives (`ServerAliveInterval=10`, `ServerAliveCountMax=3`) detect a
+  dead link. The heartbeat request is additionally bounded (5s in remote mode);
+  a timeout treats the connection as half-open and forces a fresh SSH proxy.
+- Reconnect failures back off `1s, 2s, 5s, 10s, 15s` with jitter and a 15s
+  connect timeout. Non-retryable errors such as `attach/ssh-auth`,
+  `attach/ssh-remote-bin`, or `attach/ssh-failed` stop automatic retries and
+  show what to fix.
+- After reconnecting on the same session, the client re-mirrors session
+  approval rules (`s`) and re-grants writable roots (`w`/`/sandbox allow-dir`)
+  best-effort, so a short drop does not break an in-flight turn.
+- Remote `--exec` also survives a mid-turn drop: it reconnects for up to 60
+  seconds, re-opens the same session, re-applies `--allow-dir` roots, and
+  inspects the fresh snapshot. If the turn finished while disconnected it
+  returns the final assistant text and usage as a normal success; if it is
+  still running it resumes waiting. If the window expires it fails with
+  `attach/closed` and keeps `sessionId` for `-s`.
 
 ## Multiple terminals
 

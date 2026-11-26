@@ -795,3 +795,234 @@ test('fails clearly when the Host has no command registry', async () => {
     (error) => error?.code === 'attach/exec-permission' && /commands are unavailable/u.test(error.message),
   );
 });
+
+function snapshotFrame(sessionId, records) {
+  return {
+    sessionId,
+    frame: {
+      type: 'snapshot',
+      header: { id: sessionId, cwd: '/work' },
+      cursor: records.length,
+      records,
+      hasMore: false,
+      projections: { asOfSeq: records.length, values: {} },
+    },
+  };
+}
+
+function eventRecord(type, data) {
+  return { seq: 1, type: 'event', event: { type, data } };
+}
+
+/** Drive a fake transport drop right after the prompt is queued. */
+function droppingClient({ onPrompt }) {
+  const client = fakeClient({ sessionId: 'new-1', onPrompt });
+  let drop = true;
+  const request = client.request;
+  client.request = async (method, params) => {
+    const value = await request(method, params);
+    return value;
+  };
+  // The close is emitted from `onPrompt`, after the Host accepted the prompt.
+  client.dropOnce = () => {
+    if (!drop) return;
+    drop = false;
+    client.emit('close', new Error('network drop'));
+  };
+  return client;
+}
+
+test('remote exec reconnects mid-turn and resumes waiting for turn/end', async () => {
+  let client;
+  let reconnects = 0;
+  client = droppingClient({
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'user/message', { content: [{ type: 'text', text: 'work' }] });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-1', 'partial');
+      fake.dropOnce();
+    },
+  });
+  client.reconnect = async () => {
+    reconnects += 1;
+    setTimeout(() => {
+      assistant(client, 'new-1', 'finished after reconnect');
+      finish(client, 'new-1');
+    }, 20);
+  };
+  const result = await runExec(client, {
+    prompt: 'work',
+    allowDirs: ['/shared'],
+    ssh: 'host',
+    reconnect: client.reconnect,
+    reconnectWindowMs: 5_000,
+  });
+  assert.equal(reconnects, 1);
+  assert.equal(result.ok, true);
+  assert.equal(result.text, 'finished after reconnect');
+  const allowDirCalls = client.requests.filter((entry) => entry.method === 'sandbox.allowDir');
+  assert.equal(allowDirCalls.length, 2, 'the initial grant and the post-reconnect re-grant');
+  assert.deepEqual(allowDirCalls.map((entry) => entry.params), [
+    { directory: '/shared' },
+    { directory: '/shared' },
+  ]);
+  const opens = client.requests.filter((entry) => entry.method === 'session.open');
+  assert.equal(opens.length, 2, 'the session is re-opened on the fresh connection');
+});
+
+test('remote exec recovers a turn that already finished while disconnected', async () => {
+  let client;
+  let reconnected = false;
+  client = droppingClient({
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'user/message', { content: [{ type: 'text', text: 'work' }] });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-1', 'partial');
+      fake.dropOnce();
+    },
+  });
+  client.reconnect = async () => {
+    reconnected = true;
+  };
+  const request = client.request;
+  client.request = async (method, params) => {
+    if (method === 'session.open' && reconnected) {
+      client.emit('frame', snapshotFrame('new-1', [
+        eventRecord('user/message', { content: [{ type: 'text', text: 'work' }] }),
+        eventRecord('turn/start', { turn: 2 }),
+        eventRecord('assistant/message', {
+          message: { content: [{ type: 'text', text: 'finished while away' }] },
+          usage: { inputTokens: 7, outputTokens: 8 },
+        }),
+        eventRecord('turn/end', { turn: 2, reason: { kind: 'complete' } }),
+      ]));
+      return { sessionId: params.sessionId };
+    }
+    return request(method, params);
+  };
+  const result = await runExec(client, {
+    prompt: 'work',
+    ssh: 'host',
+    reconnect: client.reconnect,
+    reconnectWindowMs: 5_000,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.text, 'finished while away');
+  assert.equal(result.turn, 2);
+  assert.deepEqual(result.usage, { inputTokens: 7, outputTokens: 8 });
+  assert.equal(result.reason, 'complete');
+  assert.equal(result.sessionId, 'new-1');
+});
+
+test('remote exec fails with attach/closed and preserves sessionId when reconnect expires', async () => {
+  let reconnects = 0;
+  const client = droppingClient({
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      fake.dropOnce();
+    },
+  });
+  client.reconnect = async () => {
+    reconnects += 1;
+    throw new Error('still down');
+  };
+  await assert.rejects(
+    runExec(client, {
+      prompt: 'work',
+      ssh: 'host',
+      reconnect: client.reconnect,
+      reconnectWindowMs: 60,
+    }),
+    (error) => error?.code === 'attach/closed'
+      && error?.sessionId === 'new-1'
+      && /did not recover/u.test(error.message),
+  );
+  assert.ok(reconnects >= 1, 'it tried to reconnect before giving up');
+});
+
+test('remote exec stops retrying on a fatal SSH error', async () => {
+  const client = droppingClient({
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      fake.dropOnce();
+    },
+  });
+  let reconnects = 0;
+  client.reconnect = async () => {
+    reconnects += 1;
+    throw Object.assign(new Error('Permission denied (publickey).'), { code: 'attach/ssh-auth' });
+  };
+  await assert.rejects(
+    runExec(client, {
+      prompt: 'work',
+      ssh: 'host',
+      reconnect: client.reconnect,
+      reconnectWindowMs: 5_000,
+    }),
+    (error) => error?.code === 'attach/ssh-auth' && error?.sessionId === 'new-1',
+  );
+  assert.equal(reconnects, 1, 'fatal authentication errors are not retried');
+});
+
+test('remote exec does not mistake an older history turn for the reconnected turn', async () => {
+  let client;
+  let reconnected = false;
+  let opens = 0;
+  const oldHistory = [
+    { seq: 5, type: 'event', event: { type: 'user/message', data: { content: [{ type: 'text', text: 'old' }] } } },
+    { seq: 6, type: 'event', event: { type: 'turn/start', data: { turn: 1 } } },
+    {
+      seq: 7,
+      type: 'event',
+      event: {
+        type: 'assistant/message',
+        data: { message: { content: [{ type: 'text', text: 'old answer' }] } },
+      },
+    },
+    { seq: 8, type: 'event', event: { type: 'turn/end', data: { turn: 1, reason: { kind: 'complete' } } } },
+  ];
+  client = droppingClient({
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'user/message', { content: [{ type: 'text', text: 'work' }] });
+      frame(fake, 'new-1', 'turn/start', { turn: 2 });
+      fake.dropOnce();
+    },
+  });
+  const originalRequest = client.request;
+  client.request = async (method, params) => {
+    if (method === 'session.open') {
+      opens += 1;
+      const records = reconnected ? oldHistory : oldHistory;
+      client.emit('frame', {
+        sessionId: params.sessionId,
+        frame: {
+          type: 'snapshot',
+          header: { id: params.sessionId, cwd: '/work' },
+          cursor: 10,
+          records,
+          hasMore: false,
+          projections: { values: {} },
+        },
+      });
+      return { sessionId: params.sessionId };
+    }
+    return originalRequest(method, params);
+  };
+  client.reconnect = async () => {
+    reconnected = true;
+    setTimeout(() => {
+      assistant(client, 'new-1', 'fresh answer');
+      finish(client, 'new-1');
+    }, 20);
+  };
+  const result = await runExec(client, {
+    prompt: 'work',
+    ssh: 'host',
+    reconnect: client.reconnect,
+    reconnectWindowMs: 5_000,
+  });
+  assert.equal(opens, 2);
+  assert.equal(result.ok, true);
+  assert.equal(result.text, 'fresh answer');
+  assert.notEqual(result.text, 'old answer');
+});

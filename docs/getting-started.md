@@ -7,6 +7,8 @@
 - Node.js `^22.19.0 || >=24.0.0` for the client.
 - Unix socket on Linux/macOS; named pipe on Windows. Windows TUI needs a
   ConPTY terminal such as Windows Terminal.
+- For remote attach, an OpenSSH client on the local machine and `dsh-attach`
+  installed in the remote profile. Both ends need Node.js.
 
 ## Install Host plugin
 
@@ -73,6 +75,8 @@ dsh-attach --list           # non-interactive
 dsh-attach --list --json    # machine-readable session summaries
 dsh-attach --exec -p "run the tests"   # one-shot, no TUI
 dsh-attach --exec --jsonl -p "run the tests"   # stream progress events
+dsh-attach --ssh user@host                    # attach to a remote Host
+dsh-attach --ssh host --exec -p "run the tests"   # remote one-shot
 ```
 
 If no endpoint exists, the client starts the desktop app on macOS/Windows, or
@@ -115,6 +119,10 @@ The TUI needs a TTY; use `--list` or `--exec` in scripts.
 | `--socket <path>` | Connect to a socket or named pipe; needs `--token`. |
 | `--token <token>` | Token for `--socket`. |
 | `--profile <name>` | Filter descriptors by profile. |
+| `--ssh <target>` | Attach over SSH (`user@host` or an `~/.ssh/config` alias); no remote TCP listener. |
+| `--remote-bin <path>` | Explicit remote `dsh-attach` executable (requires `--ssh`). |
+| `--ssh-opt <arg>` | Extra argument passed to `ssh`; repeatable (requires `--ssh`). |
+| `--stdio-proxy` | Remote-only stdin/stdout proxy used by `--ssh`; not for direct use. |
 | `--theme <name>` | `light` (default) or `dark`. |
 | `--log <file>` | Lifecycle log; `off` disables. |
 | `--hot` | Dev: restart TUI child on source changes. |
@@ -130,6 +138,36 @@ dsh-attach --socket /path/to/attach.sock --token '<token>'
 ```
 
 `--socket` without `--token` falls back to descriptor discovery.
+
+## Remote SSH
+
+`--ssh` runs `ssh -T` with keepalives and starts `dsh-attach --stdio-proxy` on
+the remote host. The proxy discovers the remote `$DSH_HOME/dsh-attach/endpoint.json`,
+dials the Unix socket or Windows named pipe, injects the descriptor token into
+the opening `hello`, and pipes NDJSON frames in both directions:
+
+```sh
+dsh-attach --ssh user@host
+dsh-attach --ssh build-box --profile desktop -s <session-id>
+dsh-attach --ssh build-box --remote-bin ~/.local/bin/dsh-attach --list
+dsh-attach --ssh build-box --exec --jsonl -p "run the tests"
+dsh-attach --ssh build-box --ssh-opt "-o" --ssh-opt "StrictHostKeyChecking=accept-new"
+```
+
+- The local client never starts a Host in SSH mode. If the remote Host is not
+  running, the proxy reports `no attach endpoint`.
+- `--exec` and `--list` add `BatchMode=yes`, so a password prompt fails fast
+  instead of hanging a script; configure key/agent auth for those modes.
+- `--cwd`, `--allow-dir`, `--endpoint`, and `--cache-root` name **remote**
+  paths. They are not expanded with the local home or cwd. `--cache-root @cwd`
+  is rejected; use `@session` or an explicit remote path.
+- The remote `dsh-attach` is located on `PATH`, at `$HOME/.local/bin/dsh-attach`,
+  or under `$HOME/.dsh/profiles/*/node_modules/.bin/dsh-attach`. Pass
+  `--remote-bin` to skip the probe (for a Windows remote, pass the `.cmd` path).
+- `--ssh` cannot be combined with `--socket` or `--hot`. `--remote-bin` and
+  `--ssh-opt` require `--ssh`.
+- The TUI header shows `ssh:<target>`; `/desktop` is disabled because it would
+  focus the local desktop, and local `HERDR_*` variables are not forwarded.
 
 ## Listing
 

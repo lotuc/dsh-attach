@@ -1582,3 +1582,230 @@ test('ignores a superseded open when deciding the cache-root notice', async () =
     else process.env.DSH_ATTACH_NO_MOUSE = previous;
   }
 });
+
+test('remote mode shows an ssh badge and disables /desktop', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    ssh: 'user@example.com',
+    logPath: 'off',
+    terminal,
+    tui,
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    const header = stripTerminalSequences(app.header.render(120).join('\n'));
+    assert.match(header, /ssh:user@example\.com/u);
+
+    app.editor.setText('/desktop');
+    app.editor.handleInput('\r');
+    await wait(40);
+    assert.equal(
+      app.rows.some((row) => typeof row.text === 'string' && /remote session cannot focus local DSH Desktop/u.test(row.text)),
+      true,
+    );
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('a timed-out heartbeat forces a remote reconnect', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  let failNextActivity = false;
+  client.activity = async () => {
+    if (!failNextActivity) return;
+    failNextActivity = false;
+    throw Object.assign(new Error('activity timed out'), { code: 'attach/timeout' });
+  };
+  let reconnects = 0;
+  client.reconnect = async () => {
+    reconnects += 1;
+    await wait(100);
+  };
+  const app = new AttachApp(client, {
+    session: 's1',
+    ssh: 'user@example.com',
+    logPath: 'off',
+    terminal,
+    tui,
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    failNextActivity = true;
+    assert.equal(typeof app.heartbeat?._onTimeout, 'function', 'the heartbeat interval is active');
+    app.heartbeat._onTimeout();
+    await wait(30);
+    assert.equal(
+      app.rows.some((row) => typeof row.text === 'string' && /stopped answering; reconnecting/u.test(row.text)),
+      true,
+    );
+    const deadline = Date.now() + 1_500;
+    while (reconnects === 0 && Date.now() < deadline) await wait(10);
+    assert.ok(reconnects >= 1, 'a stale heartbeat triggered reconnect');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('reconnect re-syncs session allow rules and tracked writable roots', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  let reconnects = 0;
+  client.reconnect = async () => {
+    reconnects += 1;
+  };
+  const app = new AttachApp(client, {
+    session: 's1',
+    ssh: 'user@example.com',
+    logPath: 'off',
+    terminal,
+    tui,
+    autoApprove: { enabled: false, mode: 'rules', rules: [] },
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+
+    emitToolCall(client, 'c1', 'npm test');
+    emitApproval(client, 'r1', 'c1');
+    await wait(40);
+    app.modals.get('interactive').component.handleInput('s');
+    await wait(50);
+    assert.equal(app.sessionAllowRules.length, 1);
+    assert.equal(client.sessionAllowRequests.length, 1);
+
+    app.editor.setText('/sandbox allow-dir /tmp/extra');
+    app.editor.handleInput('\r');
+    await wait(40);
+    assert.equal(
+      client.requestCalls.filter((call) => call.method === 'sandbox.allowDir').length,
+      1,
+    );
+
+    client.emit('close', new Error('network drop'));
+    const deadline = Date.now() + 2_500;
+    while ((reconnects === 0 || client.sessionAllowRequests.length < 2) && Date.now() < deadline) {
+      await wait(10);
+    }
+    assert.equal(reconnects, 1);
+    assert.equal(client.sessionAllowRequests.length, 2, 'the session rule was re-mirrored');
+    assert.deepEqual(client.sessionAllowRequests[1], { tool: 'bash', commandPrefix: ['npm', 'test'] });
+    const allowDirCalls = client.requestCalls.filter((call) => call.method === 'sandbox.allowDir');
+    assert.equal(allowDirCalls.length, 2, 'the tracked writable root was re-granted');
+    assert.deepEqual(allowDirCalls[1].params, { directory: '/tmp/extra' });
+    assert.deepEqual([...(app.sessionWritableRoots.get('s1') ?? [])], ['/tmp/extra']);
+    assert.deepEqual([...app.sandboxRoots], ['/tmp/extra']);
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('remote reconnect uses the SSH options and stops on a fatal auth error', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const optionsSeen = [];
+  let attempts = 0;
+  client.reconnect = async (options) => {
+    attempts += 1;
+    optionsSeen.push(options);
+    throw Object.assign(new Error('Permission denied (publickey).'), { code: 'attach/ssh-auth' });
+  };
+  const app = new AttachApp(client, {
+    session: 's1',
+    ssh: 'user@example.com',
+    sshOpts: ['-o', 'StrictHostKeyChecking=accept-new'],
+    remoteBin: '/opt/dsh-attach',
+    logPath: 'off',
+    terminal,
+    tui,
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    client.emit('close', new Error('network drop'));
+    const deadline = Date.now() + 3_000;
+    while (attempts === 0 && Date.now() < deadline) await wait(10);
+    assert.equal(attempts, 1);
+    await wait(1_800);
+    assert.equal(attempts, 1, 'a fatal auth error is not retried');
+    assert.equal(optionsSeen[0].timeoutMs, 15_000);
+    assert.equal(optionsSeen[0].ssh, 'user@example.com');
+    assert.deepEqual(optionsSeen[0].sshOpts, ['-o', 'StrictHostKeyChecking=accept-new']);
+    assert.equal(optionsSeen[0].remoteBin, '/opt/dsh-attach');
+    assert.equal(optionsSeen[0].batchMode, false);
+    const transcript = stripTerminalSequences(app.document.render(100).join('\n'));
+    assert.match(transcript, /authentication failed.*automatic reconnect stopped/u);
+    assert.equal(app.reconnectFatal?.code, 'attach/ssh-auth');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});
+
+test('remote sessions never send the local cwd to the Host', async () => {
+  const previous = process.env.DSH_ATTACH_NO_MOUSE;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  const terminal = { columns: 100, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    ssh: 'user@example.com',
+    logPath: 'off',
+    terminal,
+    tui,
+  });
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    app.editor.setText('/new');
+    app.editor.handleInput('\r');
+    await wait(60);
+    const creates = client.requestCalls.filter((call) => call.method === 'session.create');
+    assert.equal(creates.length, 1);
+    assert.equal('cwd' in creates[0].params, false, 'remote default cwd is decided by the Host');
+
+    app.editor.setText('/new ~/remote/work');
+    app.editor.handleInput('\r');
+    await wait(60);
+    const explicit = client.requestCalls.filter((call) => call.method === 'session.create').at(-1);
+    assert.equal(explicit.params.cwd, '~/remote/work', 'remote paths are not expanded locally');
+  } finally {
+    app.quit('test');
+    await running;
+    if (previous === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previous;
+  }
+});

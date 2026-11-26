@@ -1,6 +1,6 @@
 ---
 name: dsh-exec
-description: Dispatch non-interactive coding, review, research, or multi-turn follow-up tasks to a local DeepSeek Harness (DSH) via `dsh-attach --exec`. Use when the user asks to delegate work to DSH / DeepSeek Harness, run a task in a DSH session, resume an existing DSH session, or list local DSH sessions from another coding agent or script.
+description: Dispatch non-interactive coding, review, research, or multi-turn follow-up tasks to a local or remote DeepSeek Harness (DSH) via `dsh-attach --exec`. Use when the user asks to delegate work to DSH / DeepSeek Harness, run a task in a DSH session, resume an existing DSH session, or list DSH sessions (local or over SSH) from another coding agent or script.
 license: MIT
 compatibility: Requires `dsh-attach` CLI and a local DeepSeek Harness (Desktop or Web) installation with the `dsh-attach` Host plugin enabled.
 ---
@@ -20,6 +20,7 @@ dsh-attach --list --json
 - If `dsh-attach` is not on `PATH`, check `~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach` (or `node ./bin/dsh-attach.js` inside a local `dsh-attach` checkout).
 - Connecting to DSH reads `$DSH_HOME/dsh-attach/endpoint.json` (`~/.dsh` by default) and connects to a local Unix socket (or Windows named pipe). If your outer agent runs inside a restricted sandbox, run `dsh-attach` commands with host/unsandboxed permission.
 - If DSH is not running, `dsh-attach` auto-starts it and waits up to 120s. Set `DSH_ATTACH_NO_START=1` to fail fast instead.
+- For a remote Host, prefix commands with `--ssh <target>`; the remote `dsh-attach --stdio-proxy` discovers the remote endpoint and injects its token. Remote SSH attach does **not** auto-start the remote Host.
 
 ## 2. Core Dispatch Patterns
 
@@ -75,6 +76,39 @@ dsh-attach --exec --json \
 - Do **not** pass `-C`/`--cwd` or `--preset` with `-s`/`--session` (they apply to new sessions only).
 - The target session must be `idle` (`running: false` in `--list --json`).
 
+### Remote Host over SSH
+
+Use `--ssh <user@host|alias>` exactly like the local form. Add `--remote-bin`
+when the remote `dsh-attach` is not on `PATH`, under `~/.local/bin`, or under
+`~/.dsh/profiles/*/node_modules/.bin` (Windows remotes should pass the `.cmd`):
+
+```sh
+# List sessions on a remote Host
+dsh-attach --ssh build-box --list --json
+
+# Remote implementation task
+dsh-attach --exec --jsonl --ssh build-box \
+  -C /remote/repo \
+  --cache-root @session \
+  --permission workspace-write \
+  -p "Fix the failing migration test."
+
+# Remote exec with an explicit binary
+dsh-attach --exec --json --ssh build-box \
+  --remote-bin /home/me/.local/bin/dsh-attach \
+  -f /local/prompts/task.md
+```
+
+Remote path rules:
+
+- `-C/--cwd`, `--allow-dir`, `--endpoint`, and `--cache-root` are paths on the
+  remote machine and are not expanded locally. `--cache-root @cwd` is rejected;
+  use `@session` or an explicit remote path.
+- `-f/--prompt-file`, `-o/--output`, `--log`, and `--approval-rules` are local
+  files.
+- `--exec` and `--list` use `BatchMode=yes`; configure key/agent auth.
+- `--ssh` cannot be combined with `--socket` or `--hot`.
+
 ### Model, preset, and scoped approvals
 
 ```sh
@@ -111,6 +145,7 @@ dsh-attach --exec --jsonl -C /abs/path/to/repo \
   - `124`: Timed out (`--exec-timeout <seconds>`, default `1800`, `0` = no timeout).
   - `130`: Interrupted (`SIGINT`).
 - On exit `124` or `130`, read `sessionId` from the JSON/JSONL `error` payload (or stderr) and resume with `-s <sessionId>` once the session returns to `idle`.
+- With `--ssh`, a mid-turn network drop is recovered automatically for up to 60 seconds: the runner reconnects, re-opens the same session, re-applies `--allow-dir` roots, and either resumes waiting or returns the final text if the turn finished while disconnected. If recovery expires it exits `1` with `attach/closed` and still preserves `sessionId`. Fatal SSH errors (`attach/ssh-auth`, `attach/ssh-remote-bin`) are not retried.
 - After DSH reports completion, independently inspect `git status` / `git diff` (and run project checks if needed) before committing or reporting final success.
 
 ## Reference

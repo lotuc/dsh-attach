@@ -6,6 +6,8 @@
 2. **Attach server** (`lib/host/server.js`) owns the Unix socket/named pipe,
    descriptor, auth, session following, approvals, and questions.
 3. **Client** (`lib/client/`) follows frames, renders the TUI, and sends requests.
+   With `--ssh`, `ssh-transport.js` spawns the SSH hop and
+   `stdio-proxy.js` runs on the remote side as a byte proxy.
 4. **Shared protocol** (`lib/shared/protocol.js`) defines JSONL messages and limits.
 
 The bridge never starts a second harness; it calls the live Host controller, so
@@ -65,7 +67,9 @@ for up to 120 seconds. `DSH_ATTACH_NO_START=1` disables the launch.
 
 ## Wire protocol
 
-Newline-delimited UTF-8 JSON over Unix socket or Windows named pipe.
+Newline-delimited UTF-8 JSON over a Unix socket or Windows named pipe. With
+`--ssh`, the same frames travel inside the SSH stdin/stdout channel; the remote
+proxy still speaks the local socket protocol to the Host.
 
 ```text
 hello { token, client }
@@ -135,7 +139,9 @@ Changing the wire format requires a `PROTOCOL_VERSION` bump and both sides.
 | `lib/client/exec.js` | One-shot prompt execution, final-text capture, and approval policy. |
 | `lib/client/exec-rules.js` | Load explicit TOML/JSONC approval rules for `--exec`. |
 | `lib/client/hot-reload.js` | Client source supervisor. |
-| `lib/client/connection.js` | Descriptor discovery, dial, reconnect, requests. |
+| `lib/client/connection.js` | Descriptor discovery, local/SSH dial, reconnect, requests. |
+| `lib/client/ssh-transport.js` | SSH command build, keepalives, adapter, error classification. |
+| `lib/client/stdio-proxy.js` | Remote-only token-injecting stdin/stdout proxy. |
 | `lib/client/app.js` | TUI layout, events, commands, status. |
 | `lib/client/preview.js` | Read-only live preview renderer. |
 | `lib/client/panels.js` | Approval/question/picker/job/info/btw panels. |

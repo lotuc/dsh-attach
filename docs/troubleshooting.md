@@ -57,6 +57,44 @@ jq '{pid, profile, socketPath, pluginVersion, protocol}' \
 | Stop requested but child runs | Interrupt acknowledges cancellation; current step may finish. |
 | Prompt history lost | History is per client run. |
 | Stale endpoint files | Client skips unreachable endpoints; remove only when no Host is running. |
+| `attach/ssh-auth` | SSH authentication failed. Check key/agent, `known_hosts`, and `ssh <target> true`; automatic retries stop. |
+| `attach/ssh-remote-bin` | Remote `dsh-attach` not found. Install it in the remote profile or pass `--remote-bin`; for a Windows remote pass the `.cmd` path. |
+| `attach/ssh-failed` | SSH connected but the remote command or protocol failed; read the message and run the remote probe manually. |
+| Remote `no attach endpoint` | Start the remote Host (SSH attach does not auto-start it) and confirm the remote plugin/endpoint. |
+| Remote exec hangs at auth | `--exec`/`--list` use `BatchMode=yes`; set up key or agent auth. |
+| `--cache-root @cwd` with `--ssh` | The local cwd is irrelevant remotely; use `@session` or an explicit remote path. |
+| Remote header shows reconnecting | Network/SSH drop; keepalives and heartbeat force a fresh proxy. Check the SSH connection and remote Host. |
+
+## Remote SSH
+
+Check the hop without involving dsh-attach:
+
+```sh
+ssh -T <target> true
+ssh -T <target> -- 'command -v dsh-attach || command -v "$HOME/.local/bin/dsh-attach"'
+```
+
+Then run the proxy by hand to see its diagnostics (stderr only; stdout must stay
+protocol-only):
+
+```sh
+ssh -T <target> -- dsh-attach --stdio-proxy --profile desktop
+# then type a hello frame on stdin; Ctrl+D closes it
+```
+
+Common causes:
+
+- remote `$DSH_HOME` differs from the profile that loaded the plugin;
+- the plugin is installed only locally, not in the remote profile;
+- OpenSSH `BatchMode=yes` finds no usable key/agent;
+- a Windows remote's default shell cannot run the probe: pass `--remote-bin`
+  with a `.cmd` path;
+- the remote Host is stopped: SSH attach deliberately does not start it.
+
+A remote Host restart is expected to reconnect; the new proxy discovers the
+rotated token automatically. If automatic retries stop after an auth or
+remote-binary error, fix that and run `/reconnect` in the TUI (or rerun the
+command).
 
 ## Late attach
 

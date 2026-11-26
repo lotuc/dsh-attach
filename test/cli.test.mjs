@@ -340,3 +340,77 @@ test('--output writes nothing for an empty final text', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('parses remote SSH flags', () => {
+  const options = parseArgs([
+    '--ssh', ' user@example.com ',
+    '--remote-bin', ' ~/bin/dsh-attach ',
+    '--ssh-opt', '-o',
+    '--ssh-opt', 'StrictHostKeyChecking=accept-new',
+  ]);
+  assert.equal(options.ssh, ' user@example.com ');
+  assert.equal(options.remoteBin, ' ~/bin/dsh-attach ');
+  assert.deepEqual(options.sshOpts, ['-o', 'StrictHostKeyChecking=accept-new']);
+  const normalized = normalizeOptions(options);
+  assert.equal(normalized.ssh, 'user@example.com');
+  assert.equal(normalized.remoteBin, '~/bin/dsh-attach');
+  assert.deepEqual(normalized.sshOpts, ['-o', 'StrictHostKeyChecking=accept-new']);
+});
+
+test('validates remote SSH flag combinations', () => {
+  usageError(['--ssh'], /--ssh needs a value|requires a value/u);
+  usageError(['--ssh', '  '], /--ssh needs a target/u);
+  usageError(['--ssh', 'host', '--socket', '/tmp/a'], /--ssh cannot be combined with --socket/u);
+  usageError(['--ssh', 'host', '--hot'], /--ssh cannot be combined with --hot/u);
+  usageError(['--remote-bin', '/opt/dsh-attach'], /--remote-bin requires --ssh/u);
+  usageError(['--ssh', 'host', '--remote-bin', '  '], /--remote-bin needs/u);
+  usageError(['--ssh-opt', '-o'], /--ssh-opt requires --ssh/u);
+  usageError(['--ssh', 'host', '--ssh-opt', '  '], /--ssh-opt needs/u);
+});
+
+test('keeps remote paths unexpanded under --ssh', () => {
+  const remote = parsed([
+    '--ssh', 'host',
+    '--exec', '-p', 'work',
+    '-C', '~/remote/work',
+    '--allow-dir', '~/remote/shared',
+    '--cache-root', '~/remote/cache',
+    '--output', '~/local-answer.txt',
+  ]);
+  assert.equal(remote.cwd, '~/remote/work');
+  assert.deepEqual(remote.allowDirs, ['~/remote/shared']);
+  assert.equal(remote.cacheRoot, '~/remote/cache');
+  assert.equal(remote.output.startsWith('~'), false, 'local output paths still expand');
+
+  assert.equal(parsed(['--ssh', 'host', '--exec', '-p', 'x', '--cache-root', '@session']).cacheRoot, '@session');
+  assert.equal(parsed(['--ssh', 'host', '--exec', '-p', 'x', '--cache-root', 'relative/cache']).cacheRoot, 'relative/cache');
+
+  const local = parsed(['--exec', '-p', 'work', '-C', '~/local/work', '--allow-dir', '~/local/shared']);
+  assert.equal(local.cwd.startsWith('~'), false);
+  assert.equal(local.allowDirs[0].startsWith('~'), false);
+});
+
+test('rejects --cache-root @cwd under --ssh with an actionable hint', () => {
+  assert.throws(
+    () => parsed(['--ssh', 'host', '--exec', '-p', 'x', '--cache-root', '@cwd']),
+    (error) => /--cache-root @cwd is unavailable with --ssh/u.test(error.message)
+      && /@session/u.test(error.message)
+      && /explicit remote path/u.test(error.message),
+  );
+  // @cwd remains valid locally.
+  assert.equal(parsed(['--exec', '-p', 'x', '--cache-root', '@cwd']).cacheRoot.endsWith('.cache'), true);
+});
+
+test('parses --stdio-proxy and validates its combinations', () => {
+  const options = parsed(['--stdio-proxy', '--endpoint', '~/endpoint.json', '--profile', 'desktop']);
+  assert.equal(options.stdioProxy, true);
+  assert.equal(options.profile, 'desktop');
+  assert.equal(options.endpoint.startsWith('~'), false, 'the proxy expands its own local paths');
+
+  usageError(['--stdio-proxy', '--exec', '-p', 'x'], /--stdio-proxy cannot be combined with --exec/u);
+  usageError(['--stdio-proxy', '--list'], /--stdio-proxy cannot be combined with --list/u);
+  usageError(['--stdio-proxy', '--preview', 's1'], /--stdio-proxy cannot be combined with --preview/u);
+  usageError(['--stdio-proxy', '--hot'], /--stdio-proxy cannot be combined with --hot/u);
+  usageError(['--stdio-proxy', '--ssh', 'host'], /--stdio-proxy cannot be combined with --ssh/u);
+  usageError(['--stdio-proxy', '--socket', '/tmp/a'], /--stdio-proxy with --socket needs --token/u);
+});
