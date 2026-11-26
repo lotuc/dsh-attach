@@ -112,8 +112,12 @@ test('builds an SSH command with keepalives, batch mode, and quoting', () => {
     `exec '/opt/dsh attach' '--stdio-proxy'`,
   );
   assert.equal(
-    buildRemoteCommand({ remoteBin: 'C:\\Tools\\dsh-attach.cmd', profile: 'desk' }),
-    `"C:\\Tools\\dsh-attach.cmd" "--stdio-proxy" "--profile" "desk"`,
+    buildRemoteCommand({ remoteBin: 'C:/Tools/dsh-attach.cmd', profile: 'desk' }),
+    'C:\\Tools\\dsh-attach.cmd --stdio-proxy --profile desk',
+  );
+  assert.equal(
+    buildRemoteCommand({ remoteBin: 'C:\\Program Files\\dsh-attach.cmd', endpoint: 'C:\\My Dir\\endpoint.json' }),
+    '"C:\\Program Files\\dsh-attach.cmd" --stdio-proxy --endpoint "C:\\My Dir\\endpoint.json"',
   );
   const probe = buildRemoteCommand({});
   assert.match(probe, /command -v "\$candidate"/u);
