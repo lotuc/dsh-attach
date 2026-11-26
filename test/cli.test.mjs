@@ -9,6 +9,7 @@ import {
   normalizeOptions,
   parseArgs,
   runExecCommand,
+  runRemoteCommand,
   sessionListPayload,
 } from '../lib/client/cli.js';
 
@@ -413,4 +414,228 @@ test('parses --stdio-proxy and validates its combinations', () => {
   usageError(['--stdio-proxy', '--hot'], /--stdio-proxy cannot be combined with --hot/u);
   usageError(['--stdio-proxy', '--ssh', 'host'], /--stdio-proxy cannot be combined with --ssh/u);
   usageError(['--stdio-proxy', '--socket', '/tmp/a'], /--stdio-proxy with --socket needs --token/u);
+});
+
+async function runRemote(args, env) {
+  const stdout = capture();
+  const stderr = capture();
+  const code = await runRemoteCommand(args, {
+    env,
+    stdout: stdout.stream,
+    stderr: stderr.stream,
+  });
+  return { code, out: stdout.text(), err: stderr.text() };
+}
+
+test('remote add/list/show/remove manage a remotes.toml lifecycle', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-attach-remotes-cli-'));
+  const path = join(dir, 'remotes.toml');
+  const env = { DSH_ATTACH_REMOTES: path, DSH_HOME: dir };
+  try {
+    const added = await runRemote([
+      'add', 'win',
+      '--ssh', 'user@localhost',
+      '--ssh-opt', '-p2233',
+      '--remote-bin', 'C:/Users/me/AppData/Roaming/npm/dsh-attach.cmd',
+      '--profile', 'desktop',
+      '--endpoint', '/remote/endpoint.json',
+      '--cache-root', '@session',
+    ], env);
+    assert.equal(added.code, 0);
+    assert.match(added.out, /Added remote alias "win"/u);
+    const text = await readFile(path, 'utf8');
+    assert.match(text, /ssh = "user@localhost"/u);
+    assert.match(text, /ssh_opts = \[ "-p2233" \]/u);
+    assert.match(text, /remote_bin = /u);
+    assert.match(text, /cache_root = "@session"/u);
+
+    const listed = await runRemote(['list'], env);
+    assert.equal(listed.code, 0);
+    assert.match(listed.out, /NAME/u);
+    assert.match(listed.out, /win/u);
+    assert.match(listed.out, /user@localhost/u);
+    assert.match(listed.out, /desktop/u);
+
+    const jsonList = await runRemote(['list', '--json'], env);
+    assert.equal(jsonList.code, 0);
+    const parsedList = JSON.parse(jsonList.out);
+    assert.equal(parsedList.remotes.win.ssh, 'user@localhost');
+    assert.deepEqual(parsedList.remotes.win.sshOpts, ['-p2233']);
+    assert.equal(parsedList.remotes.win.remoteBin, 'C:/Users/me/AppData/Roaming/npm/dsh-attach.cmd');
+    assert.equal(parsedList.remotes.win.cacheRoot, '@session');
+
+    const shown = await runRemote(['show', 'win'], env);
+    assert.equal(shown.code, 0);
+    assert.match(shown.out, /name\s+win/u);
+    assert.match(shown.out, /user@localhost/u);
+    assert.match(shown.out, /@session/u);
+
+    const shownJson = await runRemote(['show', 'win', '--json'], env);
+    assert.equal(shownJson.code, 0);
+    const parsedShow = JSON.parse(shownJson.out);
+    assert.equal(parsedShow.name, 'win');
+    assert.equal(parsedShow.ssh, 'user@localhost');
+    assert.deepEqual(parsedShow.sshOpts, ['-p2233']);
+    assert.equal(parsedShow.endpoint, '/remote/endpoint.json');
+
+    const duplicate = await runRemote(['add', 'win', '--ssh', 'other@host'], env);
+    assert.equal(duplicate.code, 1);
+    assert.match(duplicate.err, /already exists/u);
+    assert.match(duplicate.err, /--force/u);
+
+    const forced = await runRemote(['add', 'win', '--ssh', 'other@host', '--force'], env);
+    assert.equal(forced.code, 0);
+    assert.match(await readFile(path, 'utf8'), /ssh = "other@host"/u);
+
+    const removed = await runRemote(['remove', 'win'], env);
+    assert.equal(removed.code, 0);
+    assert.match(removed.out, /Removed remote alias "win"/u);
+    const listedAfter = await runRemote(['list'], env);
+    assert.match(listedAfter.out, /No remote aliases configured/u);
+
+    const missing = await runRemote(['remove', 'win'], env);
+    assert.equal(missing.code, 1);
+    assert.match(missing.err, /not configured/u);
+
+    assert.equal((await runRemote(['add', 'rmtest', '--ssh', 'host'], env)).code, 0);
+    assert.equal((await runRemote(['rm', 'rmtest'], env)).code, 0);
+    assert.match((await runRemote(['list'], env)).out, /No remote aliases configured/u);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('remote add validates names and options', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-attach-remotes-cli-'));
+  const path = join(dir, 'remotes.toml');
+  const env = { DSH_ATTACH_REMOTES: path, DSH_HOME: dir };
+  try {
+    assert.equal((await runRemote(['add', 'bad name', '--ssh', 'host'], env)).code, 2);
+    assert.match((await runRemote(['add', '-bad', '--ssh', 'host'], env)).err, /unknown option|invalid remote alias/u);
+    assert.match((await runRemote(['add', 'x'], env)).err, /--ssh/u);
+    assert.match((await runRemote(['add', 'x', '--ssh', '  '], env)).err, /--ssh/u);
+    assert.match(
+      (await runRemote(['add', 'x', '--ssh', 'host', '--cache-root', '@cwd'], env)).err,
+      /@cwd.*@session|use @session/u,
+    );
+    assert.match((await runRemote(['add', 'x', '--ssh', 'host', '--json'], env)).err, /does not accept --json/u);
+    assert.equal((await runRemote(['list', 'extra'], env)).code, 2);
+    assert.equal((await runRemote(['show'], env)).code, 2);
+    assert.equal((await runRemote(['remove'], env)).code, 2);
+    assert.equal((await runRemote(['nope'], env)).code, 2);
+    assert.match((await runRemote(['show', 'missing'], env)).err, /not configured/u);
+
+    const help = await runRemote(['--help'], env);
+    assert.equal(help.code, 0);
+    assert.match(help.out, /dsh-attach remote/u);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('--remote and --ssh aliases merge CLI overrides', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-attach-remotes-cli-'));
+  const path = join(dir, 'remotes.toml');
+  const env = { DSH_ATTACH_REMOTES: path, DSH_HOME: dir };
+  try {
+    await runRemote([
+      'add', 'win',
+      '--ssh', 'user@localhost',
+      '--ssh-opt', '-p2233',
+      '--remote-bin', 'C:/bin/dsh-attach.cmd',
+      '--profile', 'desktop',
+      '--endpoint', '/remote/endpoint.json',
+      '--cache-root', '@session',
+    ], env);
+
+    const viaRemote = normalizeOptions(parseArgs([
+      '--remote', 'win',
+      '--exec', '-p', 'work',
+      '--profile', 'cli-profile',
+      '--remote-bin', 'cli-bin',
+      '--ssh-opt', '-v',
+      '-C', '/remote/work',
+    ]), env);
+    assert.equal(viaRemote.ssh, 'user@localhost');
+    assert.equal(viaRemote.remoteAlias, 'win');
+    assert.deepEqual(viaRemote.sshOpts, ['-p2233', '-v']);
+    assert.equal(viaRemote.profile, 'cli-profile');
+    assert.equal(viaRemote.remoteBin, 'cli-bin');
+    assert.equal(viaRemote.endpoint, '/remote/endpoint.json');
+    assert.equal(viaRemote.cacheRoot, '@session');
+    assert.equal(viaRemote.cwd, '/remote/work', 'remote cwd is not expanded');
+
+    const viaSsh = normalizeOptions(parseArgs([
+      '--ssh', 'win',
+      '--exec', '-p', 'work',
+      '--endpoint', '/other/endpoint.json',
+    ]), env);
+    assert.equal(viaSsh.ssh, 'user@localhost');
+    assert.equal(viaSsh.remoteAlias, 'win');
+    assert.deepEqual(viaSsh.sshOpts, ['-p2233']);
+    assert.equal(viaSsh.remoteBin, 'C:/bin/dsh-attach.cmd');
+    assert.equal(viaSsh.profile, 'desktop');
+    assert.equal(viaSsh.endpoint, '/other/endpoint.json');
+
+    const literal = normalizeOptions(parseArgs(['--ssh', 'literal-host']), env);
+    assert.equal(literal.ssh, 'literal-host');
+    assert.equal(literal.remoteAlias, undefined);
+
+    assert.throws(
+      () => normalizeOptions(parseArgs(['--remote', 'missing']), env),
+      (error) => /unknown remote alias "missing"/u.test(error.message)
+        && /configured aliases: win/u.test(error.message)
+        && /remote add missing/u.test(error.message),
+    );
+    usageErrorForEnv(['--remote', 'win', '--ssh', 'host'], env, /--remote cannot be combined with --ssh/u);
+    usageErrorForEnv(['--remote', 'win', '--socket', '/tmp/sock'], env, /--remote cannot be combined with --socket/u);
+    usageErrorForEnv(['--remote', 'win', '--hot'], env, /--remote cannot be combined with --hot/u);
+    usageErrorForEnv(['--remote', 'win', '--stdio-proxy'], env, /--remote cannot be combined with --stdio-proxy/u);
+    usageErrorForEnv(['--remote', '  '], env, /--remote needs an alias name/u);
+    usageErrorForEnv(
+      ['--remote', 'win', '--exec', '-p', 'x', '--cache-root', '@cwd'],
+      env,
+      /--cache-root @cwd is unavailable/u,
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+function usageErrorForEnv(argv, env, pattern) {
+  assert.throws(
+    () => normalizeOptions(parseArgs(argv), env),
+    (error) => pattern.test(error.message),
+    `expected ${argv.join(' ')} to fail`,
+  );
+}
+
+test('remote alias resume hints stay concise', async () => {
+  const { resumeArgv } = await import('../lib/client/app.js');
+  assert.deepEqual(
+    resumeArgv({
+      remoteAlias: 'win',
+      ssh: 'user@localhost',
+      sshOpts: ['-p2233'],
+      remoteBin: 'C:/bin/dsh-attach.cmd',
+      profile: 'desktop',
+      endpoint: '/remote/endpoint.json',
+      theme: 'light',
+    }, 's1'),
+    ['dsh-attach', '--remote', 'win', '--reattach', 's1'],
+  );
+  assert.deepEqual(
+    resumeArgv({
+      ssh: 'user@localhost',
+      sshOpts: ['-p2233'],
+      remoteBin: 'C:/bin/dsh-attach.cmd',
+      profile: 'desktop',
+      endpoint: '/remote/endpoint.json',
+    }, 's1'),
+    [
+      'dsh-attach', '--ssh', 'user@localhost', '--remote-bin', 'C:/bin/dsh-attach.cmd',
+      '--ssh-opt', '-p2233', '--profile', 'desktop', '--endpoint', '/remote/endpoint.json',
+      '--reattach', 's1',
+    ],
+  );
 });

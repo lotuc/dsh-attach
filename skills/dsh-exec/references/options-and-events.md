@@ -24,17 +24,40 @@
 | `--exec-timeout <seconds>` | exec | Cancel a stalled turn (default `1800`, `0` waits forever). Exits `124`. |
 | `--list` | list | List sessions and exit. Combine with `--json` for machine-readable output and `--all` to include subagents. |
 | `--profile <name>` | global | Filter Host endpoint descriptors by DSH profile (e.g. `desktop`, `web`). Forwarded to the remote proxy under `--ssh`. |
-| `--ssh <target>` | global | Attach over SSH (`user@host` or an ssh alias) via a remote `--stdio-proxy`; no Host TCP listener. Mutually exclusive with `--socket`/`--hot`. |
-| `--remote-bin <path>` | remote | Explicit remote `dsh-attach` executable; skips the remote probe. Requires `--ssh`. Use a `.cmd` path for a Windows remote. |
-| `--ssh-opt <arg>` | remote | Extra argv element forwarded to `ssh`; repeat for `-o value` pairs. Requires `--ssh`. |
-| `--stdio-proxy` | internal | Remote-side stdin/stdout proxy used by `--ssh`. Not combined with `--exec`, `--list`, `--preview`, `--hot`, or `--ssh`. |
+| `--ssh <target>` | global | Attach over SSH (`user@host` or an ssh alias) via a remote `--stdio-proxy`; no Host TCP listener. Mutually exclusive with `--socket`/`--hot`. A configured remote alias name is expanded transparently. |
+| `--remote <alias>` | global | Attach through a named remote profile from `$DSH_HOME/dsh-attach/remotes.toml` (`DSH_ATTACH_REMOTES` overrides). Mutually exclusive with `--ssh`/`--socket`/`--hot`/`--stdio-proxy`. |
+| `--remote-bin <path>` | remote | Explicit remote `dsh-attach` executable; skips the remote probe. Requires `--ssh` or `--remote`. Use a `.cmd` path for a Windows remote. |
+| `--ssh-opt <arg>` | remote | Extra argv element forwarded to `ssh`; repeat for `-o value` pairs. Requires `--ssh` or `--remote`. Appended after alias `ssh_opts`. |
+| `--stdio-proxy` | internal | Remote-side stdin/stdout proxy used by `--ssh`/`--remote`. Not combined with `--exec`, `--list`, `--preview`, `--hot`, `--ssh`, or `--remote`. |
 
-## Remote Path Rules (`--ssh`)
+## Remote Aliases
+
+`dsh-attach remote ...` manages `$DSH_HOME/dsh-attach/remotes.toml`
+(`DSH_ATTACH_REMOTES` overrides):
+
+```sh
+dsh-attach remote list [--json]
+dsh-attach remote add <name> --ssh <target> [--ssh-opt <arg>]... \
+  [--remote-bin <path>] [--profile <name>] [--endpoint <path>] \
+  [--cache-root <path|@session>] [--force]
+dsh-attach remote show <name> [--json]
+dsh-attach remote remove <name>      # alias: rm
+```
+
+- Alias names match `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`; `ssh` is required.
+- `remote add` refuses to overwrite without `--force` and rejects
+  `--cache-root @cwd`.
+- TOML keys may be snake_case or camelCase; writes use snake_case.
+- CLI `--profile`, `--remote-bin`, `--endpoint`, and `--cache-root` override
+  alias fields; CLI `--ssh-opt` values append after the alias options.
+
+## Remote Path Rules (`--ssh` / `--remote`)
 
 - `-C/--cwd`, `--allow-dir`, `--endpoint`, and `--cache-root` refer to the
   remote machine and are **not** expanded with the local home/cwd.
-- `--cache-root @cwd` is rejected under `--ssh`; use `@session` or an explicit
-  remote path. `@session` and explicit remote paths are passed through.
+- `--cache-root @cwd` is rejected under `--ssh`/`--remote`; use `@session` or
+  an explicit remote path. `@session` and explicit remote paths are passed
+  through.
 - `-f/--prompt-file`, `-o/--output`, `--log`, and `--approval-rules` remain
   local files and still expand `~`.
 - `--exec` and `--list` imply SSH `BatchMode=yes`; key/agent auth is required.

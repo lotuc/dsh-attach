@@ -20,7 +20,7 @@ dsh-attach --list --json
 - If `dsh-attach` is not on `PATH`, check `~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach` (or `node ./bin/dsh-attach.js` inside a local `dsh-attach` checkout).
 - Connecting to DSH reads `$DSH_HOME/dsh-attach/endpoint.json` (`~/.dsh` by default) and connects to a local Unix socket (or Windows named pipe). If your outer agent runs inside a restricted sandbox, run `dsh-attach` commands with host/unsandboxed permission.
 - If DSH is not running, `dsh-attach` auto-starts it and waits up to 120s. Set `DSH_ATTACH_NO_START=1` to fail fast instead.
-- For a remote Host, prefix commands with `--ssh <target>`; the remote `dsh-attach --stdio-proxy` discovers the remote endpoint and injects its token. Remote SSH attach does **not** auto-start the remote Host.
+- For a remote Host, prefix commands with `--ssh <target>`; the remote `dsh-attach --stdio-proxy` discovers the remote endpoint and injects its token. Remote SSH attach does **not** auto-start the remote Host. If the user has configured a named remote in `$DSH_HOME/dsh-attach/remotes.toml`, use `--remote <alias>` (or pass the alias name to `--ssh`) instead of repeating host flags.
 
 ## 2. Core Dispatch Patterns
 
@@ -97,7 +97,21 @@ dsh-attach --exec --jsonl --ssh build-box \
 dsh-attach --exec --json --ssh build-box \
   --remote-bin /home/me/.local/bin/dsh-attach \
   -f /local/prompts/task.md
+
+# Remote exec through a named alias
+dsh-attach --exec --jsonl --remote build-box \
+  --cache-root @session -p "Run the test suite."
 ```
+
+If `build-box` is defined in `$DSH_HOME/dsh-attach/remotes.toml`
+(`DSH_ATTACH_REMOTES` overrides the path), `--remote build-box` expands its
+target, ssh options, remote binary, profile, endpoint, and cache root. The same
+lookup happens when an alias name is passed to `--ssh`. Manage aliases with
+`dsh-attach remote add <name> --ssh <target> ...`, `remote list [--json]`,
+`remote show <name> [--json]`, and `remote remove <name>`; add `--force` to
+replace an existing alias. CLI `--profile`, `--remote-bin`, `--endpoint`, and
+`--cache-root` override alias fields, and repeated `--ssh-opt` values are
+appended after the alias options.
 
 Remote path rules:
 
@@ -107,7 +121,8 @@ Remote path rules:
 - `-f/--prompt-file`, `-o/--output`, `--log`, and `--approval-rules` are local
   files.
 - `--exec` and `--list` use `BatchMode=yes`; configure key/agent auth.
-- `--ssh` cannot be combined with `--socket` or `--hot`.
+- `--ssh` cannot be combined with `--socket` or `--hot`. `--remote` is
+  mutually exclusive with `--ssh`, `--socket`, `--hot`, and `--stdio-proxy`.
 
 ### Model, preset, and scoped approvals
 

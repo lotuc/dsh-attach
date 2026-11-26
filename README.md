@@ -33,6 +33,9 @@ dsh-attach
 dsh-attach --exec -p "fix the failing test"
 dsh-attach --ssh user@host                 # remote TUI
 dsh-attach --ssh user@host --exec -p "run the tests"
+dsh-attach remote add win --ssh user@localhost --ssh-opt -p2233
+dsh-attach --remote win                    # same host via a named alias
+dsh-attach --ssh win                       # alias names also work with --ssh
 ```
 
 Windows: run from Windows Terminal/ConPTY and use:
@@ -81,7 +84,10 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
   `@default`) scopes approvals.
 - **Remote SSH**: `--ssh <target>` attaches through a remote `--stdio-proxy`
   with no Host TCP listener; `--remote-bin` and repeatable `--ssh-opt` tune the
-  hop, and `--exec`/`--list` use non-interactive SSH batch mode.
+  hop, and `--exec`/`--list` use non-interactive SSH batch mode. Named aliases
+  in `$DSH_HOME/dsh-attach/remotes.toml` reduce a complex host to
+  `dsh-attach --remote <alias>`; manage them with
+  `dsh-attach remote add|list|show|remove`.
 - **Reconnect**: automatic retry after Host restart or a network drop,
   `/reconnect` on demand; remote mode uses longer backoff, detects half-open
   links with a bounded heartbeat, and re-applies session rules/writable roots.
@@ -124,8 +130,8 @@ See [Security](docs/security.md).
 - Subagent history is read-only; control is limited to follow-up messages and
   interrupt.
 - Herdr integration is Unix-only.
-- In `--ssh` mode `/desktop` is disabled and local `HERDR_*` variables are not
-  forwarded; the remote Host is not auto-started.
+- In `--ssh`/`--remote` mode `/desktop` is disabled and local `HERDR_*`
+  variables are not forwarded; the remote Host is not auto-started.
 - Loaded history defaults to 300 messages; paging reads further back.
 
 ## License

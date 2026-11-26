@@ -70,6 +70,7 @@ Late terminals receive pending interactions from the Host.
 | `DSH_ATTACH_FULL_MOUSE=1` | Keep all-motion mouse tracking (`1003`). |
 | `DSH_ATTACH_NO_EXIT_HINT=1` | Suppress reattach hint. |
 | `DSH_ATTACH_LOG` | Lifecycle log; `off` disables. |
+| `DSH_ATTACH_REMOTES` | Remote alias TOML path; default `$DSH_HOME/dsh-attach/remotes.toml`. |
 | `DSH_ATTACH_KEYS=1` | Log raw keys (may include prompt text). |
 | `DSH_ATTACH_DETAIL` | Initial `compact`, `standard`, or `verbose`. |
 | `DSH_ATTACH_PERF=1` | Frame/input/event-loop diagnostics. |
@@ -447,7 +448,8 @@ dsh-attach --ssh user@host --ssh-opt "-o" --ssh-opt "ServerAliveInterval=5"
   `--remote-bin 'C:\Users\me\.dsh\profiles\desktop\node_modules\.bin\dsh-attach.cmd'`.
 - `--ssh-opt` is forwarded verbatim, one argv element per flag; repeat it for
   flags that take a separate value.
-- `--ssh` cannot be combined with `--socket` or `--hot`.
+- `--ssh` cannot be combined with `--socket` or `--hot`. Named aliases add
+  `--remote <alias>`; see [Remote aliases](#remote-aliases).
 - The remote Host must already be running; unlike local discovery, SSH attach
   does not auto-start the remote Harness.
 - `DSH_ATTACH_NO_START` is evaluated by the machine that runs `dsh-attach`.
@@ -457,3 +459,51 @@ SSH keepalives (`ServerAliveInterval=10`, `ServerAliveCountMax=3`) and
 `ConnectTimeout=10` are always sent; `--exec` and `--list` also send
 `BatchMode=yes`. Put persistent host aliases, users, ports, and identity files
 in `~/.ssh/config` and use the alias as the `--ssh` target.
+
+### Remote aliases
+
+Named remote SSH profiles live in `$DSH_HOME/dsh-attach/remotes.toml`
+(override with `DSH_ATTACH_REMOTES`). They are written and read as TOML; both
+snake_case and camelCase keys are accepted on read, and `remote add` writes
+snake_case:
+
+```toml
+[remotes.win]
+ssh = "user@localhost"
+ssh_opts = ["-p2233"]
+remote_bin = "C:/Users/me/AppData/Roaming/npm/dsh-attach.cmd"
+profile = "desktop"
+endpoint = "/remote/endpoint.json"   # optional
+cache_root = "@session"              # optional
+```
+
+| Key | Meaning |
+|---|---|
+| `ssh` | Required SSH target (`user@host` or an `~/.ssh/config` alias). |
+| `ssh_opts` | Extra argv forwarded to `ssh`, as a string array. |
+| `remote_bin` | Remote `dsh-attach` executable; skips the remote probe. |
+| `profile` | Remote DSH profile filter. |
+| `endpoint` | Remote endpoint descriptor path. |
+| `cache_root` | Remote cache root; `@session` or an explicit remote path (`@cwd` is rejected). |
+
+Manage aliases without hand-editing the file:
+
+```sh
+dsh-attach remote list [--json]
+dsh-attach remote add <name> --ssh <target> [--ssh-opt <arg>]... \
+  [--remote-bin <path>] [--profile <name>] [--endpoint <path>] \
+  [--cache-root <path|@session>] [--force]
+dsh-attach remote show <name> [--json]
+dsh-attach remote remove <name>      # alias: rm
+```
+
+Use `--remote <name>` to connect. Passing an alias name to `--ssh` performs the
+same lookup when the name is defined in the file; an unknown value is treated
+as a literal SSH target. CLI flags for `profile`, `remote_bin`, `endpoint`, and
+`cache_root` override the alias, and repeated `--ssh-opt` arguments are appended
+after the alias `ssh_opts`. `--remote` cannot be combined with `--ssh`,
+`--socket`, `--hot`, or `--stdio-proxy`.
+
+The remotes file is local configuration: it is read by the machine that runs
+`dsh-attach`, not by the remote Host or the stdio proxy. Relative `endpoint`
+and `cache_root` values remain remote paths and are not expanded locally.

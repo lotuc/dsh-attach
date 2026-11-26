@@ -179,6 +179,8 @@ dsh-attach --ssh user@host --exec --jsonl -p "run the tests"
 dsh-attach --ssh user@host --list --json
 dsh-attach --ssh user@host --remote-bin ~/.local/bin/dsh-attach
 dsh-attach --ssh user@host --ssh-opt "-o" --ssh-opt "StrictHostKeyChecking=accept-new"
+dsh-attach --remote win
+dsh-attach --ssh win
 ```
 
 - `--exec` and `--list` always add `BatchMode=yes`; key or agent auth must be
@@ -191,12 +193,44 @@ dsh-attach --ssh user@host --ssh-opt "-o" --ssh-opt "StrictHostKeyChecking=accep
   are not expanded locally. `--cache-root @cwd` is rejected because the local
   cwd is meaningless; use `@session` or an explicit remote path. `-f`, `-o`,
   `--log`, and `--approval-rules` remain local files.
-- `--ssh` cannot be combined with `--socket` or `--hot`.
-- The header shows `ssh:<target>`. `/desktop` is disabled because it would
-  focus the local desktop, and local `HERDR_*` variables are not forwarded to
-  the remote Host.
+- `--ssh` cannot be combined with `--socket` or `--hot`; `--remote` cannot be
+  combined with `--ssh`, `--socket`, `--hot`, or `--stdio-proxy`.
+  `--remote-bin` and `--ssh-opt` require `--ssh` or `--remote`.
+- The header shows `ssh:<target>` (or `ssh:<alias>` when using a remote alias).
+  `/desktop` is disabled because it would focus the local desktop, and local
+  `HERDR_*` variables are not forwarded to the remote Host.
 - A Host restart on the remote side is handled by reconnecting with a fresh
   SSH proxy, which re-discovers the new PID, socket path, and rotated token.
+
+### Remote aliases
+
+Define a named profile once, then use it for every session, `--exec`, `--list`,
+or reconnect:
+
+```sh
+dsh-attach remote add win --ssh user@localhost \
+  --ssh-opt -p2233 \
+  --remote-bin "C:/Users/me/AppData/Roaming/npm/dsh-attach.cmd" \
+  --profile desktop --cache-root @session
+
+dsh-attach --remote win --list --json
+dsh-attach --remote win --exec --jsonl -p "run the tests"
+dsh-attach --ssh win -s <session-id>   # transparent alias lookup
+```
+
+`$DSH_HOME/dsh-attach/remotes.toml` stores the aliases; set
+`DSH_ATTACH_REMOTES` to use another path. `dsh-attach remote list [--json]`,
+`remote show <name> [--json]`, and `remote remove <name>` inspect or edit the
+file. `remote add` refuses an existing name unless `--force` is passed, and
+rejects `--cache-root @cwd`.
+
+- `--remote` is mutually exclusive with `--ssh`, `--socket`, `--hot`, and
+  `--stdio-proxy`.
+- CLI `--profile`, `--remote-bin`, `--endpoint`, and `--cache-root` override
+  the alias fields; repeated `--ssh-opt` values are appended to its options.
+- The header and clean-exit reattach hint stay concise by printing
+  `ssh:<alias>` and `dsh-attach --remote <alias> --reattach <id>` instead of
+  repeating the raw SSH flags.
 
 ## Session listing
 

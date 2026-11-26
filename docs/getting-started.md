@@ -77,6 +77,7 @@ dsh-attach --exec -p "run the tests"   # one-shot, no TUI
 dsh-attach --exec --jsonl -p "run the tests"   # stream progress events
 dsh-attach --ssh user@host                    # attach to a remote Host
 dsh-attach --ssh host --exec -p "run the tests"   # remote one-shot
+dsh-attach --remote win                       # use a configured remote alias
 ```
 
 If no endpoint exists, the client starts the desktop app on macOS/Windows, or
@@ -119,9 +120,10 @@ The TUI needs a TTY; use `--list` or `--exec` in scripts.
 | `--socket <path>` | Connect to a socket or named pipe; needs `--token`. |
 | `--token <token>` | Token for `--socket`. |
 | `--profile <name>` | Filter descriptors by profile. |
-| `--ssh <target>` | Attach over SSH (`user@host` or an `~/.ssh/config` alias); no remote TCP listener. |
-| `--remote-bin <path>` | Explicit remote `dsh-attach` executable (requires `--ssh`). |
-| `--ssh-opt <arg>` | Extra argument passed to `ssh`; repeatable (requires `--ssh`). |
+| `--ssh <target>` | Attach over SSH (`user@host` or an `~/.ssh/config` alias); no remote TCP listener. A configured remote alias name is expanded transparently. |
+| `--remote <alias>` | Attach using a named remote alias from `$DSH_HOME/dsh-attach/remotes.toml`. |
+| `--remote-bin <path>` | Explicit remote `dsh-attach` executable (requires `--ssh` or `--remote`). |
+| `--ssh-opt <arg>` | Extra argument passed to `ssh`; repeatable (requires `--ssh` or `--remote`). |
 | `--stdio-proxy` | Remote-only stdin/stdout proxy used by `--ssh`; not for direct use. |
 | `--theme <name>` | `light` (default) or `dark`. |
 | `--log <file>` | Lifecycle log; `off` disables. |
@@ -165,9 +167,48 @@ dsh-attach --ssh build-box --ssh-opt "-o" --ssh-opt "StrictHostKeyChecking=accep
   or under `$HOME/.dsh/profiles/*/node_modules/.bin/dsh-attach`. Pass
   `--remote-bin` to skip the probe (for a Windows remote, pass the `.cmd` path).
 - `--ssh` cannot be combined with `--socket` or `--hot`. `--remote-bin` and
-  `--ssh-opt` require `--ssh`.
-- The TUI header shows `ssh:<target>`; `/desktop` is disabled because it would
-  focus the local desktop, and local `HERDR_*` variables are not forwarded.
+  `--ssh-opt` require `--ssh` or `--remote`.
+- The TUI header shows `ssh:<target>` (or `ssh:<alias>` for a remote alias);
+  `/desktop` is disabled because it would focus the local desktop, and local
+  `HERDR_*` variables are not forwarded.
+
+### Remote aliases
+
+Store frequently used remote hosts in `$DSH_HOME/dsh-attach/remotes.toml`
+(`~/.dsh/dsh-attach/remotes.toml` by default) and connect with a short name:
+
+```sh
+dsh-attach remote add win --ssh user@localhost \
+  --ssh-opt -p2233 \
+  --remote-bin "C:/Users/me/AppData/Roaming/npm/dsh-attach.cmd" \
+  --profile desktop
+dsh-attach remote list
+dsh-attach remote show win
+dsh-attach --remote win -s <session-id>
+dsh-attach --ssh win -s <session-id>      # transparent alias lookup
+```
+
+```toml
+[remotes.win]
+ssh = "user@localhost"
+ssh_opts = ["-p2233"]
+remote_bin = "C:/Users/me/AppData/Roaming/npm/dsh-attach.cmd"
+profile = "desktop"
+# endpoint = "/remote/endpoint.json"
+# cache_root = "@session"
+```
+
+- `dsh-attach remote add <name> --ssh <target>` validates the name and refuses
+  to replace an existing alias without `--force`. `--cache-root @cwd` is
+  rejected because the working directory is remote.
+- `remote list [--json]`, `remote show <name> [--json]`, and
+  `remote remove <name>` (alias `rm`) inspect or edit the file.
+- `--remote <alias>` is mutually exclusive with `--ssh`, `--socket`, `--hot`,
+  and `--stdio-proxy`. CLI flags for `--profile`, `--remote-bin`,
+  `--endpoint`, and `--cache-root` override alias fields; repeated `--ssh-opt`
+  values are appended to the alias options.
+- Override the file location with `DSH_ATTACH_REMOTES`. The header and reattach
+  hint show the concise alias name.
 
 ## Listing
 

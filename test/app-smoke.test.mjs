@@ -1809,3 +1809,57 @@ test('remote sessions never send the local cwd to the Host', async () => {
     else process.env.DSH_ATTACH_NO_MOUSE = previous;
   }
 });
+
+test('remote alias shows a concise header and reattach hint', async () => {
+  const previousMouse = process.env.DSH_ATTACH_NO_MOUSE;
+  const previousHint = process.env.DSH_ATTACH_NO_EXIT_HINT;
+  process.env.DSH_ATTACH_NO_MOUSE = '1';
+  delete process.env.DSH_ATTACH_NO_EXIT_HINT;
+  const terminal = { columns: 100, rows: 24 };
+  const tui = new FakeTui(terminal);
+  const client = new FakeClient();
+  const app = new AttachApp(client, {
+    session: 's1',
+    ssh: 'user@localhost',
+    remoteAlias: 'win',
+    sshOpts: ['-p2233'],
+    remoteBin: 'C:/bin/dsh-attach.cmd',
+    profile: 'desktop',
+    logPath: 'off',
+    terminal,
+    tui,
+  });
+  const writes = [];
+  const originalWrite = process.stderr.write;
+  const ttyDescriptor = Object.getOwnPropertyDescriptor(process.stderr, 'isTTY');
+  const running = app.run();
+  try {
+    for (let attempt = 0; attempt < 100 && app.state.sessionId !== 's1'; attempt += 1) await wait(5);
+    assert.equal(app.state.sessionId, 's1');
+    const header = stripTerminalSequences(app.header.render(120).join('\n'));
+    assert.match(header, /ssh:win/u);
+    assert.doesNotMatch(header, /ssh:user@localhost/u);
+
+    Object.defineProperty(process.stderr, 'isTTY', { value: true, configurable: true });
+    process.stderr.write = (chunk) => {
+      writes.push(String(chunk));
+      return true;
+    };
+    app.quit('command');
+    await running;
+    const hint = writes.join('');
+    assert.match(hint, /Reattach with: dsh-attach --remote win --reattach s1/u);
+    assert.doesNotMatch(hint, /--ssh-opt/u);
+    assert.doesNotMatch(hint, /--remote-bin/u);
+  } finally {
+    process.stderr.write = originalWrite;
+    if (ttyDescriptor === undefined) delete process.stderr.isTTY;
+    else Object.defineProperty(process.stderr, 'isTTY', ttyDescriptor);
+    if (!app.quitting) app.quit('test');
+    await running;
+    if (previousMouse === undefined) delete process.env.DSH_ATTACH_NO_MOUSE;
+    else process.env.DSH_ATTACH_NO_MOUSE = previousMouse;
+    if (previousHint === undefined) delete process.env.DSH_ATTACH_NO_EXIT_HINT;
+    else process.env.DSH_ATTACH_NO_EXIT_HINT = previousHint;
+  }
+});
