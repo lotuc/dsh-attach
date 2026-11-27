@@ -203,3 +203,43 @@ test('sandbox routes require an open session', async () => {
     });
   });
 });
+
+test('session.prompt activates pending writable roots once the session becomes live', async () => {
+  await withTempDir(async (base) => {
+    const extra = join(base, 'extra');
+    await mkdir(extra);
+    const policy = createPolicy();
+    const liveSession = { id: 's2', header: { cwd: '/work' } };
+    let awake = false;
+    await withHost({
+      policy,
+      before: (fixture) => {
+        const originalGet = fixture.services.agents.get.bind(fixture.services.agents);
+        fixture.services.agents.get = (id) => (
+          id === 's2' && awake ? { id: 's2', session: liveSession } : originalGet(id)
+        );
+        const originalPrompt = fixture.ctx.sessionController.prompt;
+        fixture.ctx.sessionController.prompt = async (request, signal) => {
+          awake = true;
+          return originalPrompt(request, signal);
+        };
+      },
+    }, async ({ client }) => {
+      await client.request('session.open', { sessionId: 's2' });
+      const granted = await client.request('sandbox.allowDir', { directory: extra });
+      assert.equal(granted.registered, false);
+      assert.deepEqual(granted.pending, [realpathSync(extra)]);
+      assert.equal(policy.registered.length, 0);
+
+      await client.request('session.prompt', { text: 'hello' });
+      assert.equal(policy.registered.length, 1);
+      assert.equal(policy.registered[0].session, liveSession);
+      assert.equal(policy.registered[0].directory, realpathSync(extra));
+      assert.deepEqual(await client.request('sandbox.dirs'), {
+        supported: true,
+        directories: [realpathSync(extra)],
+        pending: [],
+      });
+    });
+  });
+});

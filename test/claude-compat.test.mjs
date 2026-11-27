@@ -558,3 +558,42 @@ test('forwards only MULTICA_* and HERDR_* environment variables to exec', async 
   });
   assert.equal(err.text(), '');
 });
+
+test('records redacted lifecycle events in ClientLog without leaking prompts or secrets', async () => {
+  const out = capture();
+  const err = capture();
+  const events = [];
+  const log = { event: (name, data) => events.push({ name, data }) };
+  const code = await runClaudeCompat([
+    '-p', 'secret user prompt',
+    '--system-prompt', 'secret system prompt',
+    '--add-dir', '/tmp/extra-repo',
+    '--unknown-flag',
+  ], {
+    stdin: Readable.from([]),
+    stdout: out.stream,
+    stderr: err.stream,
+    env: { MULTICA_TOKEN: 'mat_super_secret' },
+    client,
+    log,
+    runner: async () => success('session-log-1', 'done'),
+  });
+  assert.equal(code, 0);
+  assert.equal(events.length, 2);
+  assert.equal(events[0].name, 'claude.start');
+  assert.deepEqual(events[0].data.argv, [
+    '-p', '<prompt>',
+    '--system-prompt', '<redacted>',
+    '--add-dir', '/tmp/extra-repo',
+    '--unknown-flag',
+  ]);
+  assert.deepEqual(events[0].data.allowDirs, ['/tmp/extra-repo']);
+  assert.deepEqual(events[0].data.ignoredFlags, ['--unknown-flag']);
+  assert.deepEqual(events[0].data.forwardedEnvKeys, ['MULTICA_TOKEN']);
+  assert.equal(JSON.stringify(events).includes('mat_super_secret'), false);
+  assert.equal(JSON.stringify(events).includes('secret user prompt'), false);
+  assert.deepEqual(events[1], {
+    name: 'claude.end',
+    data: { code: 0, sessionId: 'session-log-1' },
+  });
+});
