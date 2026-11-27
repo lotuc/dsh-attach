@@ -173,8 +173,12 @@ test('the follow-up prompt uses action-specific wording', () => {
     onSubmit() {},
     onCancel() {},
   });
+  panel.handleInput('F');
+  panel.handleInput('C');
   const text = stripTerminalSequences(panel.render(70).join('\n'));
+  assert.match(text, /FC/);
   assert.match(text, /follow-up message for the subagent inbox/);
   assert.match(text, /enter send · esc cancel/);
   assert.doesNotMatch(text, /edit the queued message/);
+  assert.doesNotMatch(text, /F fullscreen/);
 });

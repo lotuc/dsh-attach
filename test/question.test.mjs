@@ -29,6 +29,23 @@ test('shows a focused input for a free-text question', () => {
   assert.deepEqual(answer, { answers: [{ id: 'q1', selected: [], custom: 'Rep' }] });
 });
 
+test('a custom answer owns uppercase C and F keys', () => {
+  let answer = null;
+  const panel = new QuestionPanel({
+    questions: [{ id: 'q1', question: 'Anything else?' }],
+  }, {
+    onSubmit: (value) => { answer = value; },
+    requestRender: () => {},
+  });
+  panel.focused = true;
+
+  panel.handleInput('C');
+  panel.handleInput('F');
+  assert.match(plain(panel.render(70)), /CF/);
+  panel.handleInput('\r');
+  assert.deepEqual(answer, { answers: [{ id: 'q1', selected: [], custom: 'CF' }] });
+});
+
 test('enters a free-text question after a multiple-choice question', () => {
   let answer = null;
   const panel = new QuestionPanel({
