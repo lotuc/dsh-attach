@@ -59,6 +59,26 @@ npx skills add ./dsh-tui-attach --skill dsh-exec -g -y
 
 See [Getting started](docs/getting-started.md) for install and CLI details.
 
+### Multica integration
+
+`dsh-attach-claude` is a Claude Code CLI-compatible adapter. It accepts
+`--print`, `--output-format stream-json`, and `--input-format stream-json`
+(orchestrator flags), runs each turn through a live local or remote DSH
+Session, and emits Claude `system`/`assistant`/`user`/`result` frames. Register
+it as a Claude runtime in Multica:
+
+```sh
+multica runtime profile create --runtime-type claude --command-name dsh-attach-claude
+```
+
+Useful orchestration settings are environment variables, so they need no
+custom flags: `DSH_ATTACH_REMOTE`, `DSH_ATTACH_SSH`, `DSH_ATTACH_PROFILE`,
+`DSH_ATTACH_MODEL`, `DSH_ATTACH_PERMISSION`, `DSH_ATTACH_CACHE_ROOT` (default
+`@session`), `DSH_ATTACH_APPROVALS`, `DSH_ATTACH_APPROVAL_RULES`, and
+`DSH_ATTACH_ALLOW_DIRS`. `--model provider/model` is forwarded; Claude aliases
+such as `sonnet` fall back to the DSH default model. See
+[Usage](docs/usage.md#multica-integration) for details.
+
 ## Features
 
 - **Sessions**: list, resume, create, fork, archive/unarchive, pin/unpin, presets.
@@ -85,6 +105,9 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
   and `-o` scope the run. `--list --json` lists sessions, `--models [--json]`
   prints the Host model catalog, and `--approval-rules` (including `@default`)
   scopes approvals.
+- **Claude/Multica adapter**: `dsh-attach-claude` speaks Claude Code's
+  `--print`/`stream-json` protocol and drives the same `runExec` path, so a
+  Claude-compatible orchestrator can use DSH as its runtime.
 - **Remote SSH**: `--ssh <target>` attaches through a remote `--stdio-proxy`
   with no Host TCP listener; `--remote-bin` and repeatable `--ssh-opt` tune the
   hop, and `--exec`/`--list` use non-interactive SSH batch mode. Named aliases

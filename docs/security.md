@@ -144,7 +144,8 @@ permissions, and `danger-full-access` is never granted implicitly.
 - Remove stale descriptors only when no matching Host is running.
 - On Windows, protect the profile directory with normal user ACLs.
 
-## Herdr environment
+## Forwarded client environment
 
-Only `HERDR_*` variables are accepted from a client, bounded in count/size and
-merged into model shell requests. Managed DSH environment remains authoritative.
+Only `HERDR_*` and `MULTICA_*` variables are accepted from a client, bounded in
+count/size and merged into model shell requests for that session. Managed DSH
+environment remains authoritative.

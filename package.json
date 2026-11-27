@@ -25,7 +25,8 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "dsh-attach": "./bin/dsh-attach.js"
+    "dsh-attach": "./bin/dsh-attach.js",
+    "dsh-attach-claude": "./bin/dsh-attach-claude.js"
   },
   "files": [
     "lib",

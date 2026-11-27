@@ -956,6 +956,25 @@ test('fails clearly when the Host has no command registry', async () => {
   );
 });
 
+test('forwards optional env in session.open', async () => {
+  const client = fakeClient({
+    sessionId: 'new-env',
+    onPrompt: (fake) => {
+      frame(fake, 'new-env', 'turn/start', { turn: 1 });
+      finish(fake, 'new-env');
+    },
+  });
+  await runExec(client, {
+    prompt: 'work',
+    env: { MULTICA_TOKEN: 'mat_test', MULTICA_SERVER_URL: 'https://api.multica.ai' },
+  });
+  const open = client.requests.find((entry) => entry.method === 'session.open');
+  assert.deepEqual(open.params.env, {
+    MULTICA_TOKEN: 'mat_test',
+    MULTICA_SERVER_URL: 'https://api.multica.ai',
+  });
+});
+
 function snapshotFrame(sessionId, records) {
   return {
     sessionId,

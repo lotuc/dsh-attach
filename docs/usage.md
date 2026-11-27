@@ -188,6 +188,61 @@ dsh-attach --exec --approval-rules @default -p "run the tests"
   `off`/`0`, otherwise to `$DSH_HOME/dsh-attach/auto-approve.toml`.
 - Rules are not a security sandbox; the DSH permission/sandbox still applies.
 
+## Multica integration
+
+`dsh-attach-claude` is a thin Claude Code CLI compatibility adapter backed by
+the same `runExec` path as `--exec`. It lets a Claude-compatible orchestrator
+such as [Multica](https://github.com/multica-ai/multica) drive a live local or
+remote DSH Session without a custom provider.
+
+```sh
+multica runtime profile create --runtime-type claude --command-name dsh-attach-claude
+
+dsh-attach-claude -p "fix the failing test" --output-format stream-json
+printf '%s\n' '{"type":"user","message":{"role":"user","content":"summarize this repo"}}' \
+  | dsh-attach-claude --input-format stream-json --output-format stream-json
+```
+
+The adapter accepts the standard orchestration flags: `-p/--print`,
+`--output-format text|json|stream-json`, `--input-format text|stream-json`,
+`-r/--resume <session-id>`, `--model`, `--permission-mode`,
+`--system-prompt`, `--append-system-prompt`, repeatable `--add-dir`, and
+`--dangerously-skip-permissions`. Unknown flags are ignored so a newer
+orchestrator flag cannot break a run.
+
+- `stream-json` output emits `system/init`, throttled `assistant` text and
+  thinking frames, `assistant` `tool_use`, `user` `tool_result`, and one final
+  `result` per turn. `json` emits only the final result object; `text` prints
+  the final assistant text. Diagnostics always go to stderr.
+- `--input-format stream-json` reads NDJSON user messages from one open stdin
+  and runs sequential turns against the Session established by the first turn.
+  `--resume <session-id>` starts from an existing idle Session instead.
+- `--model provider/model` is forwarded; Claude aliases such as `sonnet` fall
+  back to the DSH default model instead of failing selection.
+- `--permission-mode plan` maps to `read-only`; `default`, `acceptEdits`, and
+  `bypassPermissions` map to `workspace-write`. Nothing silently escalates to
+  `danger-full-access`.
+- `--add-dir` and `DSH_ATTACH_ALLOW_DIRS` register extra writable roots.
+  `DSH_ATTACH_ALLOW_DIRS` uses the platform path delimiter (`:` on Unix, `;`
+  on Windows).
+
+Environment overrides target a Host without adding non-Claude flags:
+
+| Variable | Meaning |
+|---|---|
+| `DSH_ATTACH_REMOTE` | Remote alias from `$DSH_HOME/dsh-attach/remotes.toml`. |
+| `DSH_ATTACH_SSH` | Raw SSH target (`user@host` or an SSH config alias). |
+| `DSH_ATTACH_PROFILE` | DSH profile for local discovery or the remote Host. |
+| `DSH_ATTACH_MODEL` | `provider/model` override; wins over `--model`. |
+| `DSH_ATTACH_PERMISSION` | `read-only`, `workspace-write`, `danger-full-access`, or `auto`. |
+| `DSH_ATTACH_CACHE_ROOT` | Cache root; defaults to `@session`. |
+| `DSH_ATTACH_APPROVALS` | `deny` (default) or `host` (delegate to DSH Web). |
+| `DSH_ATTACH_APPROVAL_RULES` | Scoped rules file or `@default`. |
+| `DSH_ATTACH_ALLOW_DIRS` | Extra writable roots, path-delimiter separated. |
+
+`--version` prints `2.1.0 (dsh-attach-claude <dsh-attach version>)` so a
+Claude health check can probe the adapter without starting a Host.
+
 ## Remote SSH
 
 `--ssh <target>` attaches to a Host on another machine without opening a TCP
