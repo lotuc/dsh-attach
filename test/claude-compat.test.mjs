@@ -597,3 +597,54 @@ test('records redacted lifecycle events in ClientLog without leaking prompts or 
     data: { code: 0, sessionId: 'session-log-1' },
   });
 });
+
+test('defaults timeoutMs to 0 and honors DSH_ATTACH_TIMEOUT in seconds', async () => {
+  const seen = [];
+  const runWithEnv = async (env) => {
+    const out = capture();
+    const err = capture();
+    const code = await runClaudeCompat(['-p', 'hello'], {
+      stdin: Readable.from([]),
+      stdout: out.stream,
+      stderr: err.stream,
+      env,
+      client,
+      runner: async (_client, options) => {
+        seen.push(options.timeoutMs);
+        return success('session-t1', 'ok');
+      },
+    });
+    return { code, err: err.text() };
+  };
+
+  const def = await runWithEnv({});
+  assert.equal(def.code, 0);
+  const custom = await runWithEnv({ DSH_ATTACH_TIMEOUT: '120' });
+  assert.equal(custom.code, 0);
+  assert.deepEqual(seen, [0, 120_000]);
+
+  const bad = await runWithEnv({ DSH_ATTACH_TIMEOUT: '-5' });
+  assert.equal(bad.code, 2);
+  assert.match(bad.err, /DSH_ATTACH_TIMEOUT/u);
+});
+
+test('defaults waitSubagents to true and honors DSH_ATTACH_WAIT_SUBAGENTS=0', async () => {
+  const seen = [];
+  for (const env of [{}, { DSH_ATTACH_WAIT_SUBAGENTS: '0' }, { DSH_ATTACH_WAIT_SUBAGENTS: 'false' }]) {
+    const out = capture();
+    const err = capture();
+    const code = await runClaudeCompat(['-p', 'hello'], {
+      stdin: Readable.from([]),
+      stdout: out.stream,
+      stderr: err.stream,
+      env,
+      client,
+      runner: async (_client, options) => {
+        seen.push(options.waitSubagents);
+        return success('session-sub-1', 'ok');
+      },
+    });
+    assert.equal(code, 0);
+  }
+  assert.deepEqual(seen, [true, false, false]);
+});

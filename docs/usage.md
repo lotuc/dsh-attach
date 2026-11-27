@@ -239,6 +239,8 @@ Environment overrides target a Host without adding non-Claude flags:
 | `DSH_ATTACH_APPROVALS` | `deny` (default) or `host` (delegate to DSH Web). |
 | `DSH_ATTACH_APPROVAL_RULES` | Scoped rules file or `@default`. |
 | `DSH_ATTACH_ALLOW_DIRS` | Extra writable roots, path-delimiter separated. |
+| `DSH_ATTACH_TIMEOUT` | Per-turn timeout in seconds; defaults to `0` (no internal limit, leaving timeouts to the orchestrator). |
+| `DSH_ATTACH_WAIT_SUBAGENTS` | Wait for running background subagents before finishing a turn (default `1`; `0`/`false`/`off` disables). |
 
 `--version` prints `2.1.0 (dsh-attach-claude <dsh-attach version>)` so a
 Claude health check can probe the adapter without starting a Host.

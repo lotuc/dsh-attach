@@ -975,6 +975,99 @@ test('forwards optional env in session.open', async () => {
   });
 });
 
+test('waits for running subagents and captures the follow-up parent turn by default', async () => {
+  let running = 1;
+  const warnings = [];
+  const client = fakeClient({
+    sessionId: 'new-sub',
+    onPrompt: (fake) => {
+      frame(fake, 'new-sub', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-sub', 'launched background worker');
+      finish(fake, 'new-sub', { turn: 1 });
+      setTimeout(() => {
+        running = 0;
+        setTimeout(() => {
+          frame(fake, 'new-sub', 'turn/start', { turn: 2 });
+          assistant(fake, 'new-sub', 'all subagents completed');
+          frame(fake, 'new-sub', 'turn/end', { turn: 2, reason: { kind: 'complete' } });
+        }, 15);
+      }, 25);
+    },
+  });
+  client.host = { capabilities: ['subagent.summary'] };
+  const originalRequest = client.request;
+  client.request = async (method, params) => {
+    if (method === 'subagent.summary') return { total: 1, running, active: [] };
+    return originalRequest(method, params);
+  };
+
+  const result = await runExec(client, {
+    prompt: 'run subagent',
+    subagentPollMs: 10,
+    subagentGraceMs: 40,
+    warn: (message) => warnings.push(message),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.turn, 2);
+  assert.equal(result.text, 'all subagents completed');
+  assert.equal(warnings.some((entry) => /waiting for 1 running subagent/u.test(entry)), true);
+});
+
+test('exits cleanly after the grace window when a subagent finishes without waking the parent', async () => {
+  let running = 1;
+  const client = fakeClient({
+    sessionId: 'new-silent-sub',
+    onPrompt: (fake) => {
+      frame(fake, 'new-silent-sub', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-silent-sub', 'started background task');
+      finish(fake, 'new-silent-sub', { turn: 1 });
+      setTimeout(() => {
+        running = 0;
+      }, 20);
+    },
+  });
+  client.host = { capabilities: ['subagent.summary'] };
+  const originalRequest = client.request;
+  client.request = async (method, params) => {
+    if (method === 'subagent.summary') return { total: 1, running, active: [] };
+    return originalRequest(method, params);
+  };
+
+  const result = await runExec(client, {
+    prompt: 'run silent subagent',
+    subagentPollMs: 10,
+    subagentGraceMs: 20,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.turn, 1);
+  assert.equal(result.text, 'started background task');
+});
+
+test('waitSubagents=false exits on parent turn/end even while subagents are running', async () => {
+  const client = fakeClient({
+    sessionId: 'new-nowait-sub',
+    onPrompt: (fake) => {
+      frame(fake, 'new-nowait-sub', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-nowait-sub', 'parent done');
+      finish(fake, 'new-nowait-sub', { turn: 1 });
+    },
+  });
+  client.host = { capabilities: ['subagent.summary'] };
+  const originalRequest = client.request;
+  client.request = async (method, params) => {
+    if (method === 'subagent.summary') return { total: 1, running: 2, active: [] };
+    return originalRequest(method, params);
+  };
+
+  const result = await runExec(client, {
+    prompt: 'fire and forget',
+    waitSubagents: false,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.text, 'parent done');
+  assert.equal(client.requests.some((entry) => entry.method === 'subagent.summary'), false);
+});
+
 function snapshotFrame(sessionId, records) {
   return {
     sessionId,
