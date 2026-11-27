@@ -29,6 +29,7 @@ Requirements: DSH Desktop or Web installed, the same OS user, and Node.js
 ```sh
 dsh plugin --profile desktop add ./dsh-attach
 dsh-attach --list
+dsh-attach --models --json
 dsh-attach
 dsh-attach --exec -p "fix the failing test"
 dsh-attach --ssh user@host                 # remote TUI
@@ -77,11 +78,13 @@ See [Getting started](docs/getting-started.md) for install and CLI details.
 - **Jobs and Herdr**: background-job output; Herdr state, titles, preview panes.
 - **Auto-start**: launches DSH when it is not running, then waits for the attach bridge.
 - **Command-line exec**: `--exec` runs one prompt without a TUI; `--json` and
-  `--jsonl` give dispatchers results and streaming progress, the session id is
-  printed early so a timeout can resume with `-s`, and `--allow-dir`,
-  `--permission`, `--model`, `--preset`, `--title`, `-f`, and `-o` scope the
-  run. `--list --json` lists sessions; `--approval-rules` (including
-  `@default`) scopes approvals.
+  `--jsonl` give dispatchers results and streaming progress (text/reasoning
+  deltas, tool calls with bounded arguments, tool results, interactions), the
+  session id is printed early so a timeout or `SIGTERM` can resume with `-s`,
+  and `--allow-dir`, `--permission`, `--model`, `--preset`, `--title`, `-f`,
+  and `-o` scope the run. `--list --json` lists sessions, `--models [--json]`
+  prints the Host model catalog, and `--approval-rules` (including `@default`)
+  scopes approvals.
 - **Remote SSH**: `--ssh <target>` attaches through a remote `--stdio-proxy`
   with no Host TCP listener; `--remote-bin` and repeatable `--ssh-opt` tune the
   hop, and `--exec`/`--list` use non-interactive SSH batch mode. Named aliases

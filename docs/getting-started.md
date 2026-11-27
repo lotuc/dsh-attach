@@ -73,6 +73,8 @@ dsh-attach --new -p "run the tests"
 dsh-attach --new -C ~/src/project
 dsh-attach --list           # non-interactive
 dsh-attach --list --json    # machine-readable session summaries
+dsh-attach --models         # available provider/model entries
+dsh-attach --models --json  # full model catalog for a dispatcher
 dsh-attach --exec -p "run the tests"   # one-shot, no TUI
 dsh-attach --exec --jsonl -p "run the tests"   # stream progress events
 dsh-attach --ssh user@host                    # attach to a remote Host
@@ -104,9 +106,10 @@ The TUI needs a TTY; use `--list` or `--exec` in scripts.
 | `--cache-root <path\|@cwd\|@session>` | Keep language-tool caches under this directory (off by default); `@cwd` uses the launching directory, `@session` the Session workspace. |
 | `--list` | Print sessions and exit. |
 | `--all` | Include subagent sessions in `--list`. |
+| `--models` | Print the Host's available `provider/model` entries and exit; mutually exclusive with `--exec`, `--list`, preview, `--hot`, and `--stdio-proxy`. |
 | `--exec` | Run one prompt without a TUI and print the final answer; reads stdin when `--prompt` and `--prompt-file` are omitted. |
-| `--json` | With `--exec`, print one JSON result object; with `--list`, print one JSON object of full session summaries. |
-| `--jsonl` | With `--exec`, stream newline-delimited progress events. |
+| `--json` | With `--exec`, print one JSON result object; with `--list`, print one JSON object of full session summaries; with `--models`, print the model catalog. |
+| `--jsonl` | With `--exec`, stream newline-delimited progress events (`session.started`, `text.delta`, `reasoning.delta`, `tool.call`, `tool.result`, `interaction`, `turn.end`, `error`). |
 | `--approvals <deny\|host>` | With `--exec`, reject approvals (default) or delegate them to DSH Web. |
 | `--approval-rules <file\|@default>` | With `--exec`, load scoped rules (TOML/JSONC); `@default` reads the TUI's auto-approve policy. |
 | `--approve` | With `--exec`, allow every approval (dangerous). |
@@ -223,6 +226,19 @@ same `--all` filter and newest-first order, but keeps full `sessionId`, `cwd`,
 ```sh
 dsh-attach --list --json
 dsh-attach --list --json --all
+```
+
+## Models
+
+`--models` queries the Host's `model.catalog` and prints one `provider/model`
+entry per line for use with `--model`. Add `--json` for the complete catalog
+(defaults, routable providers, groups, and reasoning efforts). Both forms work
+over `--ssh`/`--remote`.
+
+```sh
+dsh-attach --models
+dsh-attach --models --json
+dsh-attach --ssh build-box --models
 ```
 
 ## Upgrade

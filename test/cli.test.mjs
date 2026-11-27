@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import {
+  execExitCode,
+  listModels,
   listSessions,
   normalizeOptions,
   parseArgs,
@@ -71,10 +73,23 @@ test('parses repeatable and exec-only options', () => {
   assert.throws(() => parseArgs(['--allow-dir']), /requires a value/u);
 });
 
-test('--json works with --list and still requires --exec otherwise', () => {
+test('--json works with --list and --models and still requires one of them', () => {
   assert.equal(parsed(['--list', '--json']).json, true);
   assert.equal(parsed(['--exec', '-p', 'x', '--json']).json, true);
+  assert.equal(parsed(['--models', '--json']).json, true);
   usageError(['--json'], /--json requires --exec or --list/u);
+});
+
+test('parses --models and validates its combinations', () => {
+  assert.equal(parseArgs(['--models']).models, true);
+  assert.equal(parsed(['--models', '--json']).models, true);
+  assert.equal(parsed(['--models', '--ssh', 'host', '--profile', 'desktop']).models, true);
+  usageError(['--models', '--exec', '-p', 'x'], /--models cannot be combined with --exec/u);
+  usageError(['--models', '--list'], /--models cannot be combined with --list/u);
+  usageError(['--models', '--preview', 's1'], /--models cannot be combined with --preview/u);
+  usageError(['--models', '--hot'], /--models cannot be combined with --hot/u);
+  usageError(['--models', '--stdio-proxy'], /--models cannot be combined with --stdio-proxy/u);
+  usageError(['--models', '--jsonl'], /--jsonl requires --exec/u);
 });
 
 test('rejects every exec-only flag outside --exec', () => {
@@ -218,12 +233,167 @@ test('--jsonl emits progress callbacks before the final turn event', async () =>
   const events = stdout.text().trim().split('\n').map((line) => JSON.parse(line));
   assert.deepEqual(events.map((event) => event.type), ['session.started', 'tool.call', 'interaction', 'turn.end']);
   assert.deepEqual(events[0], { type: 'session.started', sessionId: 's1', cwd: '/work' });
-  assert.deepEqual(events[1], { type: 'tool.call', sessionId: 's1', callId: 'c1', name: 'bash' });
+  assert.deepEqual(events[1], {
+    type: 'tool.call',
+    sessionId: 's1',
+    callId: 'c1',
+    name: 'bash',
+    arguments: '',
+  });
   assert.equal(events[2].type, 'interaction');
   assert.equal(events[2].kind, 'approval');
   assert.equal(events[2].outcome, 'rejected');
   assert.equal(events[3].type, 'turn.end');
   assert.equal(stderr.text(), '');
+});
+
+test('--jsonl emits deltas, bounded tool arguments, and tool results', async () => {
+  const stdout = capture();
+  const stderr = capture();
+  const code = await runExecCommand({}, { exec: true, jsonl: true }, {
+    prompt: 'work',
+    stdout: stdout.stream,
+    stderr: stderr.stream,
+    runner: async (_client, options) => {
+      options.onSession('s1', { cwd: '/work' });
+      options.onTextDelta({ sessionId: 's1', text: 'hel' });
+      options.onTextDelta({ sessionId: 's1', text: 'lo' });
+      options.onReasoningDelta({ sessionId: 's1', text: 'thinking' });
+      options.onToolCall({
+        sessionId: 's1',
+        callId: 'c1',
+        name: 'bash',
+        arguments: '{"command":"npm test"}',
+      });
+      options.onToolCall({
+        sessionId: 's1',
+        callId: 'c2',
+        name: 'read',
+        arguments: 'x'.repeat(20_000),
+        truncated: true,
+      });
+      options.onToolResult({
+        sessionId: 's1',
+        callId: 'c1',
+        name: 'bash',
+        ok: true,
+        output: '2 tests passed',
+      });
+      options.onToolResult({
+        sessionId: 's1',
+        callId: 'c2',
+        name: 'read',
+        ok: false,
+        output: 'permission denied',
+        truncated: true,
+      });
+      return baseResult();
+    },
+  });
+  assert.equal(code, 0);
+  const events = stdout.text().trim().split('\n').map((line) => JSON.parse(line));
+  assert.deepEqual(events.map((event) => event.type), [
+    'session.started',
+    'text.delta',
+    'text.delta',
+    'reasoning.delta',
+    'tool.call',
+    'tool.call',
+    'tool.result',
+    'tool.result',
+    'turn.end',
+  ]);
+  assert.deepEqual(events[1], { type: 'text.delta', sessionId: 's1', text: 'hel' });
+  assert.deepEqual(events[3], { type: 'reasoning.delta', sessionId: 's1', text: 'thinking' });
+  assert.deepEqual(events[4], {
+    type: 'tool.call',
+    sessionId: 's1',
+    callId: 'c1',
+    name: 'bash',
+    arguments: '{"command":"npm test"}',
+  });
+  assert.equal(events[5].arguments.length, 20_000);
+  assert.equal(events[5].truncated, true);
+  assert.deepEqual(events[6], {
+    type: 'tool.result',
+    sessionId: 's1',
+    callId: 'c1',
+    name: 'bash',
+    ok: true,
+    output: '2 tests passed',
+  });
+  assert.deepEqual(events[7], {
+    type: 'tool.result',
+    sessionId: 's1',
+    callId: 'c2',
+    name: 'read',
+    ok: false,
+    output: 'permission denied',
+    truncated: true,
+  });
+  assert.equal(events[8].type, 'turn.end');
+  assert.equal(stderr.text(), '');
+});
+
+test('execExitCode maps SIGTERM, SIGINT, and timeout to distinct codes', () => {
+  assert.equal(execExitCode({ code: 'attach/exec-timeout' }), 124);
+  assert.equal(execExitCode({ code: 'attach/exec-interrupted' }), 130);
+  assert.equal(execExitCode({ code: 'attach/exec-interrupted', signal: 'SIGINT' }), 130);
+  assert.equal(execExitCode({ code: 'attach/exec-interrupted', signal: 'SIGTERM' }), 143);
+  assert.equal(execExitCode({ code: 'attach/error' }), 1);
+  assert.equal(execExitCode(undefined), 1);
+});
+
+test('--jsonl reports a SIGTERM error with exit code 143', async () => {
+  const stdout = capture();
+  const stderr = capture();
+  const code = await runExecCommand({}, { exec: true, jsonl: true }, {
+    prompt: 'work',
+    stdout: stdout.stream,
+    stderr: stderr.stream,
+    runner: async () => {
+      throw Object.assign(new Error('exec terminated'), {
+        code: 'attach/exec-interrupted',
+        sessionId: 's1',
+        signal: 'SIGTERM',
+      });
+    },
+  });
+  assert.equal(code, 143);
+  const event = JSON.parse(stdout.text().trim());
+  assert.equal(event.type, 'error');
+  assert.equal(event.sessionId, 's1');
+  assert.equal(event.error.code, 'attach/exec-interrupted');
+  assert.equal(stderr.text(), '');
+});
+
+test('--models prints provider/model entries, the JSON catalog, or a clear empty message', async () => {
+  const catalog = {
+    default: { provider: 'p', model: 'm1' },
+    groups: [
+      { id: 'p', models: [{ id: 'm1' }, { id: 'm2' }] },
+      { id: 'q', models: [{ id: 'm3' }] },
+    ],
+  };
+  const client = { request: async (method) => {
+    assert.equal(method, 'model.catalog');
+    return catalog;
+  } };
+  const plain = capture();
+  await listModels(client, { out: (line) => plain.stream.write(`${line}\n`) });
+  assert.equal(plain.text(), 'p/m1\np/m2\nq/m3\n');
+
+  const json = capture();
+  await listModels(client, { json: true, out: (line) => json.stream.write(`${line}\n`) });
+  assert.deepEqual(JSON.parse(json.text().trim()), catalog);
+  assert.equal(json.text().trim().split('\n').length, 1);
+
+  const empty = capture();
+  await listModels(
+    { request: async () => ({ groups: [] }) },
+    { out: (line) => empty.stream.write(`${line}\n`) },
+  );
+  assert.match(empty.text(), /No models available/u);
 });
 
 test('--jsonl reports a thrown error with the resumable session id', async () => {

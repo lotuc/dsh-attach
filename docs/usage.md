@@ -16,8 +16,10 @@ footer      keys, tokens/context, permission
 
 `--exec` runs one prompt without a TUI. It creates a new Session by default,
 prints the final assistant text to stdout, and exits with `0` on completion,
-`1` on a failed turn or runtime error, `124` on timeout, `130` when interrupted,
-or `2` on invalid arguments or prompt input.
+`1` on a failed turn or runtime error, `124` on timeout, `130` on `SIGINT`
+interruption, `143` on `SIGTERM` termination, or `2` on invalid arguments or
+prompt input. `SIGINT` and `SIGTERM` both send `session.cancel`; `SIGTERM`
+reports `error.signal = "SIGTERM"` to programmatic runners.
 
 ```sh
 dsh-attach --exec -p "fix the failing test"
@@ -111,15 +113,46 @@ incompatible with `--json`.
 
 ```json
 {"type":"session.started","sessionId":"session-...","cwd":"/work"}
-{"type":"tool.call","sessionId":"session-...","callId":"call-1","name":"bash"}
+{"type":"reasoning.delta","sessionId":"session-...","text":"I should run the tests."}
+{"type":"text.delta","sessionId":"session-...","text":"Running the test suite."}
+{"type":"tool.call","sessionId":"session-...","callId":"call-1","name":"bash","arguments":"{\"command\":\"npm test\"}"}
+{"type":"tool.result","sessionId":"session-...","callId":"call-1","name":"bash","ok":true,"output":"2 tests passed"}
 {"type":"interaction","sessionId":"session-...","kind":"approval","requestId":"req-1","tool":"bash","callId":"call-1","reason":"needs write access","outcome":"rejected","decision":"non-interactive exec mode"}
 {"type":"turn.end","ok":true,"sessionId":"session-...","turn":1,"text":"done","reason":"complete","failure":null,"usage":{},"interactions":[],"error":null}
 ```
 
+- `text.delta` and `reasoning.delta` stream assistant chunks while the turn is
+  awaiting completion.
+- `tool.call.arguments` is always a string (objects are JSON-stringified) and is
+  capped at 16384 characters; the event adds `"truncated":true` only when the
+  cap was hit.
+- `tool.result` carries `callId`, `name`, `ok`, and the human-readable `output`
+  (content text or error message), capped the same way. A failed tool call has
+  `ok: false`.
+
 `turn.end` is the final event when the turn finishes (successfully or not). If
 the runner throws (timeout, interrupt, closed connection), the final event is
 `{"type":"error","ok":false,"sessionId":"<id or null>","error":{"code":"...","message":"..."}}`.
-Exit codes are the same as the non-streaming modes.
+Exit codes are the same as the non-streaming modes (`130` for `SIGINT`, `143`
+for `SIGTERM`).
+
+### Model catalog
+
+`--models` queries the Host's `model.catalog` and prints one `provider/model`
+entry per line. Pipe or read those entries when choosing `--model` for a
+dispatched task.
+
+```sh
+dsh-attach --models
+dsh-attach --ssh build-box --models
+```
+
+`--models --json` prints the complete catalog object instead (including its
+`default`, `routableProviders`, and per-group model/reasoning metadata). When
+no routable model exists it prints `No models available.` and exits `0`.
+`--models` cannot be combined with `--exec`, `--list`, preview, `--hot`, or
+`--stdio-proxy`, but it works with `--ssh`, `--remote`, `--profile`,
+`--endpoint`, and `--json`.
 
 ### Approval rules for exec
 

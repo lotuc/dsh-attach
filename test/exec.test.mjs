@@ -19,6 +19,16 @@ function assistant(client, sessionId, text, usage = undefined) {
   });
 }
 
+function streamChunk(client, sessionId, chunk) {
+  client.emit('frame', {
+    sessionId,
+    frame: {
+      type: 'assistant-stream',
+      frame: { type: 'chunk', turn: 1, step: 0, attemptId: 'a1', chunk },
+    },
+  });
+}
+
 function finish(client, sessionId, reason = { kind: 'complete' }) {
   frame(client, sessionId, 'turn/end', { turn: 1, reason });
 }
@@ -741,10 +751,138 @@ test('streams tool calls and interactions through observer callbacks', async () 
     onToolCall: (call) => toolCalls.push(call),
     onInteraction: (record) => interactions.push(record),
   });
-  assert.deepEqual(toolCalls, [{ sessionId: 'new-1', callId: 'tool-1', name: 'bash' }]);
+  assert.deepEqual(toolCalls, [{
+    sessionId: 'new-1',
+    callId: 'tool-1',
+    name: 'bash',
+    arguments: '{}',
+  }]);
   assert.equal(interactions.length, 1);
   assert.equal(interactions[0].type, 'approval');
   assert.equal(interactions[0].outcome, 'rejected');
+});
+
+test('streams text and reasoning deltas only while awaiting the turn', async () => {
+  const deltas = [];
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      streamChunk(fake, 'new-1', { type: 'text-delta', text: 'hel' });
+      streamChunk(fake, 'new-1', { type: 'reasoning-delta', text: 'thinking' });
+      streamChunk(fake, 'new-1', { type: 'text-delta', text: '' });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      assistant(fake, 'new-1', 'hello');
+      finish(fake, 'new-1');
+      streamChunk(fake, 'new-1', { type: 'text-delta', text: 'after the turn' });
+    },
+  });
+  const request = client.request;
+  client.request = async (method, params) => {
+    if (method === 'session.open') {
+      const value = await request(method, params);
+      // The snapshot arrived, but the prompt has not been submitted yet.
+      streamChunk(client, params.sessionId, { type: 'text-delta', text: 'pre-prompt' });
+      return value;
+    }
+    return request(method, params);
+  };
+  const result = await runExec(client, {
+    prompt: 'work',
+    onTextDelta: (delta) => deltas.push({ kind: 'text', ...delta }),
+    onReasoningDelta: (delta) => deltas.push({ kind: 'reasoning', ...delta }),
+  });
+  assert.equal(result.text, 'hello');
+  assert.deepEqual(deltas, [
+    { kind: 'text', sessionId: 'new-1', text: 'hel' },
+    { kind: 'reasoning', sessionId: 'new-1', text: 'thinking' },
+  ]);
+});
+
+test('tool calls carry stringified, bounded arguments', async () => {
+  const toolCalls = [];
+  const oversized = 'x'.repeat(20_000);
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'tool/call', {
+        callId: 'tool-1',
+        name: 'bash',
+        arguments: JSON.stringify({ command: 'npm test' }),
+      });
+      frame(fake, 'new-1', 'tool/call', {
+        callId: 'tool-2',
+        name: 'write',
+        arguments: { path: 'README.md', content: 'hi' },
+      });
+      frame(fake, 'new-1', 'tool/call', {
+        callId: 'tool-3',
+        name: 'read',
+        arguments: oversized,
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'work', onToolCall: (call) => toolCalls.push(call) });
+  assert.deepEqual(toolCalls[0], {
+    sessionId: 'new-1',
+    callId: 'tool-1',
+    name: 'bash',
+    arguments: '{"command":"npm test"}',
+  });
+  assert.deepEqual(toolCalls[1], {
+    sessionId: 'new-1',
+    callId: 'tool-2',
+    name: 'write',
+    arguments: '{"path":"README.md","content":"hi"}',
+  });
+  assert.equal(toolCalls[2].arguments.length, 16_384);
+  assert.equal(toolCalls[2].truncated, true);
+  assert.equal(toolCalls[0].truncated, undefined);
+});
+
+test('tool results carry readable output and error status', async () => {
+  const results = [];
+  const oversized = 'y'.repeat(20_000);
+  const client = fakeClient({
+    sessionId: 'new-1',
+    onPrompt: (fake) => {
+      frame(fake, 'new-1', 'tool/call', { callId: 'tool-1', name: 'bash', arguments: '{}' });
+      frame(fake, 'new-1', 'tool/call', { callId: 'tool-2', name: 'read', arguments: '{}' });
+      frame(fake, 'new-1', 'tool/call', { callId: 'tool-3', name: 'write', arguments: '{}' });
+      frame(fake, 'new-1', 'tool/result', {
+        message: { toolCallId: 'tool-1', content: [{ type: 'text', text: '2 tests passed' }] },
+      });
+      frame(fake, 'new-1', 'tool/result', {
+        message: { toolCallId: 'tool-2', content: [], isError: true },
+        error: { message: 'permission denied' },
+      });
+      frame(fake, 'new-1', 'tool/result', {
+        message: { toolCallId: 'tool-3', content: [{ type: 'text', text: oversized }] },
+      });
+      frame(fake, 'new-1', 'turn/start', { turn: 1 });
+      finish(fake, 'new-1');
+    },
+  });
+  await runExec(client, { prompt: 'work', onToolResult: (result) => results.push(result) });
+  assert.deepEqual(results[0], {
+    sessionId: 'new-1',
+    callId: 'tool-1',
+    name: 'bash',
+    ok: true,
+    output: '2 tests passed',
+  });
+  assert.deepEqual(results[1], {
+    sessionId: 'new-1',
+    callId: 'tool-2',
+    name: 'read',
+    ok: false,
+    output: 'permission denied',
+  });
+  assert.equal(results[2].ok, true);
+  assert.equal(results[2].output.length, 16_384);
+  assert.equal(results[2].truncated, true);
+  assert.equal(results[0].truncated, undefined);
 });
 
 test('preserves the session id when interrupted', async () => {
@@ -759,6 +897,28 @@ test('preserves the session id when interrupted', async () => {
     running,
     (error) => error?.code === 'attach/exec-interrupted' && error?.sessionId === 'new-interrupt',
   );
+});
+
+test('SIGTERM cancels the turn, preserves the session id, and cleans up listeners', async () => {
+  const client = fakeClient({ sessionId: 'new-term' });
+  const sigtermListeners = process.listenerCount('SIGTERM');
+  const sigintListeners = process.listenerCount('SIGINT');
+  const running = runExec(client, { prompt: 'slow', timeoutMs: 0 });
+  const deadline = Date.now() + 1_000;
+  while (!client.requests.some((entry) => entry.method === 'session.prompt') && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+  process.emit('SIGTERM');
+  await assert.rejects(
+    running,
+    (error) => error?.code === 'attach/exec-interrupted'
+      && error?.message === 'exec terminated'
+      && error?.signal === 'SIGTERM'
+      && error?.sessionId === 'new-term',
+  );
+  assert.equal(client.requests.some((entry) => entry.method === 'session.cancel'), true);
+  assert.equal(process.listenerCount('SIGTERM'), sigtermListeners);
+  assert.equal(process.listenerCount('SIGINT'), sigintListeners);
 });
 
 test('reports unsupported and rejected sandbox responses', async () => {

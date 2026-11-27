@@ -16,8 +16,9 @@
 | `--permission <mode>` | exec | Apply `/permission <mode>` before prompt: `read-only`, `workspace-write`, `danger-full-access`, `auto`. |
 | `--allow-dir <path>` | exec | Register an extra runtime writable root under `workspace-write` (repeatable, `~` expanded). Fails fast if Host lacks `sandbox.roots` or rejects the directory. |
 | `--cache-root <path\|@cwd\|@session>` | exec | Redirect language tool caches (Maven, Gradle, npm, pip, Cargo, Go, Clojure, etc.) and auto-register as a writable root. |
-| `--json` | exec / list | With `--exec`, print one final JSON result object. With `--list`, print `{"items":[...]}` without truncation. |
+| `--json` | exec / list / models | With `--exec`, print one final JSON result object. With `--list`, print `{"items":[...]}` without truncation. With `--models`, print the full model catalog. |
 | `--jsonl` | exec | Stream newline-delimited JSON progress events to stdout. Mutually exclusive with `--json`. |
+| `--models` | models | Query `model.catalog` and print one `provider/model` entry per line, then exit. Mutually exclusive with `--exec`, `--list`, preview, `--hot`, and `--stdio-proxy`; works with `--json`, `--ssh`, `--remote`, `--profile`, and `--endpoint`. |
 | `--approvals <deny\|host>` | exec | Fallback for unmatched approvals/questions: `deny` (default) or `host` (DSH Web UI). |
 | `--approval-rules <file\|@default>` | exec | Scoped TOML/JSONC approval rules. `@default` resolves `DSH_ATTACH_AUTO_APPROVE` or `$DSH_HOME/dsh-attach/auto-approve.toml`. |
 | `--approve` | exec | Allow every approval for the run (dangerous; mutually exclusive with `--approvals host`). |
@@ -83,6 +84,34 @@ preserved for `-s`.
 
 ## Output Schemas
 
+### `--models` and `--models --json`
+
+Plain output prints one routable `provider/model` per line (or
+`No models available.`), which is directly usable with `--model`:
+
+```text
+deepseek-official/deepseek-flash
+magpie/group/codex-auto-review
+```
+
+`--json` prints the Host catalog object without modification:
+
+```json
+{
+  "default": { "provider": "...", "model": "...", "reasoningEffort": "high" },
+  "routableProviders": ["..."],
+  "groups": [
+    {
+      "id": "provider-id",
+      "name": "Display name",
+      "models": [
+        { "id": "model-id", "name": "Model name", "reasoning": { "efforts": [], "defaultEffort": "high" } }
+      ]
+    }
+  ]
+}
+```
+
 ### `--list --json`
 
 ```json
@@ -122,7 +151,7 @@ Success / completed turn:
 }
 ```
 
-Error / timeout (`124`) / interrupt (`130`):
+Error / timeout (`124`) / interrupt (`130`) / terminated (`143`):
 
 ```json
 {
@@ -134,13 +163,20 @@ Error / timeout (`124`) / interrupt (`130`):
 
 ### `--exec --jsonl` Events
 
-Each line on stdout is a standalone JSON object with a `type` discriminator:
+Each line on stdout is a standalone JSON object with a `type` discriminator.
+Deltas, tool events, and interactions interleave as the turn progresses:
 
-1. `{"type":"session.started","sessionId":"...","cwd":"..."}`
-2. `{"type":"tool.call","sessionId":"...","callId":"...","name":"bash"}`
-3. `{"type":"interaction","sessionId":"...","kind":"approval","requestId":"...","tool":"bash","callId":"...","reason":"...","outcome":"allowed-once","decision":"rule:tests"}`
-4. `{"type":"turn.end","ok":true,"sessionId":"...","turn":1,"text":"...","reason":"completed","failure":null,"usage":{...},"interactions":[...],"error":null}`
-5. `{"type":"error","ok":false,"sessionId":"...","error":{"code":"...","message":"..."}}` (on fatal error/timeout/interrupt)
+- `{"type":"session.started","sessionId":"...","cwd":"..."}`
+- `{"type":"text.delta","sessionId":"...","text":"..."}` — streamed assistant text
+- `{"type":"reasoning.delta","sessionId":"...","text":"..."}` — streamed reasoning
+- `{"type":"tool.call","sessionId":"...","callId":"...","name":"bash","arguments":"{\"command\":\"npm test\"}"}` — `arguments` is a string (objects are JSON-stringified), capped at 16384 chars, with `"truncated":true` added only when capped
+- `{"type":"tool.result","sessionId":"...","callId":"...","name":"bash","ok":true,"output":"..."}` — `output` is content text or the error message, capped at 16384 chars with an optional `"truncated":true`; failed calls use `ok:false`
+- `{"type":"interaction","sessionId":"...","kind":"approval","requestId":"...","tool":"bash","callId":"...","reason":"...","outcome":"allowed-once","decision":"rule:tests"}`
+- `{"type":"turn.end","ok":true,"sessionId":"...","turn":1,"text":"...","reason":"completed","failure":null,"usage":{...},"interactions":[...],"error":null}`
+- `{"type":"error","ok":false,"sessionId":"...","error":{"code":"...","message":"..."}}` (on fatal error/timeout/interrupt)
+
+`turn.end` is the last line when the turn settles. `error` replaces it when the
+runner throws. Exit codes: `124` timeout, `130` `SIGINT`, `143` `SIGTERM`.
 
 ## Scoped Approval Rules (`--approval-rules`)
 

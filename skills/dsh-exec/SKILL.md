@@ -11,10 +11,11 @@ Use `dsh-attach --exec` to run one-shot or multi-turn prompts against a local De
 
 ## 1. Preflight
 
-Check that `dsh-attach` is reachable and inspect existing sessions:
+Check that `dsh-attach` is reachable and inspect existing sessions/models:
 
 ```sh
 dsh-attach --list --json
+dsh-attach --models
 ```
 
 - If `dsh-attach` is not on `PATH`, check `~/.dsh/profiles/desktop/node_modules/.bin/dsh-attach` (or `node ./bin/dsh-attach.js` inside a local `dsh-attach` checkout).
@@ -127,6 +128,9 @@ Remote path rules:
 ### Model, preset, and scoped approvals
 
 ```sh
+# Discover routable provider/model pairs (add --json for the full catalog)
+dsh-attach --models
+
 # Select provider/model and agent preset (new session)
 dsh-attach --exec --json -C /abs/path/to/repo \
   --preset standard \
@@ -150,7 +154,9 @@ dsh-attach --exec --jsonl -C /abs/path/to/repo \
 
 - With `--jsonl`, read stdout line by line:
   - `session.started` arrives right after `session.open` with `sessionId` and resolved `cwd`.
-  - `tool.call` and `interaction` stream as the turn progresses.
+  - `text.delta` and `reasoning.delta` stream assistant output while the turn is awaiting completion.
+  - `tool.call` carries `arguments` (JSON string, capped at 16384 chars with `truncated: true`); `tool.result` carries `callId`, `name`, `ok`, and `output` (also capped).
+  - `interaction` streams as approvals/questions are resolved.
   - `turn.end` (or `error`) is the final line.
 - With `--json` or plain output, `dsh-attach: session <id>` is printed to stderr immediately after `session.open`.
 - Exit codes:
@@ -159,7 +165,8 @@ dsh-attach --exec --jsonl -C /abs/path/to/repo \
   - `2`: Invalid CLI arguments, unreadable prompt/rules file.
   - `124`: Timed out (`--exec-timeout <seconds>`, default `1800`, `0` = no timeout).
   - `130`: Interrupted (`SIGINT`).
-- On exit `124` or `130`, read `sessionId` from the JSON/JSONL `error` payload (or stderr) and resume with `-s <sessionId>` once the session returns to `idle`.
+  - `143`: Terminated (`SIGTERM`; the runner sends `session.cancel` first).
+- On exit `124`, `130`, or `143`, read `sessionId` from the JSON/JSONL `error` payload (or stderr) and resume with `-s <sessionId>` once the session returns to `idle`.
 - With `--ssh`, a mid-turn network drop is recovered automatically for up to 60 seconds: the runner reconnects, re-opens the same session, re-applies `--allow-dir` roots, and either resumes waiting or returns the final text if the turn finished while disconnected. If recovery expires it exits `1` with `attach/closed` and still preserves `sessionId`. Fatal SSH errors (`attach/ssh-auth`, `attach/ssh-remote-bin`) are not retried.
 - After DSH reports completion, independently inspect `git status` / `git diff` (and run project checks if needed) before committing or reporting final success.
 
